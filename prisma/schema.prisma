@@ -1,75 +1,75 @@
-generator client {                                                                                                                                                                                        
-    provider = "prisma-client-js"                                                                                                                                                                           
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  datasource db {                                                                                                                                                                                           
-    provider = "postgresql"                                                                                                                                                                                 
-    url      = env("DATABASE_URL")                                                                                                                                                                          
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  model Customer {                                                                                                                                                                                          
-    id        String   @id @default(cuid())                                                                                                                                                                 
-    name      String                                                                                                                                                                                        
-    domain    String   @unique                                                                                                                                                                              
-    createdAt DateTime @default(now())                                                                                                                                                                      
-    updatedAt DateTime @updatedAt                                                                                                                                                                           
-    users     User[]                                                                                                                                                                                        
-    budgets   Budget[]                                                                                                                                                                                      
-    requests  Request[]                                                                                                                                                                                     
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  model User {                                                                                                                                                                                              
-    id         String   @id @default(cuid())                                                                                                                                                                
-    email      String   @unique                                                                                                                                                                             
-    password   String                                                                                                                                                                                       
-    name       String                                                                                                                                                                                       
-    role       String                                                                                                                                                                                       
-    customerId String                                                                                                                                                                                       
-    customer   Customer @relation(fields: [customerId], references: [id])                                                                                                                                   
-    createdAt  DateTime @default(now())                                                                                                                                                                     
-    updatedAt  DateTime @updatedAt                                                                                                                                                                          
-    createdRequests Request[]                                                                                                                                                                               
-    ownedBudgets    Budget[]                                                                                                                                                                                
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  model Budget {                                                                                                                                                                                            
-    id              String    @id @default(cuid())                                                                                                                                                          
-    customerId      String                                                                                                                                                                                  
-    customer        Customer  @relation(fields: [customerId], references: [id])                                                                                                                             
-    department      String                                                                                                                                                                                  
-    subCategory     String?                                                                                                                                                                                 
-    fiscalPeriod    String                                                                                                                                                                                  
-    budgetedAmount  Float                                                                                                                                                                                   
-    source          String    @default("manual")                                                                                                                                                            
-    createdAt       DateTime  @default(now())                                                                                                                                                               
-    updatedAt       DateTime  @updatedAt                                                                                                                                                                    
-    utilization     BudgetUtilization?                                                                                                                                                                      
-    requests        Request[]                                                                                                                                                                               
-    @@unique([customerId, department, subCategory, fiscalPeriod])                                                                                                                                           
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  model BudgetUtilization {                                                                                                                                                                                 
-    id               String   @id @default(cuid())                                                                                                                                                          
-    budgetId         String   @unique                                                                                                                                                                       
-    budget           Budget   @relation(fields: [budgetId], references: [id])                                                                                                                               
-    committedAmount  Float    @default(0)                                                                                                                                                                   
-    reservedAmount   Float    @default(0)                                                                                                                                                                   
-    updatedAt        DateTime @updatedAt                                                                                                                                                                    
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  model Request {                                                                                                                                                                                           
-    id                String   @id @default(cuid())                                                                                                                                                         
-    customerId        String                                                                                                                                                                                
-    customer          Customer @relation(fields: [customerId], references: [id])                                                                                                                            
-    supplier          String                                                                                                                                                                                
-    description       String                                                                                                                                                                                
-    amount            Float                                                                                                                                                                                 
-    budgetCategory    String?                                                                                                                                                                               
-    budgetId          String?                                                                                                                                                                               
-    budget            Budget?  @relation(fields: [budgetId], references: [id])                                                                                                                              
-    status            String   @default("pending")                                                                                                                                                          
-    createdById       String                                                                                                                                                                                
-    createdBy         User     @relation(fields: [createdById], references: [id])                                                                                                                           
-    createdAt         DateTime @default(now())                                                                                                                                                              
-    updatedAt         DateTime @updatedAt                                                                                                                                                                   
-  }   
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  budgets   Budget[]
+  requests  Request[]
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  name            String
+  role            String
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdRequests Request[]
+}
+
+model Budget {
+  id              String             @id @default(cuid())
+  customerId      String
+  customer        Customer           @relation(fields: [customerId], references: [id])
+  department      String
+  subCategory     String?
+  fiscalPeriod    String
+  budgetedAmount  Float
+  source          String             @default("manual")
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  utilization     BudgetUtilization?
+  requests        Request[]
+
+  @@unique([customerId, department, subCategory, fiscalPeriod])
+}
+
+model BudgetUtilization {
+  id              String   @id @default(cuid())
+  budgetId        String   @unique
+  budget          Budget   @relation(fields: [budgetId], references: [id])
+  committedAmount Float    @default(0)
+  reservedAmount  Float    @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model Request {
+  id             String   @id @default(cuid())
+  customerId     String
+  customer       Customer @relation(fields: [customerId], references: [id])
+  supplier       String
+  description    String
+  amount         Float
+  budgetCategory String?
+  budgetId       String?
+  budget         Budget?  @relation(fields: [budgetId], references: [id])
+  status         String   @default("pending")
+  createdById    String
+  createdBy      User     @relation(fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
