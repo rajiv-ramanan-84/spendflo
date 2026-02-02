@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { ToastContainer, ToastProps } from '@/app/components/Toast';
 import { BudgetEditModal } from '@/app/components/BudgetEditModal';
-import { AddBudgetModal } from '@/app/components/AddBudgetModal';
 import { ReleaseBudgetModal } from '@/app/components/ReleaseBudgetModal';
 import { ExportButton } from '@/app/components/ExportButton';
 import { CleanupButton } from '@/app/components/CleanupButton';
@@ -57,7 +56,6 @@ export function DashboardClient() {
 
   // Modal state
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
   const [releasingBudget, setReleasingBudget] = useState<Budget | null>(null);
 
@@ -136,26 +134,6 @@ export function DashboardClient() {
     }
   }
 
-  async function handleAddBudget(data: any) {
-    try {
-      const res = await fetch('/api/budgets/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, userId: getCurrentUser() }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error);
-      }
-
-      addToast('success', 'Budget added', `${data.department} budget created successfully`);
-      fetchData();
-    } catch (error: any) {
-      addToast('error', 'Failed to add budget', error.message);
-      throw error;
-    }
-  }
 
   async function handleDeleteBudget(budgetId: string) {
     try {
@@ -278,12 +256,6 @@ export function DashboardClient() {
         />
       )}
 
-      {showAddModal && (
-        <AddBudgetModal
-          onClose={() => setShowAddModal(false)}
-          onAdd={handleAddBudget}
-        />
-      )}
 
       {releasingBudget && (
         <ReleaseBudgetModal
@@ -330,12 +302,6 @@ export function DashboardClient() {
             <div className="flex gap-3">
               <CleanupButton onComplete={fetchData} />
               <ExportButton budgets={budgets} />
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-medium rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all"
-              >
-                + Add Budget
-              </button>
             </div>
           </div>
         </div>

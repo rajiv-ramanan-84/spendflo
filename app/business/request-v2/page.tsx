@@ -213,28 +213,24 @@ export default function BusinessRequestV2Page() {
   }, [vendor]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0A0A] via-[#111111] to-[#0A0A0A]">
+    <div className="min-h-screen bg-gray-50">
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       <div className="max-w-2xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <a href="/" className="inline-flex items-center text-sm text-gray-400 hover:text-pink-400 mb-6 transition-colors">
+          <a href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-pink-600 mb-6 transition-colors">
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Back to home
           </a>
-          <h1 className="text-3xl font-bold text-white mb-2">Request Budget</h1>
-          <p className="text-gray-400">Quick approval for your purchase</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Request Budget</h1>
+          <p className="text-gray-600">Quick approval for your purchase</p>
         </div>
 
-        {/* Form - Railway-style Glass Card */}
-        <form onSubmit={handleSubmit} className="relative">
-          {/* Glassmorphism background */}
-          <div className="absolute inset-0 bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/10"></div>
-
-          <div className="relative p-8 space-y-6">
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-6">
             {/* Vendor */}
             <div>
               <label className="block text-sm font-semibold text-gray-200 mb-2">
