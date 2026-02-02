@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { colors, effects, spacing, typography, borderRadius } from '@/app/styles/design-system';
 
 interface ReleaseBudgetModalProps {
   budget: any;
@@ -28,17 +29,43 @@ export function ReleaseBudgetModal({ budget, onClose, onRelease }: ReleaseBudget
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}>
+      <div style={{
+        backgroundColor: colors.bg.secondary,
+        borderRadius: borderRadius.xl,
+        boxShadow: effects.shadow.xl,
+        border: `1px solid ${colors.border.default}`,
+        maxWidth: '28rem',
+        width: '100%',
+        padding: spacing.lg
+      }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between" style={{ marginBottom: spacing.lg }}>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Release Budget</h2>
-            <p className="text-sm text-gray-600 mt-1">Free up locked budget amounts</p>
+            <h2 style={{
+              fontSize: typography.fontSize['2xl'],
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary
+            }}>Release Budget</h2>
+            <p style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary,
+              marginTop: spacing.xs
+            }}>Free up locked budget amounts</p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            style={{
+              color: colors.text.tertiary,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: spacing.xs,
+              transition: effects.transition.base
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = colors.text.secondary}
+            onMouseLeave={(e) => e.currentTarget.style.color = colors.text.tertiary}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -47,58 +74,133 @@ export function ReleaseBudgetModal({ budget, onClose, onRelease }: ReleaseBudget
         </div>
 
         {/* Budget Info */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-          <div className="font-semibold text-gray-900 text-lg">{budget.department}</div>
+        <div style={{
+          marginBottom: spacing.lg,
+          padding: spacing.md,
+          backgroundColor: colors.bg.tertiary,
+          borderRadius: borderRadius.lg,
+          border: `1px solid ${colors.border.default}`
+        }}>
+          <div style={{
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            fontSize: typography.fontSize.lg
+          }}>{budget.department}</div>
           {budget.subCategory && (
-            <div className="text-sm text-gray-600">{budget.subCategory}</div>
+            <div style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.secondary
+            }}>{budget.subCategory}</div>
           )}
-          <div className="text-xs text-gray-500 mt-1">{budget.fiscalPeriod}</div>
+          <div style={{
+            fontSize: typography.fontSize.xs,
+            color: colors.text.tertiary,
+            marginTop: spacing.xs
+          }}>{budget.fiscalPeriod}</div>
         </div>
 
         {/* Current Amounts */}
-        <div className="mb-6 space-y-3">
-          <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+        <div style={{ marginBottom: spacing.lg, display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+          <div className="flex items-center justify-between" style={{
+            padding: spacing.sm,
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            borderRadius: borderRadius.md,
+            border: `2px solid ${colors.warning}`
+          }}>
             <div>
-              <div className="text-xs font-semibold text-yellow-700 uppercase">Reserved</div>
-              <div className="text-sm text-gray-600">Pending approval</div>
+              <div style={{
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.warning,
+                textTransform: 'uppercase'
+              }}>Reserved</div>
+              <div style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.text.secondary
+              }}>Pending approval</div>
             </div>
-            <div className="text-xl font-bold text-yellow-700">
+            <div style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.warning
+            }}>
               ${reserved.toLocaleString()}
             </div>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+          <div className="flex items-center justify-between" style={{
+            padding: spacing.sm,
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderRadius: borderRadius.md,
+            border: `2px solid ${colors.info}`
+          }}>
             <div>
-              <div className="text-xs font-semibold text-blue-700 uppercase">Committed</div>
-              <div className="text-sm text-gray-600">Approved spend</div>
+              <div style={{
+                fontSize: typography.fontSize.xs,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.info,
+                textTransform: 'uppercase'
+              }}>Committed</div>
+              <div style={{
+                fontSize: typography.fontSize.sm,
+                color: colors.text.secondary
+              }}>Approved spend</div>
             </div>
-            <div className="text-xl font-bold text-blue-700">
+            <div style={{
+              fontSize: typography.fontSize.xl,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.info
+            }}>
               ${committed.toLocaleString()}
             </div>
           </div>
         </div>
 
         {/* Release Options */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
+        <div style={{ marginBottom: spacing.lg }}>
+          <label style={{
+            display: 'block',
+            fontSize: typography.fontSize.sm,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.text.primary,
+            marginBottom: spacing.sm
+          }}>
             What would you like to release?
           </label>
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.xs }}>
             <button
               onClick={() => setReleaseType('reserved')}
               disabled={reserved === 0}
-              className={`w-full p-4 rounded-xl border-2 text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                releaseType === 'reserved'
-                  ? 'border-pink-500 bg-pink-50'
-                  : 'border-gray-200 hover:border-pink-300'
-              }`}
+              style={{
+                width: '100%',
+                padding: spacing.md,
+                borderRadius: borderRadius.lg,
+                border: `2px solid ${releaseType === 'reserved' ? colors.brand.primary : colors.border.default}`,
+                backgroundColor: releaseType === 'reserved' ? 'rgba(233, 30, 99, 0.1)' : 'transparent',
+                textAlign: 'left',
+                transition: effects.transition.base,
+                opacity: reserved === 0 ? 0.3 : 1,
+                cursor: reserved === 0 ? 'not-allowed' : 'pointer'
+              }}
+              onMouseEnter={(e) => reserved > 0 && releaseType !== 'reserved' && (e.currentTarget.style.borderColor = colors.border.hover)}
+              onMouseLeave={(e) => reserved > 0 && releaseType !== 'reserved' && (e.currentTarget.style.borderColor = colors.border.default)}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-gray-900">Reserved only</div>
-                  <div className="text-sm text-gray-600">Release pending approvals</div>
+                  <div style={{
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary
+                  }}>Reserved only</div>
+                  <div style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary
+                  }}>Release pending approvals</div>
                 </div>
-                <div className="text-lg font-bold text-yellow-600">
+                <div style={{
+                  fontSize: typography.fontSize.lg,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.warning
+                }}>
                   ${reserved.toLocaleString()}
                 </div>
               </div>
@@ -107,18 +209,36 @@ export function ReleaseBudgetModal({ budget, onClose, onRelease }: ReleaseBudget
             <button
               onClick={() => setReleaseType('committed')}
               disabled={committed === 0}
-              className={`w-full p-4 rounded-xl border-2 text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                releaseType === 'committed'
-                  ? 'border-pink-500 bg-pink-50'
-                  : 'border-gray-200 hover:border-pink-300'
-              }`}
+              style={{
+                width: '100%',
+                padding: spacing.md,
+                borderRadius: borderRadius.lg,
+                border: `2px solid ${releaseType === 'committed' ? colors.brand.primary : colors.border.default}`,
+                backgroundColor: releaseType === 'committed' ? 'rgba(233, 30, 99, 0.1)' : 'transparent',
+                textAlign: 'left',
+                transition: effects.transition.base,
+                opacity: committed === 0 ? 0.3 : 1,
+                cursor: committed === 0 ? 'not-allowed' : 'pointer'
+              }}
+              onMouseEnter={(e) => committed > 0 && releaseType !== 'committed' && (e.currentTarget.style.borderColor = colors.border.hover)}
+              onMouseLeave={(e) => committed > 0 && releaseType !== 'committed' && (e.currentTarget.style.borderColor = colors.border.default)}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-gray-900">Committed only</div>
-                  <div className="text-sm text-gray-600">Release approved spend</div>
+                  <div style={{
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary
+                  }}>Committed only</div>
+                  <div style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary
+                  }}>Release approved spend</div>
                 </div>
-                <div className="text-lg font-bold text-blue-600">
+                <div style={{
+                  fontSize: typography.fontSize.lg,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.info
+                }}>
                   ${committed.toLocaleString()}
                 </div>
               </div>
@@ -127,18 +247,36 @@ export function ReleaseBudgetModal({ budget, onClose, onRelease }: ReleaseBudget
             <button
               onClick={() => setReleaseType('both')}
               disabled={reserved === 0 && committed === 0}
-              className={`w-full p-4 rounded-xl border-2 text-left transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                releaseType === 'both'
-                  ? 'border-pink-500 bg-pink-50'
-                  : 'border-gray-200 hover:border-pink-300'
-              }`}
+              style={{
+                width: '100%',
+                padding: spacing.md,
+                borderRadius: borderRadius.lg,
+                border: `2px solid ${releaseType === 'both' ? colors.brand.primary : colors.border.default}`,
+                backgroundColor: releaseType === 'both' ? 'rgba(233, 30, 99, 0.1)' : 'transparent',
+                textAlign: 'left',
+                transition: effects.transition.base,
+                opacity: (reserved === 0 && committed === 0) ? 0.3 : 1,
+                cursor: (reserved === 0 && committed === 0) ? 'not-allowed' : 'pointer'
+              }}
+              onMouseEnter={(e) => (reserved > 0 || committed > 0) && releaseType !== 'both' && (e.currentTarget.style.borderColor = colors.border.hover)}
+              onMouseLeave={(e) => (reserved > 0 || committed > 0) && releaseType !== 'both' && (e.currentTarget.style.borderColor = colors.border.default)}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-gray-900">Both reserved & committed</div>
-                  <div className="text-sm text-gray-600">Release all locked amounts</div>
+                  <div style={{
+                    fontWeight: typography.fontWeight.semibold,
+                    color: colors.text.primary
+                  }}>Both reserved & committed</div>
+                  <div style={{
+                    fontSize: typography.fontSize.sm,
+                    color: colors.text.secondary
+                  }}>Release all locked amounts</div>
                 </div>
-                <div className="text-lg font-bold text-red-600">
+                <div style={{
+                  fontSize: typography.fontSize.lg,
+                  fontWeight: typography.fontWeight.bold,
+                  color: colors.error
+                }}>
                   ${(reserved + committed).toLocaleString()}
                 </div>
               </div>
@@ -147,12 +285,22 @@ export function ReleaseBudgetModal({ budget, onClose, onRelease }: ReleaseBudget
         </div>
 
         {/* Warning */}
-        <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+        <div style={{
+          marginBottom: spacing.lg,
+          padding: spacing.md,
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          border: `2px solid ${colors.error}`,
+          borderRadius: borderRadius.lg
+        }}>
           <div className="flex items-start">
-            <svg className="w-5 h-5 text-red-600 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 style={{ color: colors.error }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <div className="text-sm text-red-700">
+            <div style={{
+              fontSize: typography.fontSize.sm,
+              color: colors.text.primary
+            }}>
               <strong>Warning:</strong> This action will immediately free up the selected budget amounts. This cannot be undone.
             </div>
           </div>
@@ -162,14 +310,39 @@ export function ReleaseBudgetModal({ budget, onClose, onRelease }: ReleaseBudget
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+            style={{
+              flex: 1,
+              padding: `${spacing.sm} ${spacing.md}`,
+              border: `2px solid ${colors.border.default}`,
+              color: colors.text.primary,
+              fontWeight: typography.fontWeight.semibold,
+              borderRadius: borderRadius.lg,
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              transition: effects.transition.base
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.bg.hover}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           >
             Cancel
           </button>
           <button
             onClick={handleRelease}
             disabled={loading || (reserved === 0 && committed === 0)}
-            className="flex-1 px-4 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              flex: 1,
+              padding: `${spacing.sm} ${spacing.md}`,
+              backgroundColor: colors.error,
+              color: colors.text.primary,
+              fontWeight: typography.fontWeight.semibold,
+              borderRadius: borderRadius.lg,
+              border: 'none',
+              cursor: (loading || (reserved === 0 && committed === 0)) ? 'not-allowed' : 'pointer',
+              opacity: (loading || (reserved === 0 && committed === 0)) ? 0.5 : 1,
+              transition: effects.transition.base
+            }}
+            onMouseEnter={(e) => !loading && (reserved > 0 || committed > 0) && (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => !loading && (reserved > 0 || committed > 0) && (e.currentTarget.style.opacity = '1')}
           >
             {loading ? 'Releasing...' : 'Release Budget'}
           </button>
