@@ -30,6 +30,7 @@ export default function BusinessRequestV2Page() {
 
   // UI state
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
+  const [departmentSearch, setDepartmentSearch] = useState('');
   const [budgetCheck, setBudgetCheck] = useState<any>(null);
   const [checkingBudget, setCheckingBudget] = useState(false);
 
@@ -196,6 +197,11 @@ export default function BusinessRequestV2Page() {
   // Get unique departments
   const departments = Array.from(new Set(budgets.map((b) => b.department))).sort();
 
+  // Filtered departments based on search
+  const filteredDepartments = departments.filter((dept) =>
+    dept.toLowerCase().includes(departmentSearch.toLowerCase())
+  );
+
   // Auto-suggest department when vendor changes
   useEffect(() => {
     if (vendor && !department) {
@@ -305,29 +311,29 @@ export default function BusinessRequestV2Page() {
               </div>
             </div>
 
-            {/* Department - Opens immediately */}
+            {/* Department - Searchable dropdown */}
             <div className="relative">
               <label className="block text-sm font-semibold text-gray-200 mb-2">
                 Department
               </label>
-              <button
-                type="button"
-                onClick={() => setShowDepartmentDropdown(!showDepartmentDropdown)}
+              <input
+                type="text"
+                value={department || departmentSearch}
+                onChange={(e) => {
+                  setDepartmentSearch(e.target.value);
+                  setDepartment('');
+                  setShowDepartmentDropdown(true);
+                }}
                 onFocus={() => setShowDepartmentDropdown(true)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-left text-white flex items-center justify-between"
-              >
-                <span className={department ? 'text-white' : 'text-gray-500'}>
-                  {department || 'Select department'}
-                </span>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+                onBlur={() => setTimeout(() => setShowDepartmentDropdown(false), 200)}
+                placeholder="Start typing to search departments..."
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-white placeholder-gray-500"
+              />
 
-              {/* Dropdown - Shows immediately */}
-              {showDepartmentDropdown && departments.length > 0 && (
+              {/* Dropdown - Shows filtered results as you type */}
+              {showDepartmentDropdown && filteredDepartments.length > 0 && (
                 <div className="absolute z-10 w-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto backdrop-blur-xl">
-                  {departments.map((dept) => {
+                  {filteredDepartments.map((dept) => {
                     const deptBudgets = budgets.filter((b) => b.department === dept);
                     const totalAvailable = deptBudgets.reduce((sum, b) => {
                       const committed = b.utilization?.committedAmount || 0;
@@ -341,6 +347,7 @@ export default function BusinessRequestV2Page() {
                         type="button"
                         onClick={() => {
                           setDepartment(dept);
+                          setDepartmentSearch('');
                           setShowDepartmentDropdown(false);
                         }}
                         className={`w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center justify-between group ${
@@ -354,6 +361,13 @@ export default function BusinessRequestV2Page() {
                       </button>
                     );
                   })}
+                </div>
+              )}
+
+              {/* No results message */}
+              {showDepartmentDropdown && filteredDepartments.length === 0 && departmentSearch && (
+                <div className="absolute z-10 w-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-xl p-4 text-center text-gray-400">
+                  No departments found matching "{departmentSearch}"
                 </div>
               )}
             </div>
