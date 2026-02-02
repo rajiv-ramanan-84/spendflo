@@ -1,4 +1,4 @@
- import { NextResponse } from 'next/server';                                                                                                                                                               
+import { NextResponse } from 'next/server';                                                                                                                                                               
   import { prisma } from '@/lib/prisma';                                                                                                                                                                    
                                                                                                                                                                                                             
   export async function POST(request: Request) {                                                                                                                                                            
@@ -6,13 +6,11 @@
       const body = await request.json();                                                                                                                                                                    
       const { department, subCategory, budgetedAmount, fiscalPeriod } = body;                                                                                                                               
                                                                                                                                                                                                             
-      // Get a customer ID (using the first one for demo)                                                                                                                                                   
       const customer = await prisma.customer.findFirst();                                                                                                                                                   
       if (!customer) {                                                                                                                                                                                      
         return NextResponse.json({ error: 'No customer found' }, { status: 404 });                                                                                                                          
       }                                                                                                                                                                                                     
                                                                                                                                                                                                             
-      // Create budget                                                                                                                                                                                      
       const budget = await prisma.budget.create({                                                                                                                                                           
         data: {                                                                                                                                                                                             
           customerId: customer.id,                                                                                                                                                                          
@@ -24,7 +22,6 @@
         },                                                                                                                                                                                                  
       });                                                                                                                                                                                                   
                                                                                                                                                                                                             
-      // Create utilization record                                                                                                                                                                          
       await prisma.budgetUtilization.create({                                                                                                                                                               
         data: {                                                                                                                                                                                             
           budgetId: budget.id,                                                                                                                                                                              
@@ -41,152 +38,4 @@
         { status: 500 }                                                                                                                                                                                     
       );                                                                                                                                                                                                    
     }                                                                                                                                                                                                       
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  Save: Ctrl+X, Y, Enter                                                                                                                                                                                    
-                                                                                                                                                                                                            
-  ---                                                                                                                                                                                                       
-  Create budget check API:                                                                                                                                                                                  
-                                                                                                                                                                                                            
-  nano app/api/budgets/check/route.ts                                                                                                                                                                       
-                                                                                                                                                                                                            
-  Paste:                                                                                                                                                                                                    
-                                                                                                                                                                                                            
-  import { NextResponse } from 'next/server';                                                                                                                                                               
-  import { prisma } from '@/lib/prisma';                                                                                                                                                                    
-                                                                                                                                                                                                            
-  export async function POST(request: Request) {                                                                                                                                                            
-    try {                                                                                                                                                                                                   
-      const body = await request.json();                                                                                                                                                                    
-      const { department, subCategory, amount } = body;                                                                                                                                                     
-                                                                                                                                                                                                            
-      // Get customer                                                                                                                                                                                       
-      const customer = await prisma.customer.findFirst();                                                                                                                                                   
-      if (!customer) {                                                                                                                                                                                      
-        return NextResponse.json({                                                                                                                                                                          
-          budget_found: false,                                                                                                                                                                              
-          budget_status: 'no_budget',                                                                                                                                                                       
-        });                                                                                                                                                                                                 
-      }                                                                                                                                                                                                     
-                                                                                                                                                                                                            
-      // Find matching budget                                                                                                                                                                               
-      const budget = await prisma.budget.findFirst({                                                                                                                                                        
-        where: {                                                                                                                                                                                            
-          customerId: customer.id,                                                                                                                                                                          
-          department,                                                                                                                                                                                       
-          subCategory: subCategory || null,                                                                                                                                                                 
-          fiscalPeriod: 'FY2025',                                                                                                                                                                           
-        },                                                                                                                                                                                                  
-        include: {                                                                                                                                                                                          
-          utilization: true,                                                                                                                                                                                
-        },                                                                                                                                                                                                  
-      });                                                                                                                                                                                                   
-                                                                                                                                                                                                            
-      if (!budget) {                                                                                                                                                                                        
-        return NextResponse.json({                                                                                                                                                                          
-          budget_found: false,                                                                                                                                                                              
-          budget_status: 'no_budget',                                                                                                                                                                       
-        });                                                                                                                                                                                                 
-      }                                                                                                                                                                                                     
-                                                                                                                                                                                                            
-      // Calculate availability                                                                                                                                                                             
-      const committed = budget.utilization?.committedAmount || 0;                                                                                                                                           
-      const reserved = budget.utilization?.reservedAmount || 0;                                                                                                                                             
-      const available = budget.budgetedAmount - committed - reserved;                                                                                                                                       
-      const currentUtilization = (committed / budget.budgetedAmount) * 100;                                                                                                                                 
-      const newUtilization = ((committed + amount) / budget.budgetedAmount) * 100;                                                                                                                          
-                                                                                                                                                                                                            
-      const inBudget = available >= amount;                                                                                                                                                                 
-                                                                                                                                                                                                            
-      return NextResponse.json({                                                                                                                                                                            
-        budget_found: true,                                                                                                                                                                                 
-        budget_id: budget.id,                                                                                                                                                                               
-        budget_status: inBudget ? 'in_budget' : 'out_of_budget',                                                                                                                                            
-        budget_details: {                                                                                                                                                                                   
-          budgeted_amount: budget.budgetedAmount,                                                                                                                                                           
-          committed_amount: committed,                                                                                                                                                                      
-          reserved_amount: reserved,                                                                                                                                                                        
-          available_amount: available,                                                                                                                                                                      
-          utilization_pct: currentUtilization,                                                                                                                                                              
-          new_utilization_pct: newUtilization,                                                                                                                                                              
-        },                                                                                                                                                                                                  
-      });                                                                                                                                                                                                   
-    } catch (error) {                                                                                                                                                                                       
-      console.error('Error checking budget:', error);                                                                                                                                                       
-      return NextResponse.json(                                                                                                                                                                             
-        { error: 'Failed to check budget' },                                                                                                                                                                
-        { status: 500 }                                                                                                                                                                                     
-      );                                                                                                                                                                                                    
-    }                                                                                                                                                                                                       
-  }                                                                                                                                                                                                         
-                                                                                                                                                                                                            
-  Save: Ctrl+X, Y, Enter                                                                                                                                                                                    
-                                                                                                                                                                                                            
-  ---                                                                                                                                                                                                       
-  Create requests API:                                                                                                                                                                                      
-                                                                                                                                                                                                            
-  nano app/api/requests/route.ts                                                                                                                                                                            
-                                                                                                                                                                                                            
-  Paste:                                                                                                                                                                                                    
-                                                                                                                                                                                                            
-  import { NextResponse } from 'next/server';                                                                                                                                                               
-  import { prisma } from '@/lib/prisma';                                                                                                                                                                    
-                                                                                                                                                                                                            
-  export async function POST(request: Request) {                                                                                                                                                            
-    try {                                                                                                                                                                                                   
-      const body = await request.json();                                                                                                                                                                    
-      const {                                                                                                                                                                                               
-        supplier,                                                                                                                                                                                           
-        description,                                                                                                                                                                                        
-        amount,                                                                                                                                                                                             
-        budgetCategory,                                                                                                                                                                                     
-        budgetSubCategory,                                                                                                                                                                                  
-        budgetStatus,                                                                                                                                                                                       
-      } = body;                                                                                                                                                                                             
-                                                                                                                                                                                                            
-      // Get customer and user                                                                                                                                                                              
-      const customer = await prisma.customer.findFirst();                                                                                                                                                   
-      const user = await prisma.user.findFirst();                                                                                                                                                           
-                                                                                                                                                                                                            
-      if (!customer || !user) {                                                                                                                                                                             
-        return NextResponse.json({ error: 'Setup incomplete' }, { status: 400 });                                                                                                                           
-      }                                                                                                                                                                                                     
-                                                                                                                                                                                                            
-      // Find budget if category specified                                                                                                                                                                  
-      let budgetId = null;                                                                                                                                                                                  
-      if (budgetCategory) {                                                                                                                                                                                 
-        const budget = await prisma.budget.findFirst({                                                                                                                                                      
-          where: {                                                                                                                                                                                          
-            customerId: customer.id,                                                                                                                                                                        
-            department: budgetCategory,                                                                                                                                                                     
-            subCategory: budgetSubCategory || null,                                                                                                                                                         
-          },                                                                                                                                                                                                
-        });                                                                                                                                                                                                 
-        budgetId = budget?.id || null;                                                                                                                                                                      
-      }                                                                                                                                                                                                     
-                                                                                                                                                                                                            
-      // Create request                                                                                                                                                                                     
-      const req = await prisma.request.create({                                                                                                                                                             
-        data: {                                                                                                                                                                                             
-          customerId: customer.id,                                                                                                                                                                          
-          supplier,                                                                                                                                                                                         
-          description,                                                                                                                                                                                      
-          amount: parseFloat(amount),                                                                                                                                                                       
-          budgetCategory: budgetCategory || null,                                                                                                                                                           
-          budgetSubCategory: budgetSubCategory || null,                                                                                                                                                     
-          budgetId,                                                                                                                                                                                         
-          budgetStatus: budgetStatus || 'no_budget',                                                                                                                                                        
-          status: 'pending',                                                                                                                                                                                
-          createdById: user.id,                                                                                                                                                                             
-        },                                                                                                                                                                                                  
-      });                                                                                                                                                                                                   
-                                                                                                                                                                                                            
-      return NextResponse.json(req);                                                                                                                                                                        
-    } catch (error) {                                                                                                                                                                                       
-      console.error('Error creating request:', error);                                                                                                                                                      
-      return NextResponse.json(                                                                                                                                                                             
-        { error: 'Failed to create request' },                                                                                                                                                              
-        { status: 500 }                                                                                                                                                                                     
-      );                                                                                                                                                                                                    
-    }                                                                                                                                                                                                       
-  }
+  }     
