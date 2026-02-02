@@ -230,7 +230,8 @@ export default function BusinessRequestV2Page() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="space-y-6">
             {/* Vendor */}
             <div>
               <label className="block text-sm font-semibold text-gray-200 mb-2">
