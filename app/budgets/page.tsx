@@ -37,10 +37,10 @@ export default async function BudgetsPage() {
             </p>
           </div>
           <a
-            href="/budgets/new"
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+            href="/fpa/upload"
+            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition"
           >
-            + Add Budget
+            {budgets.length === 0 ? 'Add Budgets' : 'Modify Budgets'}
           </a>
         </div>
 

@@ -28,21 +28,40 @@ interface DashboardStats {
   totalBudgets: number;
 }
 
+interface Budget {
+  id: string;
+  department: string;
+  subCategory: string | null;
+  fiscalPeriod: string;
+  budgetedAmount: number;
+  currency: string;
+  utilization?: {
+    committedAmount: number;
+    reservedAmount: number;
+  };
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, []);
 
-  async function fetchStats() {
+  async function fetchData() {
     try {
-      const res = await fetch('/api/dashboard/stats');
-      const data = await res.json();
-      setStats(data);
+      const [statsRes, budgetsRes] = await Promise.all([
+        fetch('/api/dashboard/stats'),
+        fetch('/api/budgets')
+      ]);
+      const statsData = await statsRes.json();
+      const budgetsData = await budgetsRes.json();
+      setStats(statsData);
+      setBudgets(budgetsData);
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      console.error('Failed to fetch data:', error);
     } finally {
       setLoading(false);
     }
@@ -227,6 +246,108 @@ export default function DashboardPage() {
             <p className="text-gray-600">No critical budget alerts at this time.</p>
           </div>
         )}
+
+        {/* All Budgets Table */}
+        <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">All Budgets</h2>
+              <p className="text-sm text-gray-600 mt-1">Complete breakdown by department and category</p>
+            </div>
+            <a
+              href="/budgets"
+              className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-medium rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all text-sm"
+            >
+              {budgets.length === 0 ? 'Add Budgets' : 'Modify Budgets'}
+            </a>
+          </div>
+
+          {budgets.length === 0 ? (
+            <div className="px-6 py-12 text-center text-gray-500">
+              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-lg font-medium mb-2">No budgets found</p>
+              <p className="text-sm mb-4">Upload an Excel file to get started</p>
+              <a href="/fpa/upload" className="text-pink-600 hover:text-pink-700 font-medium">
+                Upload Budgets →
+              </a>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sub-Category</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Currency</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Budgeted</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Committed</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reserved</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Available</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Utilization</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {budgets.map((budget) => {
+                    const committed = budget.utilization?.committedAmount || 0;
+                    const reserved = budget.utilization?.reservedAmount || 0;
+                    const available = budget.budgetedAmount - committed - reserved;
+                    const utilization = ((committed + reserved) / budget.budgetedAmount) * 100;
+
+                    return (
+                      <tr key={budget.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {budget.department}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {budget.subCategory || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {budget.fiscalPeriod}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {budget.currency}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {budget.currency === 'GBP' ? '£' : '$'}{budget.budgetedAmount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {budget.currency === 'GBP' ? '£' : '$'}{committed.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-yellow-600 font-medium">
+                          {budget.currency === 'GBP' ? '£' : '$'}{reserved.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">
+                          {budget.currency === 'GBP' ? '£' : '$'}{available.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                              <div
+                                className={`h-2 rounded-full ${
+                                  utilization >= 90 ? 'bg-red-500' :
+                                  utilization >= 80 ? 'bg-orange-500' :
+                                  utilization >= 70 ? 'bg-yellow-500' :
+                                  'bg-green-500'
+                                }`}
+                                style={{ width: `${Math.min(utilization, 100)}%` }}
+                              ></div>
+                            </div>
+                            <span className="text-sm text-gray-700 font-medium">
+                              {utilization.toFixed(0)}%
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
