@@ -39,11 +39,13 @@ model Budget {
   subCategory     String?
   fiscalPeriod    String
   budgetedAmount  Float
+  currency        String             @default("USD")
   source          String             @default("manual")
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   utilization     BudgetUtilization?
   requests        Request[]
+  auditLogs       AuditLog[]
 
   @@unique([customerId, department, subCategory, fiscalPeriod])
 }
@@ -72,4 +74,16 @@ model Request {
   createdBy      User     @relation(fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  budgetId    String
+  budget      Budget   @relation(fields: [budgetId], references: [id])
+  action      String
+  oldValue    String?
+  newValue    String?
+  changedBy   String
+  reason      String?
+  createdAt   DateTime @default(now())
 }
