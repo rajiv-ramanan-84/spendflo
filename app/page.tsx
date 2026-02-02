@@ -133,7 +133,7 @@ export default function HomePage() {
         {/* Quick Links */}
         <div className="mt-12 text-center space-x-6">
           <a
-            href="/budgets"
+            href="/dashboard"
             className="inline-flex items-center text-gray-600 hover:text-pink-600 transition-colors font-medium"
           >
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
