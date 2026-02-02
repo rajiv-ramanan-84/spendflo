@@ -71,12 +71,44 @@ export function DashboardClient() {
         fetch('/api/dashboard/stats'),
         fetch('/api/budgets')
       ]);
-      const statsData = await statsRes.json();
-      const budgetsData = await budgetsRes.json();
-      setStats(statsData);
-      setBudgets(budgetsData);
+
+      if (statsRes.ok && budgetsRes.ok) {
+        const statsData = await statsRes.json();
+        const budgetsData = await budgetsRes.json();
+        setStats(statsData);
+        setBudgets(Array.isArray(budgetsData) ? budgetsData : []);
+      } else {
+        // Set empty state if API fails
+        setStats({
+          summary: {
+            totalBudget: 0,
+            totalCommitted: 0,
+            totalReserved: 0,
+            totalAvailable: 0,
+            totalUtilizationPercent: 0,
+          },
+          health: { healthy: 0, warning: 0, highRisk: 0, critical: 0 },
+          criticalBudgets: [],
+          totalBudgets: 0,
+        });
+        setBudgets([]);
+        addToast('error', 'Failed to load dashboard', 'Please check database connection');
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      setStats({
+        summary: {
+          totalBudget: 0,
+          totalCommitted: 0,
+          totalReserved: 0,
+          totalAvailable: 0,
+          totalUtilizationPercent: 0,
+        },
+        health: { healthy: 0, warning: 0, highRisk: 0, critical: 0 },
+        criticalBudgets: [],
+        totalBudgets: 0,
+      });
+      setBudgets([]);
       addToast('error', 'Failed to load dashboard');
     } finally {
       setLoading(false);
