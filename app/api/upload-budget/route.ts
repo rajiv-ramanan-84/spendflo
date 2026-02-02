@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     // Convert Request to Node.js IncomingMessage-like object
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    const customerId = formData.get('customerId') as string;
+    let customerId = formData.get('customerId') as string;
     const userId = formData.get('userId') as string;
 
     if (!file) {
@@ -27,11 +27,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'customerId is required' },
-        { status: 400 }
-      );
+    // Auto-create default customer if needed
+    if (!customerId || customerId === 'default-customer') {
+      const defaultCustomer = await prisma.customer.upsert({
+        where: { domain: 'default.local' },
+        update: {},
+        create: {
+          name: 'Default Organization',
+          domain: 'default.local',
+        },
+      });
+      customerId = defaultCustomer.id;
     }
 
     // Read file buffer

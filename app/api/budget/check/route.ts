@@ -4,13 +4,28 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerId, department, subCategory, fiscalPeriod, amount, currency = 'USD' } = body;
+    let { customerId, department, subCategory, fiscalPeriod, amount, currency = 'USD' } = body;
 
-    if (!customerId || !department || !fiscalPeriod || !amount) {
+    if (!department || !fiscalPeriod || !amount) {
       return NextResponse.json(
-        { error: 'Missing required fields: customerId, department, fiscalPeriod, amount' },
+        { error: 'Missing required fields: department, fiscalPeriod, amount' },
         { status: 400 }
       );
+    }
+
+    // Auto-use default customer if not provided
+    if (!customerId || customerId === 'default-customer') {
+      const defaultCustomer = await prisma.customer.findFirst({
+        where: { domain: 'default.local' },
+      });
+      if (defaultCustomer) {
+        customerId = defaultCustomer.id;
+      } else {
+        return NextResponse.json(
+          { error: 'No customer found. Please seed the database first or provide a valid customerId.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Find budget
