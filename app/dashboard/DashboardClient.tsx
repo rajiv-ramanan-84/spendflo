@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { ToastContainer, ToastProps } from '@/app/components/Toast';
 import { BudgetEditModal } from '@/app/components/BudgetEditModal';
 import { AddBudgetModal } from '@/app/components/AddBudgetModal';
+import { ReleaseBudgetModal } from '@/app/components/ReleaseBudgetModal';
+import { ExportButton } from '@/app/components/ExportButton';
+import { CleanupButton } from '@/app/components/CleanupButton';
+import { Header } from '@/app/components/Header';
+import { getCurrentUser } from '@/app/components/UserSelector';
 
 interface DashboardStats {
   summary: {
@@ -54,6 +59,7 @@ export function DashboardClient() {
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deletingBudget, setDeletingBudget] = useState<string | null>(null);
+  const [releasingBudget, setReleasingBudget] = useState<Budget | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -82,7 +88,7 @@ export function DashboardClient() {
       const res = await fetch(`/api/budgets/${budgetId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, userId: 'fpa-user' }),
+        body: JSON.stringify({ ...data, userId: getCurrentUser() }),
       });
 
       if (!res.ok) {
@@ -103,7 +109,7 @@ export function DashboardClient() {
       const res = await fetch('/api/budgets/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, userId: 'fpa-user' }),
+        body: JSON.stringify({ ...data, userId: getCurrentUser() }),
       });
 
       if (!res.ok) {
@@ -121,7 +127,7 @@ export function DashboardClient() {
 
   async function handleDeleteBudget(budgetId: string) {
     try {
-      const res = await fetch(`/api/budgets/${budgetId}?userId=fpa-user`, {
+      const res = await fetch(`/api/budgets/${budgetId}?userId=${getCurrentUser()}`, {
         method: 'DELETE',
       });
 
@@ -135,6 +141,66 @@ export function DashboardClient() {
       setDeletingBudget(null);
     } catch (error: any) {
       addToast('error', 'Failed to delete budget', error.message);
+    }
+  }
+
+  async function handleReleaseBudget(budgetId: string, type: 'reserved' | 'committed' | 'both') {
+    try {
+      const budget = budgets.find(b => b.id === budgetId);
+      if (!budget) return;
+
+      const committed = budget.utilization?.committedAmount || 0;
+      const reserved = budget.utilization?.reservedAmount || 0;
+
+      if (type === 'both') {
+        // Release both
+        if (reserved > 0) {
+          await fetch('/api/budget/release', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              budgetId,
+              amount: reserved,
+              type: 'reserved',
+              userId: getCurrentUser(),
+              reason: 'Manual release by FP&A',
+            }),
+          });
+        }
+        if (committed > 0) {
+          await fetch('/api/budget/release', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              budgetId,
+              amount: committed,
+              type: 'committed',
+              userId: getCurrentUser(),
+              reason: 'Manual release by FP&A',
+            }),
+          });
+        }
+        addToast('success', 'Budget released', `Released $${(reserved + committed).toLocaleString()} total`);
+      } else {
+        const amount = type === 'reserved' ? reserved : committed;
+        await fetch('/api/budget/release', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            budgetId,
+            amount,
+            type,
+            userId: getCurrentUser(),
+            reason: 'Manual release by FP&A',
+          }),
+        });
+        addToast('success', 'Budget released', `Released $${amount.toLocaleString()} from ${type}`);
+      }
+
+      fetchData();
+    } catch (error: any) {
+      addToast('error', 'Failed to release budget', error.message);
+      throw error;
     }
   }
 
@@ -168,6 +234,7 @@ export function DashboardClient() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       <ToastContainer toasts={toasts} onClose={removeToast} />
 
       {/* Modals */}
@@ -183,6 +250,14 @@ export function DashboardClient() {
         <AddBudgetModal
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddBudget}
+        />
+      )}
+
+      {releasingBudget && (
+        <ReleaseBudgetModal
+          budget={releasingBudget}
+          onClose={() => setReleasingBudget(null)}
+          onRelease={handleReleaseBudget}
         />
       )}
 
@@ -221,18 +296,14 @@ export function DashboardClient() {
               <p className="mt-2 text-gray-600">Monitor budget health and utilization</p>
             </div>
             <div className="flex gap-3">
+              <CleanupButton onComplete={fetchData} />
+              <ExportButton budgets={budgets} />
               <button
                 onClick={() => setShowAddModal(true)}
                 className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-medium rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all"
               >
                 + Add Budget
               </button>
-              <a
-                href="/"
-                className="px-4 py-2 text-gray-600 hover:text-pink-600 transition-colors"
-              >
-                ← Back
-              </a>
             </div>
           </div>
         </div>
@@ -468,25 +539,37 @@ export function DashboardClient() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => setEditingBudget(budget)}
-                            className="text-pink-600 hover:text-pink-900 mr-3"
-                            title="Edit budget"
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => setDeletingBudget(budget.id)}
-                            disabled={committed > 0 || reserved > 0}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-30 disabled:cursor-not-allowed"
-                            title={committed > 0 || reserved > 0 ? "Cannot delete budget with commitments" : "Delete budget"}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setEditingBudget(budget)}
+                              className="text-pink-600 hover:text-pink-900"
+                              title="Edit budget"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => setReleasingBudget(budget)}
+                              disabled={committed === 0 && reserved === 0}
+                              className="text-blue-600 hover:text-blue-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                              title={committed === 0 && reserved === 0 ? "No locked amounts to release" : "Release budget"}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => setDeletingBudget(budget.id)}
+                              disabled={committed > 0 || reserved > 0}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                              title={committed > 0 || reserved > 0 ? "Cannot delete budget with commitments" : "Delete budget"}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
