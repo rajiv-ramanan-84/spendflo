@@ -7,83 +7,83 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Customer {
-  id        String   @id @default(cuid())
-  name      String
-  domain    String   @unique
+model AuditLog {
+  id        String   @id
+  budgetId  String
+  action    String
+  oldValue  String?
+  newValue  String?
+  changedBy String
+  reason    String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     User[]
-  budgets   Budget[]
-  requests  Request[]
-}
-
-model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  password        String
-  name            String
-  role            String
-  customerId      String
-  customer        Customer  @relation(fields: [customerId], references: [id])
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  createdRequests Request[]
+  budget    Budget   @relation(fields: [budgetId], references: [id])
 }
 
 model Budget {
-  id              String             @id @default(cuid())
-  customerId      String
-  customer        Customer           @relation(fields: [customerId], references: [id])
-  department      String
-  subCategory     String?
-  fiscalPeriod    String
-  budgetedAmount  Float
-  currency        String             @default("USD")
-  source          String             @default("manual")
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  utilization     BudgetUtilization?
-  requests        Request[]
-  auditLogs       AuditLog[]
+  id             String             @id
+  customerId     String
+  department     String
+  subCategory    String?
+  fiscalPeriod   String
+  budgetedAmount Float
+  source         String             @default("manual")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime
+  currency       String             @default("USD")
+  auditLogs      AuditLog[]
+  customer       Customer           @relation(fields: [customerId], references: [id])
+  utilization    BudgetUtilization? @relation("BudgetToUtilization")
+  Request        Request[]
 
   @@unique([customerId, department, subCategory, fiscalPeriod])
 }
 
 model BudgetUtilization {
-  id              String   @id @default(cuid())
+  id              String   @id
   budgetId        String   @unique
-  budget          Budget   @relation(fields: [budgetId], references: [id])
   committedAmount Float    @default(0)
   reservedAmount  Float    @default(0)
-  updatedAt       DateTime @updatedAt
+  updatedAt       DateTime
+  Budget          Budget   @relation("BudgetToUtilization", fields: [budgetId], references: [id])
+}
+
+model Customer {
+  id        String    @id
+  name      String
+  domain    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  budgets   Budget[]
+  Request   Request[]
+  User      User[]
 }
 
 model Request {
-  id             String   @id @default(cuid())
+  id             String   @id
   customerId     String
-  customer       Customer @relation(fields: [customerId], references: [id])
   supplier       String
   description    String
   amount         Float
   budgetCategory String?
   budgetId       String?
-  budget         Budget?  @relation(fields: [budgetId], references: [id])
   status         String   @default("pending")
   createdById    String
-  createdBy      User     @relation(fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime
+  Budget         Budget?  @relation(fields: [budgetId], references: [id])
+  User           User     @relation(fields: [createdById], references: [id])
+  Customer       Customer @relation(fields: [customerId], references: [id])
 }
 
-model AuditLog {
-  id          String   @id @default(cuid())
-  budgetId    String
-  budget      Budget   @relation(fields: [budgetId], references: [id])
-  action      String
-  oldValue    String?
-  newValue    String?
-  changedBy   String
-  reason      String?
-  createdAt   DateTime @default(now())
+model User {
+  id         String    @id
+  email      String    @unique
+  password   String
+  name       String
+  role       String
+  customerId String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+  Request    Request[]
+  Customer   Customer  @relation(fields: [customerId], references: [id])
 }
