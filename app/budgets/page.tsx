@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 
 async function getBudgets() {
   try {
+    console.log('[Budgets Page] Fetching budgets...');
     const budgets = await prisma.budget.findMany({
       include: {
         utilization: true,
@@ -11,12 +12,16 @@ async function getBudgets() {
         department: 'asc',
       },
     });
+    console.log('[Budgets Page] Found budgets:', budgets.length);
     return budgets;
   } catch (error) {
-    console.error('Error fetching budgets:', error);
+    console.error('[Budgets Page] Error fetching budgets:', error);
     return [];
   }
 }
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function BudgetsPage() {
   const budgets = await getBudgets();
