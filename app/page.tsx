@@ -1,65 +1,290 @@
-import Image from "next/image";
-
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
-}
+export default function Home() {                                                                                                                                                                          
+    return (                                                                                                                                                                                                
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">                                                                                                                           
+        {/* Header */}                                                                                                                                                                                      
+        <header className="bg-white shadow-sm border-b">                                                                                                                                                    
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">                                                                                                                                     
+            <div className="flex items-center justify-between">                                                                                                                                             
+              <h1 className="text-3xl font-bold text-gray-900">                                                                                                                                             
+                SpendFlo Budget Module                                                                                                                                                                      
+              </h1>                                                                                                                                                                                         
+              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">                                                                                                     
+                ✓ Live Demo                                                                                                                                                                                 
+              </span>                                                                                                                                                                                       
+            </div>                                                                                                                                                                                          
+          </div>                                                                                                                                                                                            
+        </header>                                                                                                                                                                                           
+                                                                                                                                                                                                            
+        {/* Main Content */}                                                                                                                                                                                
+        <main className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">                                                                                                                                     
+          {/* Hero Section */}                                                                                                                                                                              
+          <div className="text-center mb-12">                                                                                                                                                               
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-4">                                                                                                                                     
+              Intelligent Budget Management & Validation                                                                                                                                                    
+            </h2>                                                                                                                                                                                           
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">                                                                                                                                         
+              Prototype demonstration of automated budget tracking, Google Sheets sync,                                                                                                                     
+              and AI-powered categorization for procurement workflows                                                                                                                                       
+            </p>                                                                                                                                                                                            
+          </div>                                                                                                                                                                                            
+                                                                                                                                                                                                            
+          {/* Feature Grid */}                                                                                                                                                                              
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">                                                                                                                                  
+            {/* Feature Card 1 */}                                                                                                                                                                          
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500">                                                                                                                  
+              <div className="text-3xl mb-3">📊</div>                                                                                                                                                       
+              <h3 className="text-xl font-semibold mb-2">Budget Dashboard</h3>                                                                                                                              
+              <p className="text-gray-600 mb-4">                                                                                                                                                            
+                Real-time view of budgets by department with utilization tracking and alerts                                                                                                                
+              </p>                                                                                                                                                                                          
+              <ul className="text-sm text-gray-500 space-y-1">                                                                                                                                              
+                <li>• Department-level budgets</li>                                                                                                                                                         
+                <li>• Committed vs. available amounts</li>                                                                                                                                                  
+                <li>• Visual utilization charts</li>                                                                                                                                                        
+              </ul>                                                                                                                                                                                         
+            </div>                                                                                                                                                                                          
+                                                                                                                                                                                                            
+            {/* Feature Card 2 */}                                                                                                                                                                          
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500">                                                                                                                 
+              <div className="text-3xl mb-3">🔗</div>                                                                                                                                                       
+              <h3 className="text-xl font-semibold mb-2">Google Sheets Sync</h3>                                                                                                                            
+              <p className="text-gray-600 mb-4">                                                                                                                                                            
+                Automatic budget sync from your existing Google Sheets or Excel files                                                                                                                       
+              </p>                                                                                                                                                                                          
+              <ul className="text-sm text-gray-500 space-y-1">                                                                                                                                              
+                <li>• One-time OAuth setup</li>                                                                                                                                                             
+                <li>• Scheduled or real-time sync</li>                                                                                                                                                      
+                <li>• Bi-directional updates</li>                                                                                                                                                           
+              </ul>                                                                                                                                                                                         
+            </div>                                                                                                                                                                                          
+                                                                                                                                                                                                            
+            {/* Feature Card 3 */}                                                                                                                                                                          
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-purple-500">                                                                                                                
+              <div className="text-3xl mb-3">✅</div>                                                                                                                                                       
+              <h3 className="text-xl font-semibold mb-2">Budget Validation</h3>                                                                                                                             
+              <p className="text-gray-600 mb-4">                                                                                                                                                            
+                Real-time budget checks during procurement intake with instant feedback                                                                                                                     
+              </p>                                                                                                                                                                                          
+              <ul className="text-sm text-gray-500 space-y-1">                                                                                                                                              
+                <li>• "In budget" / "Out of budget" status</li>                                                                                                                                             
+                <li>• Available amount display</li>                                                                                                                                                         
+                <li>• Utilization warnings</li>                                                                                                                                                             
+              </ul>                                                                                                                                                                                         
+            </div>                                                                                                                                                                                          
+                                                                                                                                                                                                            
+            {/* Feature Card 4 */}                                                                                                                                                                          
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-yellow-500">                                                                                                                
+              <div className="text-3xl mb-3">🤖</div>                                                                                                                                                       
+              <h3 className="text-xl font-semibold mb-2">AI Categorization</h3>                                                                                                                             
+              <p className="text-gray-600 mb-4">                                                                                                                                                            
+                Intelligent budget category suggestions based on supplier and description                                                                                                                   
+              </p>                                                                                                                                                                                          
+              <ul className="text-sm text-gray-500 space-y-1">                                                                                                                                              
+                <li>• LLM-powered suggestions</li>                                                                                                                                                          
+                <li>• Historical pattern learning</li>                                                                                                                                                      
+                <li>• Confidence scoring</li>                                                                                                                                                               
+              </ul>                                                                                                                                                                                         
+            </div>                                                                                                                                                                                          
+                                                                                                                                                                                                            
+            {/* Feature Card 5 */}                                                                                                                                                                          
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500">                                                                                                                   
+              <div className="text-3xl mb-3">🔄</div>                                                                                                                                                       
+              <h3 className="text-xl font-semibold mb-2">Approval Workflow</h3>                                                                                                                             
+              <p className="text-gray-600 mb-4">                                                                                                                                                            
+                Budget approval step with full context and impact visualization                                                                                                                             
+              </p>                                                                                                                                                                                          
+              <ul className="text-sm text-gray-500 space-y-1">                                                                                                                                              
+                <li>• Budget owner routing</li>                                                                                                                                                             
+                <li>• Utilization impact preview</li>                                                                                                                                                       
+                <li>• Approve/reject actions</li>                                                                                                                                                           
+              </ul>                                                                                                                                                                                         
+            </div>                                                                                                                                                                                          
+                                                                                                                                                                                                            
+            {/* Feature Card 6 */}                                                                                                                                                                          
+            <div className="bg-white rounded-lg shadow-md p-6 border-t-4 border-indigo-500">                                                                                                                
+              <div className="text-3xl mb-3">📈</div>                                                                                                                                                       
+              <h3 className="text-xl font-semibold mb-2">Reports & Analytics</h3>                                                                                                                           
+              <p className="text-gray-600 mb-4">                                                                                                                                                            
+                Budget utilization trends, forecasting, and spend analysis                                                                                                                                  
+              </p>                                                                                                                                                                                          
+              <ul className="text-sm text-gray-500 space-y-1">                                                                                                                                              
+                <li>• Utilization trends</li>                                                                                                                                                               
+                <li>• Budget vs. actual reports</li>                                                                                                                                                        
+                <li>• Excel export</li>                                                                                                                                                                     
+              </ul>                                                                                                                                                                                         
+            </div>                                                                                                                                                                                          
+          </div>                                                                                                                                                                                            
+                                                                                                                                                                                                            
+          {/* Demo Section */}                                                                                                                                                                              
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-12">                                                                                                                                         
+            <h3 className="text-2xl font-bold mb-6 text-center">Sample Budget Overview</h3>                                                                                                                 
+                                                                                                                                                                                                            
+            <div className="overflow-x-auto">                                                                                                                                                               
+              <table className="min-w-full divide-y divide-gray-200">                                                                                                                                       
+                <thead className="bg-gray-50">                                                                                                                                                              
+                  <tr>                                                                                                                                                                                      
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">                                                                                         
+                      Department                                                                                                                                                                            
+                    </th>                                                                                                                                                                                   
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">                                                                                         
+                      Sub-category                                                                                                                                                                          
+                    </th>                                                                                                                                                                                   
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">                                                                                         
+                      Budgeted                                                                                                                                                                              
+                    </th>                                                                                                                                                                                   
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">                                                                                         
+                      Spent                                                                                                                                                                                 
+                    </th>                                                                                                                                                                                   
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">                                                                                         
+                      Available                                                                                                                                                                             
+                    </th>                                                                                                                                                                                   
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">                                                                                         
+                      Utilization                                                                                                                                                                           
+                    </th>                                                                                                                                                                                   
+                  </tr>                                                                                                                                                                                     
+                </thead>                                                                                                                                                                                    
+                <tbody className="bg-white divide-y divide-gray-200">                                                                                                                                       
+                  <tr>                                                                                                                                                                                      
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">                                                                                                          
+                      Engineering                                                                                                                                                                           
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">                                                                                                                      
+                      Software                                                                                                                                                                              
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">                                                                                                                      
+                      $100,000                                                                                                                                                                              
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">                                                                                                                      
+                      $75,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">                                                                                                         
+                      $25,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap">                                                                                                                                            
+                      <div className="flex items-center">                                                                                                                                                   
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">                                                                                                                        
+                          <div className="bg-yellow-500 h-2.5 rounded-full" style={{width: '75%'}}></div>                                                                                                   
+                        </div>                                                                                                                                                                              
+                        <span className="text-sm text-gray-700">75%</span>                                                                                                                                  
+                      </div>                                                                                                                                                                                
+                    </td>                                                                                                                                                                                   
+                  </tr>                                                                                                                                                                                     
+                  <tr>                                                                                                                                                                                      
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">                                                                                                          
+                      Sales                                                                                                                                                                                 
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">                                                                                                                      
+                      Software                                                                                                                                                                              
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">                                                                                                                      
+                      $50,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">                                                                                                                      
+                      $15,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-medium">                                                                                                         
+                      $35,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap">                                                                                                                                            
+                      <div className="flex items-center">                                                                                                                                                   
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">                                                                                                                        
+                          <div className="bg-green-500 h-2.5 rounded-full" style={{width: '30%'}}></div>                                                                                                    
+                        </div>                                                                                                                                                                              
+                        <span className="text-sm text-gray-700">30%</span>                                                                                                                                  
+                      </div>                                                                                                                                                                                
+                    </td>                                                                                                                                                                                   
+                  </tr>                                                                                                                                                                                     
+                  <tr>                                                                                                                                                                                      
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">                                                                                                          
+                      Marketing                                                                                                                                                                             
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">                                                                                                                      
+                      Software                                                                                                                                                                              
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">                                                                                                                      
+                      $75,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">                                                                                                                      
+                      $68,000                                                                                                                                                                               
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 font-medium">                                                                                                        
+                      $7,000                                                                                                                                                                                
+                    </td>                                                                                                                                                                                   
+                    <td className="px-6 py-4 whitespace-nowrap">                                                                                                                                            
+                      <div className="flex items-center">                                                                                                                                                   
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">                                                                                                                        
+                          <div className="bg-red-500 h-2.5 rounded-full" style={{width: '90%'}}></div>                                                                                                      
+                        </div>                                                                                                                                                                              
+                        <span className="text-sm text-gray-700">90%</span>                                                                                                                                  
+                      </div>                                                                                                                                                                                
+                    </td>                                                                                                                                                                                   
+                  </tr>                                                                                                                                                                                     
+                </tbody>                                                                                                                                                                                    
+              </table>                                                                                                                                                                                      
+            </div>                                                                                                                                                                                          
+          </div>                                                                                                                                                                                            
+                                                                                                                                                                                                            
+          {/* Test Credentials */}                                                                                                                                                                          
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">                                                                                                                              
+            <h3 className="text-xl font-bold mb-4 text-blue-900">🔑 Demo Credentials (Future Login)</h3>                                                                                                    
+            <div className="grid md:grid-cols-2 gap-4 text-sm">                                                                                                                                             
+              <div className="bg-white p-4 rounded">                                                                                                                                                        
+                <p className="font-semibold text-gray-700 mb-2">Admin Access:</p>                                                                                                                           
+                <p className="text-gray-600">admin@demo.com</p>                                                                                                                                             
+                <p className="text-gray-600">Password: Test123!</p>                                                                                                                                         
+              </div>                                                                                                                                                                                        
+              <div className="bg-white p-4 rounded">                                                                                                                                                        
+                <p className="font-semibold text-gray-700 mb-2">Finance Manager:</p>                                                                                                                        
+                <p className="text-gray-600">finance@demo.com</p>                                                                                                                                           
+                <p className="text-gray-600">Password: Test123!</p>                                                                                                                                         
+              </div>                                                                                                                                                                                        
+              <div className="bg-white p-4 rounded">                                                                                                                                                        
+                <p className="font-semibold text-gray-700 mb-2">Requester:</p>                                                                                                                              
+                <p className="text-gray-600">requester@demo.com</p>                                                                                                                                         
+                <p className="text-gray-600">Password: Test123!</p>                                                                                                                                         
+              </div>                                                                                                                                                                                        
+              <div className="bg-white p-4 rounded">                                                                                                                                                        
+                <p className="font-semibold text-gray-700 mb-2">Approver:</p>                                                                                                                               
+                <p className="text-gray-600">approver@demo.com</p>                                                                                                                                          
+                <p className="text-gray-600">Password: Test123!</p>                                                                                                                                         
+              </div>                                                                                                                                                                                        
+            </div>                                                                                                                                                                                          
+          </div>                                                                                                                                                                                            
+                                                                                                                                                                                                            
+          {/* Technical Stack */}                                                                                                                                                                           
+          <div className="mt-12 text-center">                                                                                                                                                               
+            <h3 className="text-lg font-semibold text-gray-700 mb-4">Built With</h3>                                                                                                                        
+            <div className="flex flex-wrap justify-center gap-4">                                                                                                                                           
+              <span className="px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 shadow">                                                                                                   
+                Next.js 16                                                                                                                                                                                  
+              </span>                                                                                                                                                                                       
+              <span className="px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 shadow">                                                                                                   
+                TypeScript                                                                                                                                                                                  
+              </span>                                                                                                                                                                                       
+              <span className="px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 shadow">                                                                                                   
+                Prisma ORM                                                                                                                                                                                  
+              </span>                                                                                                                                                                                       
+              <span className="px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 shadow">                                                                                                   
+                PostgreSQL                                                                                                                                                                                  
+              </span>                                                                                                                                                                                       
+              <span className="px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 shadow">                                                                                                   
+                Tailwind CSS                                                                                                                                                                                
+              </span>                                                                                                                                                                                       
+              <span className="px-4 py-2 bg-white rounded-full text-sm font-medium text-gray-700 shadow">                                                                                                   
+                Railway                                                                                                                                                                                     
+              </span>                                                                                                                                                                                       
+            </div>                                                                                                                                                                                          
+          </div>                                                                                                                                                                                            
+        </main>                                                                                                                                                                                             
+                                                                                                                                                                                                            
+        {/* Footer */}                                                                                                                                                                                      
+        <footer className="bg-white border-t mt-12">                                                                                                                                                        
+          <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">                                                                                                                                     
+            <p className="text-center text-gray-500 text-sm">                                                                                                                                               
+              SpendFlo Budget Module - Prototype v1.0 | Deployed on Railway                                                                                                                                 
+            </p>                                                                                                                                                                                            
+          </div>                                                                                                                                                                                            
+        </footer>                                                                                                                                                                                           
+      </div>                                                                                                                                                                                                
+    );                                                                                                                                                                                                      
+  } 
