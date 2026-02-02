@@ -24,7 +24,6 @@ import { prisma } from '@/lib/prisma';
     return (                                                                                                                                                                                                
       <div className="min-h-screen bg-gray-50">                                                                                                                                                             
         <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">                                                                                                                                       
-          {/* Header */}                                                                                                                                                                                    
           <div className="mb-8 flex justify-between items-center">                                                                                                                                          
             <div>                                                                                                                                                                                           
               <h1 className="text-3xl font-bold text-gray-900">Budget Management</h1>                                                                                                                       
@@ -40,7 +39,6 @@ import { prisma } from '@/lib/prisma';
             </a>                                                                                                                                                                                            
           </div>                                                                                                                                                                                            
                                                                                                                                                                                                             
-          {/* Stats Cards */}                                                                                                                                                                               
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">                                                                                                                                      
             <div className="bg-white rounded-lg shadow p-6">                                                                                                                                                
               <div className="text-sm font-medium text-gray-500 mb-1">                                                                                                                                      
@@ -55,7 +53,7 @@ import { prisma } from '@/lib/prisma';
                 Total Allocated                                                                                                                                                                             
               </div>                                                                                                                                                                                        
               <div className="text-3xl font-bold text-gray-900">                                                                                                                                            
-                ${budgets.reduce((sum, b) => sum + b.budgetedAmount, 0).toLocaleString()}                                                                                                                   
+                ${budgets.reduce((sum: number, b) => sum + b.budgetedAmount, 0).toLocaleString()}                                                                                                           
               </div>                                                                                                                                                                                        
             </div>                                                                                                                                                                                          
             <div className="bg-white rounded-lg shadow p-6">                                                                                                                                                
@@ -65,7 +63,7 @@ import { prisma } from '@/lib/prisma';
               <div className="text-3xl font-bold text-gray-900">                                                                                                                                            
                 {budgets.length > 0                                                                                                                                                                         
                   ? Math.round(                                                                                                                                                                             
-                      budgets.reduce((sum, b) => {                                                                                                                                                          
+                      budgets.reduce((sum: number, b) => {                                                                                                                                                  
                         const util = b.utilization                                                                                                                                                          
                           ? (b.utilization.committedAmount / b.budgetedAmount) * 100                                                                                                                        
                           : 0;                                                                                                                                                                              
@@ -77,7 +75,6 @@ import { prisma } from '@/lib/prisma';
             </div>                                                                                                                                                                                          
           </div>                                                                                                                                                                                            
                                                                                                                                                                                                             
-          {/* Budget Table */}                                                                                                                                                                              
           <div className="bg-white shadow-md rounded-lg overflow-hidden">                                                                                                                                   
             <table className="min-w-full divide-y divide-gray-200">                                                                                                                                         
               <thead className="bg-gray-50">                                                                                                                                                                
@@ -170,5 +167,4 @@ import { prisma } from '@/lib/prisma';
         </div>                                                                                                                                                                                              
       </div>                                                                                                                                                                                                
     );                                                                                                                                                                                                      
-  }                                                                                                                                                                                                         
-   
+  }   
