@@ -1,7 +1,27 @@
-import { NextResponse } from 'next/server';                                                                                                                                                               
-  import { prisma } from '@/lib/prisma';                                                                                                                                                                    
-                                                                                                                                                                                                            
-  export async function POST(request: Request) {                                                                                                                                                            
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  try {
+    const budgets = await prisma.budget.findMany({
+      include: {
+        utilization: true,
+      },
+      orderBy: {
+        department: 'asc',
+      },
+    });
+    return NextResponse.json(budgets);
+  } catch (error) {
+    console.error('Error fetching budgets:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch budgets' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {                                                                                                                                                            
     try {                                                                                                                                                                                                   
       const body = await request.json();                                                                                                                                                                    
       const { department, subCategory, budgetedAmount, fiscalPeriod } = body;                                                                                                                               
