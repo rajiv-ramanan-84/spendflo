@@ -165,7 +165,7 @@ export default function RequestsPage() {
               {filter === 'all' ? 'You haven\'t submitted any budget requests yet' : `No ${filter} requests found`}
             </p>
             <a
-              href="/business/request"
+              href="/business/request-v2"
               className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all"
             >
               Submit New Request

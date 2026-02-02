@@ -77,7 +77,7 @@ export default function HomePage() {
 
           {/* Business User Tile */}
           <a
-            href="/business/request"
+            href="/business/request-v2"
             className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 border-2 border-gray-100 hover:border-pink-500"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full opacity-50"></div>

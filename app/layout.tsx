@@ -24,7 +24,7 @@ import type { Metadata } from "next";
                   <a href="/dashboard" className="hover:text-indigo-200 transition">                                                                                                                          
                     Budgets                                                                                                                                                                                 
                   </a>                                                                                                                                                                                      
-                  <a href="/requests/new" className="hover:text-indigo-200 transition">                                                                                                                     
+                  <a href="/business/request-v2" className="hover:text-indigo-200 transition">                                                                                                                     
                     New Request                                                                                                                                                                             
                   </a>                                                                                                                                                                                      
                 </div>                                                                                                                                                                                      

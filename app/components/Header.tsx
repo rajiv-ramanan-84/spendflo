@@ -25,7 +25,7 @@ export function Header() {
             <a href="/dashboard" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
               Dashboard
             </a>
-            <a href="/business/request" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
+            <a href="/business/request-v2" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
               Request Budget
             </a>
             <a href="/business/requests" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
