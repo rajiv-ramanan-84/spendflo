@@ -65,16 +65,12 @@ export function DashboardClient() {
 
   async function fetchData() {
     try {
-      const [statsRes, budgetsRes] = await Promise.all([
-        fetch('/api/dashboard/stats'),
-        fetch('/api/budgets')
-      ]);
+      const statsRes = await fetch('/api/dashboard/stats');
 
-      if (statsRes.ok && budgetsRes.ok) {
+      if (statsRes.ok) {
         const statsData = await statsRes.json();
-        const budgetsData = await budgetsRes.json();
         setStats(statsData);
-        setBudgets(Array.isArray(budgetsData) ? budgetsData : []);
+        setBudgets([]);
       } else {
         // Set empty state if API fails
         setStats({
