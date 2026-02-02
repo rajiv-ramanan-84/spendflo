@@ -234,7 +234,7 @@ export default function BusinessRequestV2Page() {
           <div className="space-y-6">
             {/* Vendor */}
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Vendor / Supplier
               </label>
               <input
@@ -242,14 +242,14 @@ export default function BusinessRequestV2Page() {
                 value={vendor}
                 onChange={(e) => setVendor(e.target.value)}
                 placeholder="e.g., Salesforce, AWS, Figma"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-white placeholder-gray-500"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400"
                 autoFocus
               />
             </div>
 
             {/* Purpose */}
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 What is this for?
               </label>
               <textarea
@@ -257,13 +257,13 @@ export default function BusinessRequestV2Page() {
                 onChange={(e) => setPurpose(e.target.value)}
                 placeholder="e.g., Annual CRM subscription for sales team"
                 rows={2}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-white placeholder-gray-500 resize-none"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400 resize-none"
               />
             </div>
 
             {/* Contract Term */}
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Contract Term
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -278,8 +278,8 @@ export default function BusinessRequestV2Page() {
                     onClick={() => setContractTerm(term.value as any)}
                     className={`p-4 rounded-xl border-2 transition-all ${
                       contractTerm === term.value
-                        ? 'border-pink-500 bg-pink-500/10 text-pink-400'
-                        : 'border-white/10 bg-white/5 text-gray-400 hover:border-white/20'
+                        ? 'border-pink-500 bg-pink-50 text-pink-600'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-white/20'
                     }`}
                   >
                     <div className="text-2xl mb-1">{term.icon}</div>
@@ -291,17 +291,17 @@ export default function BusinessRequestV2Page() {
 
             {/* Amount */}
             <div>
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Amount
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg">$</span>
                 <input
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-white placeholder-gray-500"
+                  className="w-full pl-8 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400"
                   step="0.01"
                   min="0"
                 />
@@ -310,7 +310,7 @@ export default function BusinessRequestV2Page() {
 
             {/* Department - Searchable dropdown */}
             <div className="relative">
-              <label className="block text-sm font-semibold text-gray-200 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Department
               </label>
               <input
@@ -324,12 +324,12 @@ export default function BusinessRequestV2Page() {
                 onFocus={() => setShowDepartmentDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDepartmentDropdown(false), 200)}
                 placeholder="Start typing to search departments..."
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-white placeholder-gray-500"
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400"
               />
 
               {/* Dropdown - Shows filtered results as you type */}
               {showDepartmentDropdown && filteredDepartments.length > 0 && (
-                <div className="absolute z-10 w-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-xl max-h-60 overflow-y-auto backdrop-blur-xl">
+                <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-xl max-h-60 overflow-y-auto backdrop-blur-xl">
                   {filteredDepartments.map((dept) => {
                     const deptBudgets = budgets.filter((b) => b.department === dept);
                     const totalAvailable = deptBudgets.reduce((sum, b) => {
@@ -347,12 +347,12 @@ export default function BusinessRequestV2Page() {
                           setDepartmentSearch('');
                           setShowDepartmentDropdown(false);
                         }}
-                        className={`w-full px-4 py-3 text-left hover:bg-white/5 transition-colors flex items-center justify-between group ${
-                          dept === department ? 'bg-pink-500/10 text-pink-400' : 'text-white'
+                        className={`w-full px-4 py-3 text-left hover:bg-white transition-colors flex items-center justify-between group ${
+                          dept === department ? 'bg-pink-50 text-pink-600' : 'text-gray-900'
                         }`}
                       >
                         <span className="font-medium">{dept}</span>
-                        <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                        <span className="text-xs text-gray-500 group-hover:text-gray-600">
                           ${totalAvailable.toLocaleString()} available
                         </span>
                       </button>
@@ -363,7 +363,7 @@ export default function BusinessRequestV2Page() {
 
               {/* No results message */}
               {showDepartmentDropdown && filteredDepartments.length === 0 && departmentSearch && (
-                <div className="absolute z-10 w-full mt-2 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-xl p-4 text-center text-gray-400">
+                <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-xl shadow-xl p-4 text-center text-gray-600">
                   No departments found matching "{departmentSearch}"
                 </div>
               )}
@@ -371,7 +371,7 @@ export default function BusinessRequestV2Page() {
 
             {/* Real-time budget check */}
             {checkingBudget && (
-              <div className="flex items-center text-sm text-gray-400 p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="flex items-center text-sm text-gray-600 p-4 bg-white rounded-xl border border-gray-300">
                 <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -403,14 +403,14 @@ export default function BusinessRequestV2Page() {
                     </p>
                     <div className="mt-2 flex items-center gap-4 text-xs">
                       <div>
-                        <span className="text-gray-400">Available:</span>
+                        <span className="text-gray-600">Available:</span>
                         <span className={`ml-1 font-semibold ${budgetCheck.isAvailable ? 'text-green-400' : 'text-red-400'}`}>
                           ${budgetCheck.available?.toLocaleString() || 0}
                         </span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Total:</span>
-                        <span className="ml-1 font-semibold text-white">
+                        <span className="text-gray-600">Total:</span>
+                        <span className="ml-1 font-semibold text-gray-900">
                           ${budgetCheck.totalBudget?.toLocaleString() || 0}
                         </span>
                       </div>
@@ -424,7 +424,7 @@ export default function BusinessRequestV2Page() {
             <button
               type="submit"
               disabled={loading || !budgetCheck?.isAvailable || !vendor || !purpose || !amount || !department}
-              className="w-full py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 disabled:shadow-none"
+              className="w-full py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-gray-900 font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 disabled:shadow-none"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
