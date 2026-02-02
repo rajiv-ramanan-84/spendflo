@@ -20,7 +20,7 @@ export default function HomePage() {
         </div>
 
         {/* Role-based tiles */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
           {/* Dashboard Tile */}
           <a
             href="/dashboard"
@@ -68,6 +68,33 @@ export default function HomePage() {
               </p>
               <div className="flex items-center text-pink-600 font-medium group-hover:translate-x-2 transition-transform">
                 Upload Budgets
+                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
+            </div>
+          </a>
+
+          {/* Business User Tile */}
+          <a
+            href="/business/request"
+            className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 border-2 border-gray-100 hover:border-pink-500"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full opacity-50"></div>
+            <div className="relative">
+              <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                Business User
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Submit purchase requests with real-time budget validation
+              </p>
+              <div className="flex items-center text-pink-600 font-medium group-hover:translate-x-2 transition-transform">
+                Request Budget
                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
