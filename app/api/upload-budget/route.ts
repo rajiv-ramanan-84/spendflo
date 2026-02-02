@@ -27,17 +27,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-create default customer if needed
+    // Auto-use existing customer or create default
     if (!customerId || customerId === 'default-customer') {
-      const defaultCustomer = await prisma.customer.upsert({
-        where: { domain: 'default.local' },
-        update: {},
-        create: {
-          name: 'Default Organization',
-          domain: 'default.local',
-        },
-      });
-      customerId = defaultCustomer.id;
+      // Try to find any existing customer first
+      let existingCustomer = await prisma.customer.findFirst();
+
+      if (!existingCustomer) {
+        // Only create default if no customers exist
+        existingCustomer = await prisma.customer.create({
+          data: {
+            name: 'Default Organization',
+            domain: 'default.local',
+          },
+        });
+      }
+
+      customerId = existingCustomer.id;
+      console.log('[Upload] Using customer:', existingCustomer.name, existingCustomer.id);
     }
 
     // Read file buffer
