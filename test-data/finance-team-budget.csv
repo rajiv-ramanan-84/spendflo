@@ -1,0 +1,30 @@
+Business Unit,What We're Spending On,When,How Much ($),Money Type,Who's In Charge,Is This Final?,Tracking Code
+Engineering Team,Software subscriptions and tools,Full Year 2025,680000,US Dollar,Sarah,Yes,ENG-SW-2025
+Engineering Team,AWS and cloud stuff,Full Year 2025,495000,US Dollar,Sarah,Yes,ENG-CL-2025
+Engineering Team,Contractors and freelancers,Jan-Mar 2025,135000,US Dollar,Sarah,No - draft,ENG-CON-Q1
+Sales & Marketing,Ad campaigns and marketing,Full Year 2025,425000,US Dollar,Michael,Yes,SALES-MKT-2025
+Sales & Marketing,Conferences and trade shows,Full Year 2025,195000,US Dollar,Michael,Yes,SALES-EVT-2025
+Sales & Marketing,Salesforce and other sales tech,Full Year 2025,88000,US Dollar,Michael,Yes,SALES-TECH-2025
+Marketing Only,Content creation budget,Jan-Mar 2025,78000,US Dollar,Jennifer,No - draft,MKT-CONT-Q1
+Marketing Only,Online advertising spend,Apr-Jun 2025,125000,US Dollar,Jennifer,Planning phase,MKT-ADS-Q2
+Marketing Only,Design and creative,Full Year 2025,68000,US Dollar,Jennifer,Yes,MKT-DES-2025
+Finance Department,Accounting software licenses,Full Year 2025,48000,US Dollar,David,Yes,FIN-ACC-2025
+Finance Department,Annual audit costs,Full Year 2025,92000,US Dollar,David,Yes,FIN-AUD-2025
+Finance Department,Tax and compliance,Full Year 2025,35000,US Dollar,David,Yes,FIN-TAX-2025
+Human Resources,Recruiting costs,Full Year 2025,185000,US Dollar,Amanda,Yes,HR-REC-2025
+Human Resources,Training and development,Jan-Mar 2025,52000,US Dollar,Amanda,No - draft,HR-TRN-Q1
+Human Resources,HR systems,Full Year 2025,35000,US Dollar,Amanda,Yes,HR-SYS-2025
+Operations,Office supplies,Jan-Mar 2025,12000,US Dollar,Robert,Yes,OPS-SUP-Q1
+Operations,Rent and utilities,Full Year 2025,495000,US Dollar,Robert,Yes,OPS-FAC-2025
+Operations,New computers,Apr-Jun 2025,115000,US Dollar,Robert,Planning phase,OPS-IT-Q2
+Product Team,Product development,Full Year 2025,345000,US Dollar,Lisa,Yes,PROD-DEV-2025
+Product Team,User research,Jan-Mar 2025,42000,US Dollar,Lisa,No - draft,PROD-RES-Q1
+Product Team,Analytics tools,Full Year 2025,55000,US Dollar,Lisa,Yes,PROD-ANL-2025
+Customer Support,Support software,Full Year 2025,72000,US Dollar,James,Yes,CS-SOFT-2025
+Customer Support,Training materials,Jan-Mar 2025,25000,US Dollar,James,No - draft,CS-TRN-Q1
+Legal Team,Legal services,Full Year 2025,155000,US Dollar,Patricia,Yes,LEG-SVC-2025
+Legal Team,Contract tools,Full Year 2025,42000,US Dollar,Patricia,Yes,LEG-TOOL-2025
+IT Department,Cybersecurity,Full Year 2025,135000,US Dollar,Robert,Yes,IT-SEC-2025
+IT Department,Network gear,Full Year 2025,85000,US Dollar,Robert,Yes,IT-NET-2025
+Data Science,Data infrastructure,Full Year 2025,195000,US Dollar,Lisa,Yes,DATA-INF-2025
+Data Science,BI software,Jan-Mar 2025,48000,US Dollar,Lisa,No - draft,DATA-BI-Q1

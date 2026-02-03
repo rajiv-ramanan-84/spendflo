@@ -1,0 +1,29 @@
+Org Unit,Expense Type,Fiscal Year,Plan Amount,Curr,Responsible Person,Approval Status,Variance %,Comments
+ENG-001,Software Licenses,2025,850000,USD,S.Chen,Final,0,Core engineering software stack
+ENG-001,Hosting Services,2025,520000,USD,S.Chen,Final,0,Cloud infrastructure - AWS primary
+ENG-002,External Resources,2025-Q1,145000,USD,S.Chen,Preliminary,5,Contractor budget may increase
+SALES-001,Campaign Spend,2025,420000,USD,M.Torres,Final,0,Digital and traditional marketing mix
+SALES-001,Event Budget,2025,185000,USD,M.Torres,Final,-15,Reduced conference attendance
+SALES-002,Tech Stack,2025,110000,USD,M.Torres,Final,0,Salesforce and sales tools
+MKT-001,Creative Services,2025-Q1,92000,USD,J.Liu,Preliminary,8,Video and content production
+MKT-001,Media Buy,2025-Q2,135000,USD,J.Liu,Planning,12,Increased digital ad spend
+MKT-002,Brand Assets,2025,72000,USD,J.Liu,Final,0,Design and brand materials
+FIN-001,Software & Tools,2025,52000,USD,D.Park,Final,0,Financial systems and tools
+FIN-002,External Audit,2025,95000,USD,D.Park,Final,0,Annual audit and compliance
+PEOPLE-001,Talent Acquisition,2025,195000,USD,A.White,Final,0,Recruiting and hiring costs
+PEOPLE-002,L&D Programs,2025-Q1,48000,USD,A.White,Preliminary,15,Expanded training budget
+PEOPLE-003,Benefits Platform,2025,32000,USD,A.White,Final,0,HR systems and admin
+OPS-001,Supplies,2025-Q1,18000,USD,R.Kim,Final,0,Office supplies and materials
+OPS-002,Real Estate,2025,520000,USD,R.Kim,Final,0,Rent and facilities costs
+OPS-003,Hardware,2025-Q2,108000,USD,R.Kim,Planning,14,Laptop refresh cycle
+PROD-001,R&D Investment,2025,385000,USD,L.Anderson,Final,0,Product development initiatives
+PROD-002,Research Tools,2025-Q1,45000,USD,L.Anderson,Preliminary,18,User research expansion
+PROD-003,Analytics,2025,58000,USD,L.Anderson,Final,0,Product analytics stack
+CS-001,Support Tech,2025,75000,USD,J.Wilson,Final,0,Customer support platforms
+CS-002,Education,2025-Q1,28000,USD,J.Wilson,Preliminary,27,Customer training materials
+LEGAL-001,Outside Counsel,2025,165000,USD,P.Brown,Final,0,Legal services and counsel
+LEGAL-002,Contract Mgmt,2025,38000,USD,P.Brown,Final,0,Contract management system
+IT-001,Security Tools,2025,125000,USD,R.Kim,Final,0,Security software and monitoring
+IT-002,Network Infrastructure,2025,95000,USD,R.Kim,Final,0,Network equipment and services
+DATA-001,Data Platform,2025,180000,USD,L.Anderson,Final,0,Data warehouse and BI tools
+DATA-002,Analytics Software,2025-Q1,42000,USD,L.Anderson,Preliminary,0,Advanced analytics licenses

@@ -1,0 +1,25 @@
+Cost Center,Category,Time Period,Allocated Budget,Currency Code,Budget Owner,Status,Last Updated,Notes
+Engineering,SaaS & Software,FY2025,750000,USD,Sarah Chen,Approved,2025-01-15,Annual software licenses and subscriptions
+Engineering,Cloud Infrastructure,FY2025,450000,USD,Sarah Chen,Approved,2025-01-15,AWS and cloud hosting costs
+Engineering,Professional Services,Q1-2025,125000,USD,Sarah Chen,Draft,2025-01-20,Consulting and contractor fees
+Sales,Marketing Campaigns,FY2025,380000,USD,Michael Torres,Approved,2025-01-10,Digital marketing and advertising
+Sales,Events & Conferences,FY2025,220000,USD,Michael Torres,Approved,2025-01-10,Trade shows and industry events
+Sales,Sales Tools,FY2025,95000,USD,Michael Torres,Approved,2025-01-10,CRM and sales enablement platforms
+Marketing,Content Production,Q1-2025,85000,USD,Jennifer Liu,Draft,2025-01-18,Video and content creation
+Marketing,Paid Advertising,Q2-2025,120000,USD,Jennifer Liu,Pending,2025-01-18,Google Ads and social media
+Marketing,Brand & Design,FY2025,65000,USD,Jennifer Liu,Approved,2025-01-12,Brand assets and design work
+Finance,Accounting Software,FY2025,45000,USD,David Park,Approved,2025-01-08,QuickBooks and financial tools
+Finance,Audit & Compliance,FY2025,85000,USD,David Park,Approved,2025-01-08,External audit fees
+HR,Recruiting & Hiring,FY2025,175000,USD,Amanda White,Approved,2025-01-05,Recruiting tools and agency fees
+HR,Training Programs,Q1-2025,42000,USD,Amanda White,Draft,2025-01-22,Employee development and training
+HR,Benefits Administration,FY2025,28000,USD,Amanda White,Approved,2025-01-05,Benefits platform and admin
+Operations,Office Supplies,Q1-2025,15000,USD,Robert Kim,Approved,2025-01-12,General office supplies
+Operations,Facilities & Rent,FY2025,480000,USD,Robert Kim,Approved,2025-01-12,Office space and utilities
+Operations,IT Equipment,Q2-2025,95000,USD,Robert Kim,Pending,2025-01-19,Laptops and hardware refresh
+Product,Product Development,FY2025,320000,USD,Lisa Anderson,Approved,2025-01-14,R&D and product initiatives
+Product,User Research,Q1-2025,38000,USD,Lisa Anderson,Draft,2025-01-21,User testing and research tools
+Product,Analytics Tools,FY2025,52000,USD,Lisa Anderson,Approved,2025-01-14,Product analytics platforms
+Customer Success,Support Software,FY2025,68000,USD,James Wilson,Approved,2025-01-09,Zendesk and support tools
+Customer Success,Training Materials,Q1-2025,22000,USD,James Wilson,Draft,2025-01-20,Customer training content
+Legal,Legal Services,FY2025,145000,USD,Patricia Brown,Approved,2025-01-06,Outside counsel and legal fees
+Legal,Compliance Software,FY2025,32000,USD,Patricia Brown,Approved,2025-01-06,Contract management tools
