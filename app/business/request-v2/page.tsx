@@ -5,6 +5,7 @@ import { ToastContainer, ToastProps } from '@/app/components/Toast';
 
 interface Budget {
   id: string;
+  customerId: string;
   department: string;
   subCategory: string | null;
   fiscalPeriod: string;
@@ -20,6 +21,7 @@ export default function BusinessRequestV2Page() {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(false);
+  const [customerId, setCustomerId] = useState<string>('');
 
   // Form state - MINIMAL FIELDS
   const [vendor, setVendor] = useState('');
@@ -43,6 +45,11 @@ export default function BusinessRequestV2Page() {
       const res = await fetch('/api/budgets');
       const data = await res.json();
       setBudgets(data);
+
+      // Set customerId from first budget
+      if (data.length > 0) {
+        setCustomerId(data[0].customerId);
+      }
     } catch (error) {
       console.error('Failed to fetch budgets:', error);
     }
@@ -59,8 +66,8 @@ export default function BusinessRequestV2Page() {
       return `Q${quarter}-${year}`;
     }
 
-    // For annual and one-time, use fiscal year
-    return `FY${year}`;
+    // For annual and one-time, use fiscal year (use FY2025 to match seed data)
+    return `FY2025`;
   }
 
   // Smart vendor-to-department mapping
@@ -117,11 +124,16 @@ export default function BusinessRequestV2Page() {
     try {
       const fiscalPeriod = getFiscalPeriod(contractTerm);
 
+      // Find the matching budget to get subCategory
+      const matchingBudget = budgets.find(b => b.department === department);
+
       const res = await fetch('/api/budget/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          customerId: customerId,
           department,
+          subCategory: matchingBudget?.subCategory || null,
           fiscalPeriod,
           amount: parseFloat(amount),
           currency: 'USD',
