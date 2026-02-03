@@ -53,13 +53,16 @@ export async function POST(req: NextRequest) {
     // Parse Excel
     const data = await parseExcel(buffer);
 
-    // Expected columns: Department, SubCategory, FiscalPeriod, BudgetedAmount, Currency
+    // Support multiple column name variations
     const budgets = data.map((row: any) => ({
       department: row.Department || row.department,
-      subCategory: row.SubCategory || row.subCategory || row['Sub Category'] || null,
-      fiscalPeriod: row.FiscalPeriod || row.fiscalPeriod || row['Fiscal Period'],
-      budgetedAmount: parseFloat(row.BudgetedAmount || row.budgetedAmount || row['Budgeted Amount'] || 0),
-      currency: row.Currency || row.currency || 'USD',
+      subCategory: row.SubCategory || row.subCategory || row['Sub Category'] || row['Budget Category'] || null,
+      fiscalPeriod: row.FiscalPeriod || row.fiscalPeriod || row['Fiscal Period'] || row.FY || row.Quarter,
+      budgetedAmount: parseFloat(
+        row.BudgetedAmount || row.budgetedAmount || row['Budgeted Amount'] ||
+        row['Allocated Amount'] || row.Amount || 0
+      ),
+      currency: row.Currency || row.currency || row['Currency Code'] || 'USD',
     }));
 
     const results = {
