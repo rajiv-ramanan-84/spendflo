@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate API key
-    const { key, prefix, hashedKey } = generateApiKey();
+    const { key, prefix } = generateApiKey();
+    const hashedKey = hashApiKey(key);
 
     // Calculate expiry date
     let expiresAt: Date | null = null;
