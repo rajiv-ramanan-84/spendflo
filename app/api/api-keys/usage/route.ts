@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     // Filter by date range
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    where.createdAt = { gte: startDate };
+    where.timestamp = { gte: startDate };
 
     // Get usage logs
     const usageLogs = await prisma.apiKeyUsageLog.findMany({
@@ -46,23 +46,23 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { timestamp: 'desc' },
       take: limit,
     });
 
     // Calculate statistics
     const stats = {
       totalRequests: usageLogs.length,
-      successfulRequests: usageLogs.filter((log) => log.status === 'success').length,
-      failedRequests: usageLogs.filter((log) => log.status === 'failed').length,
-      uniqueIpAddresses: new Set(usageLogs.map((log) => log.ipAddress)).size,
+      successfulRequests: usageLogs.filter((log) => log.statusCode >= 200 && log.statusCode < 300).length,
+      failedRequests: usageLogs.filter((log) => log.statusCode >= 400).length,
+      uniqueIpAddresses: new Set(usageLogs.map((log) => log.ipAddress).filter(Boolean)).size,
       uniqueEndpoints: new Set(usageLogs.map((log) => log.endpoint)).size,
     };
 
     // Group by date
     const byDate: Record<string, number> = {};
     usageLogs.forEach((log) => {
-      const date = log.createdAt.toISOString().split('T')[0];
+      const date = log.timestamp.toISOString().split('T')[0];
       byDate[date] = (byDate[date] || 0) + 1;
     });
 
@@ -72,10 +72,11 @@ export async function GET(req: NextRequest) {
       byEndpoint[log.endpoint] = (byEndpoint[log.endpoint] || 0) + 1;
     });
 
-    // Group by status
-    const byStatus: Record<string, number> = {};
+    // Group by status code
+    const byStatusCode: Record<string, number> = {};
     usageLogs.forEach((log) => {
-      byStatus[log.status] = (byStatus[log.status] || 0) + 1;
+      const code = log.statusCode.toString();
+      byStatusCode[code] = (byStatusCode[code] || 0) + 1;
     });
 
     return NextResponse.json({
@@ -83,16 +84,16 @@ export async function GET(req: NextRequest) {
       stats,
       byDate,
       byEndpoint,
-      byStatus,
+      byStatusCode,
       recentLogs: usageLogs.slice(0, 20).map((log) => ({
         id: log.id,
         apiKey: log.apiKey,
         endpoint: log.endpoint,
         method: log.method,
-        status: log.status,
+        statusCode: log.statusCode,
         ipAddress: log.ipAddress,
         userAgent: log.userAgent,
-        createdAt: log.createdAt,
+        timestamp: log.timestamp,
       })),
     });
   } catch (error: any) {

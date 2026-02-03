@@ -125,17 +125,16 @@ export async function POST(req: NextRequest) {
     const importHistory = await prisma.importHistory.create({
       data: {
         customerId,
+        sourceType: fileExtension === 'csv' ? 'csv' : 'excel',
         fileName: file.name,
-        fileSize: file.size,
         totalRows: budgets.length,
         importedById: createdById,
         status: 'processing',
-        mappings: mappings as any,
       },
     });
 
     let successCount = 0;
-    let errorCount = 0;
+    let failureCount = 0;
     const errors: Array<{ row: number; error: string }> = [];
 
     // Import budgets with transaction
@@ -186,12 +185,15 @@ export async function POST(req: NextRequest) {
               await tx.activity.create({
                 data: {
                   customerId,
-                  userId: createdById,
+                  actorId: createdById,
                   action: 'budget_updated',
                   entityType: 'budget',
                   entityId: existing.id,
-                  description: `Budget updated via import: ${budget.department} - ${budget.fiscalPeriod}`,
-                  metadata: { source: 'import', importHistoryId: importHistory.id },
+                  metadata: {
+                    source: 'import',
+                    importHistoryId: importHistory.id,
+                    description: `Budget updated via import: ${budget.department} - ${budget.fiscalPeriod}`
+                  },
                 },
               });
             } else {
@@ -220,26 +222,29 @@ export async function POST(req: NextRequest) {
               await tx.activity.create({
                 data: {
                   customerId,
-                  userId: createdById,
+                  actorId: createdById,
                   action: 'budget_created',
                   entityType: 'budget',
                   entityId: newBudget.id,
-                  description: `Budget created via import: ${budget.department} - ${budget.fiscalPeriod}`,
-                  metadata: { source: 'import', importHistoryId: importHistory.id },
+                  metadata: {
+                    source: 'import',
+                    importHistoryId: importHistory.id,
+                    description: `Budget created via import: ${budget.department} - ${budget.fiscalPeriod}`
+                  },
                 },
               });
             }
 
             successCount++;
           } catch (error: any) {
-            errorCount++;
+            failureCount++;
             errors.push({
               row: i + 2, // +2 because: +1 for header, +1 for 1-based indexing
               error: error.message,
             });
 
             // If too many errors, abort transaction
-            if (errorCount > 10) {
+            if (failureCount > 10) {
               throw new Error('Too many errors during import. Transaction aborted.');
             }
           }
@@ -252,7 +257,7 @@ export async function POST(req: NextRequest) {
         data: {
           status: 'completed',
           successCount,
-          errorCount,
+          failureCount,
           errors: errors as any,
           completedAt: new Date(),
         },
@@ -263,7 +268,7 @@ export async function POST(req: NextRequest) {
         importId: importHistory.id,
         totalRows: budgets.length,
         successCount,
-        errorCount,
+        failureCount,
         errors: errors.length > 0 ? errors : undefined,
         warnings: validationResult.warnings.length > 0 ? validationResult.warnings : undefined,
       });
@@ -274,7 +279,7 @@ export async function POST(req: NextRequest) {
         where: { id: importHistory.id },
         data: {
           status: 'failed',
-          errorCount,
+          failureCount,
           errors: [{ error: transactionError.message }] as any,
           completedAt: new Date(),
         },
@@ -286,7 +291,7 @@ export async function POST(req: NextRequest) {
           error: 'Import failed',
           details: transactionError.message,
           successCount,
-          errorCount,
+          failureCount,
           errors,
         },
         { status: 500 }
