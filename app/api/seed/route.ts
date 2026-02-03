@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export async function GET() {
+  return POST();
+}
+
 export async function POST() {
   try {
     console.log('Seeding database...');
@@ -168,15 +172,20 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
-      data: {
-        customer: customer.name,
-        users: [admin.email, manager.email],
-        budgets: [
-          { dept: engineeringBudget.department, amount: engineeringBudget.budgetedAmount },
-          { dept: salesBudget.department, amount: salesBudget.budgetedAmount },
-          { dept: marketingBudget.department, amount: marketingBudget.budgetedAmount },
-        ],
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        domain: customer.domain,
       },
+      users: [
+        { id: admin.id, email: admin.email, name: admin.name, role: admin.role },
+        { id: manager.id, email: manager.email, name: manager.name, role: manager.role },
+      ],
+      budgets: [
+        { dept: engineeringBudget.department, amount: engineeringBudget.budgetedAmount },
+        { dept: salesBudget.department, amount: salesBudget.budgetedAmount },
+        { dept: marketingBudget.department, amount: marketingBudget.budgetedAmount },
+      ],
     });
   } catch (error) {
     console.error('Error seeding database:', error);
