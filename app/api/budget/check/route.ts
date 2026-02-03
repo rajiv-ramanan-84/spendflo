@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     // Auto-use default customer if not provided
     if (!customerId || customerId === 'default-customer') {
       const defaultCustomer = await prisma.customer.findFirst({
-        where: { domain: 'default.local' },
+        orderBy: { createdAt: 'asc' },
       });
       if (defaultCustomer) {
         customerId = defaultCustomer.id;

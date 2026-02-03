@@ -36,6 +36,9 @@ export default function BusinessRequestV2Page() {
   const [budgetCheck, setBudgetCheck] = useState<any>(null);
   const [checkingBudget, setCheckingBudget] = useState(false);
 
+  // Validation errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     fetchBudgets();
   }, []);
@@ -148,16 +151,39 @@ export default function BusinessRequestV2Page() {
     }
   }
 
+  function validateForm(): boolean {
+    const errors: Record<string, string> = {};
+
+    if (!vendor.trim()) {
+      errors.vendor = 'Vendor name is required';
+    }
+
+    if (!purpose.trim()) {
+      errors.purpose = 'Purpose is required';
+    }
+
+    if (!amount) {
+      errors.amount = 'Amount is required';
+    } else if (parseFloat(amount) <= 0) {
+      errors.amount = 'Amount must be greater than $0';
+    }
+
+    if (!department) {
+      errors.department = 'Department is required';
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!vendor || !purpose || !amount || !department) {
-      addToast('error', 'Missing information', 'Please fill in all required fields');
+    if (!validateForm()) {
       return;
     }
 
     if (!budgetCheck?.isAvailable) {
-      addToast('error', 'Budget unavailable', budgetCheck?.reason || 'Insufficient budget for this request');
       return;
     }
 
@@ -187,6 +213,7 @@ export default function BusinessRequestV2Page() {
         setAmount('');
         setDepartment('');
         setBudgetCheck(null);
+        setFieldErrors({});
       } else {
         addToast('error', 'Submission failed', data.error);
       }
@@ -247,30 +274,64 @@ export default function BusinessRequestV2Page() {
             {/* Vendor */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Vendor / Supplier
+                Vendor / Supplier <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={vendor}
-                onChange={(e) => setVendor(e.target.value)}
+                onChange={(e) => {
+                  setVendor(e.target.value);
+                  if (fieldErrors.vendor) {
+                    setFieldErrors(prev => ({ ...prev, vendor: '' }));
+                  }
+                }}
                 placeholder="e.g., Salesforce, AWS, Figma"
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400"
+                className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 transition-all text-gray-900 placeholder-gray-400 ${
+                  fieldErrors.vendor
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                    : 'border-gray-300 focus:border-pink-500 focus:ring-pink-500/20'
+                }`}
                 autoFocus
               />
+              {fieldErrors.vendor && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {fieldErrors.vendor}
+                </p>
+              )}
             </div>
 
             {/* Purpose */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                What is this for?
+                What is this for? <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
+                onChange={(e) => {
+                  setPurpose(e.target.value);
+                  if (fieldErrors.purpose) {
+                    setFieldErrors(prev => ({ ...prev, purpose: '' }));
+                  }
+                }}
                 placeholder="e.g., Annual CRM subscription for sales team"
                 rows={2}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400 resize-none"
+                className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 transition-all text-gray-900 placeholder-gray-400 resize-none ${
+                  fieldErrors.purpose
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                    : 'border-gray-300 focus:border-pink-500 focus:ring-pink-500/20'
+                }`}
               />
+              {fieldErrors.purpose && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {fieldErrors.purpose}
+                </p>
+              )}
             </div>
 
             {/* Contract Term */}
@@ -304,26 +365,43 @@ export default function BusinessRequestV2Page() {
             {/* Amount */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Amount
+                Amount <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 text-lg">$</span>
                 <input
                   type="number"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    if (fieldErrors.amount) {
+                      setFieldErrors(prev => ({ ...prev, amount: '' }));
+                    }
+                  }}
                   placeholder="0.00"
-                  className="w-full pl-8 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400"
+                  className={`w-full pl-8 pr-4 py-3 bg-white border rounded-xl focus:ring-2 transition-all text-gray-900 placeholder-gray-400 ${
+                    fieldErrors.amount
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-300 focus:border-pink-500 focus:ring-pink-500/20'
+                  }`}
                   step="0.01"
                   min="0"
                 />
               </div>
+              {fieldErrors.amount && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {fieldErrors.amount}
+                </p>
+              )}
             </div>
 
             {/* Department - Searchable dropdown */}
             <div className="relative">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Department
+                Department <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -332,11 +410,18 @@ export default function BusinessRequestV2Page() {
                   setDepartmentSearch(e.target.value);
                   setDepartment('');
                   setShowDepartmentDropdown(true);
+                  if (fieldErrors.department) {
+                    setFieldErrors(prev => ({ ...prev, department: '' }));
+                  }
                 }}
                 onFocus={() => setShowDepartmentDropdown(true)}
                 onBlur={() => setTimeout(() => setShowDepartmentDropdown(false), 200)}
                 placeholder="Start typing to search departments..."
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-400"
+                className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 transition-all text-gray-900 placeholder-gray-400 ${
+                  fieldErrors.department
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                    : 'border-gray-300 focus:border-pink-500 focus:ring-pink-500/20'
+                }`}
               />
 
               {/* Dropdown - Shows filtered results as you type */}
@@ -379,51 +464,73 @@ export default function BusinessRequestV2Page() {
                   No departments found matching "{departmentSearch}"
                 </div>
               )}
+
+              {fieldErrors.department && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {fieldErrors.department}
+                </p>
+              )}
             </div>
 
-            {/* Real-time budget check */}
+            {/* Real-time budget check - Prominent at eye level */}
             {checkingBudget && (
-              <div className="flex items-center text-sm text-gray-600 p-4 bg-white rounded-xl border border-gray-300">
-                <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+              <div className="flex items-center justify-center text-sm text-gray-600 p-4 bg-blue-50 rounded-xl border border-blue-200 shadow-sm">
+                <svg className="animate-spin h-5 w-5 mr-3 text-blue-600" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Checking budget...
+                <span className="font-medium text-blue-900">Checking budget availability...</span>
               </div>
             )}
 
-            {/* Budget status */}
+            {/* Budget status - Eye-catching banner */}
             {budgetCheck && !checkingBudget && (
-              <div className={`p-4 rounded-xl border-2 ${
+              <div className={`p-5 rounded-xl border-2 shadow-lg ${
                 budgetCheck.isAvailable
-                  ? 'bg-green-500/10 border-green-500/30'
-                  : 'bg-red-500/10 border-red-500/30'
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-400'
+                  : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-400'
               }`}>
                 <div className="flex items-start">
                   {budgetCheck.isAvailable ? (
-                    <svg className="w-5 h-5 text-green-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <div className="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
                   ) : (
-                    <svg className="w-5 h-5 text-red-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <div className="flex-shrink-0 w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
                   )}
                   <div className="flex-1">
-                    <p className={`text-sm font-semibold ${budgetCheck.isAvailable ? 'text-green-400' : 'text-red-400'}`}>
+                    <p className={`text-base font-bold mb-2 ${budgetCheck.isAvailable ? 'text-green-700' : 'text-red-700'}`}>
+                      {budgetCheck.isAvailable ? '✓ Budget Available' : '✗ Insufficient Budget'}
+                    </p>
+                    <p className={`text-sm mb-3 ${budgetCheck.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
                       {budgetCheck.reason}
                     </p>
-                    <div className="mt-2 flex items-center gap-4 text-xs">
-                      <div>
-                        <span className="text-gray-600">Available:</span>
-                        <span className={`ml-1 font-semibold ${budgetCheck.isAvailable ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center">
+                        <span className="text-gray-600 font-medium">Available:</span>
+                        <span className={`ml-2 font-bold text-lg ${budgetCheck.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
                           ${budgetCheck.available?.toLocaleString() || 0}
                         </span>
                       </div>
-                      <div>
-                        <span className="text-gray-600">Total:</span>
-                        <span className="ml-1 font-semibold text-gray-900">
+                      <div className="flex items-center">
+                        <span className="text-gray-600 font-medium">Total Budget:</span>
+                        <span className="ml-2 font-bold text-gray-900">
                           ${budgetCheck.totalBudget?.toLocaleString() || 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 font-medium">Utilization:</span>
+                        <span className="ml-2 font-bold text-gray-900">
+                          {budgetCheck.utilizationPercent?.toFixed(0)}%
                         </span>
                       </div>
                     </div>
@@ -436,7 +543,7 @@ export default function BusinessRequestV2Page() {
             <button
               type="submit"
               disabled={loading || !budgetCheck?.isAvailable || !vendor || !purpose || !amount || !department}
-              className="w-full py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-gray-900 font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 disabled:shadow-none"
+              className="w-full py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 disabled:shadow-none"
             >
               {loading ? (
                 <span className="flex items-center justify-center">
@@ -446,13 +553,23 @@ export default function BusinessRequestV2Page() {
                   </svg>
                   Submitting...
                 </span>
+              ) : !vendor || !purpose || !amount || !department ? (
+                'Fill in all required fields'
+              ) : !budgetCheck?.isAvailable ? (
+                'Budget Not Available'
               ) : (
                 'Submit Request'
               )}
             </button>
 
             <p className="text-xs text-center text-gray-500">
-              Budget will be reserved for 48 hours pending approval
+              {budgetCheck?.isAvailable ? (
+                <>Budget will be reserved for 48 hours pending approval</>
+              ) : vendor && purpose && amount && department ? (
+                <span className="text-red-600 font-medium">Please ensure sufficient budget is available before submitting</span>
+              ) : (
+                <>Complete all required fields to check budget availability</>
+              )}
             </p>
           </div>
         </form>
