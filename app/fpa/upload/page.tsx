@@ -183,7 +183,7 @@ export default function FPAUploadPage() {
               </div>
 
               {/* Success Details */}
-              {result.results.success.length > 0 && (
+              {result.results?.success?.length > 0 && (
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
                   <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
                     <h3 className="text-sm font-medium text-gray-900">
@@ -220,7 +220,7 @@ export default function FPAUploadPage() {
               )}
 
               {/* Error Details */}
-              {result.results.errors.length > 0 && (
+              {result.results?.errors?.length > 0 && (
                 <div className="border border-red-200 rounded-lg overflow-hidden">
                   <div className="bg-red-50 px-4 py-2 border-b border-red-200">
                     <h3 className="text-sm font-medium text-red-900">
