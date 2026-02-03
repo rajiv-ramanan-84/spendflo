@@ -140,12 +140,12 @@ export async function POST(req: NextRequest) {
     await prisma.activity.create({
       data: {
         customerId,
-        userId: createdById,
+        actorId: createdById,
         action: 'api_key_created',
         entityType: 'api_key',
         entityId: apiKey.id,
-        description: `Created API key: ${name}`,
         metadata: {
+          name,
           permissions,
           expiresAt: expiresAt?.toISOString(),
         },
@@ -247,14 +247,18 @@ export async function PATCH(req: NextRequest) {
     await prisma.activity.create({
       data: {
         customerId: updatedKey.customerId,
-        userId: updatedKey.createdById,
+        actorId: updatedKey.createdById,
         action: status === 'revoked' ? 'api_key_revoked' : 'api_key_updated',
         entityType: 'api_key',
         entityId: updatedKey.id,
-        description: status === 'revoked'
-          ? `Revoked API key: ${updatedKey.name}`
-          : `Updated API key: ${updatedKey.name}`,
-        metadata: { status, permissions, name },
+        metadata: {
+          status,
+          permissions,
+          name,
+          description: status === 'revoked'
+            ? `Revoked API key: ${updatedKey.name}`
+            : `Updated API key: ${updatedKey.name}`
+        },
       },
     });
 
@@ -313,11 +317,14 @@ export async function DELETE(req: NextRequest) {
     await prisma.activity.create({
       data: {
         customerId: apiKey.customerId,
-        userId: apiKey.createdById,
+        actorId: apiKey.createdById,
         action: 'api_key_deleted',
         entityType: 'api_key',
         entityId: apiKey.id,
-        description: `Deleted API key: ${apiKey.name}`,
+        metadata: {
+          name: apiKey.name,
+          description: `Deleted API key: ${apiKey.name}`
+        },
       },
     });
 

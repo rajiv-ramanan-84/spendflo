@@ -132,12 +132,14 @@ export async function POST(req: NextRequest) {
     await prisma.activity.create({
       data: {
         customerId,
-        userId,
+        actorId: userId,
         action: 'google_auth_connected',
         entityType: 'google_auth',
         entityId: googleAuth.id,
-        description: 'Connected Google Sheets account',
-        metadata: { scope: googleAuth.scope },
+        metadata: {
+          scope: googleAuth.scope,
+          description: 'Connected Google Sheets account'
+        },
       },
     });
 
@@ -177,11 +179,13 @@ export async function DELETE(req: NextRequest) {
     await prisma.activity.create({
       data: {
         customerId: deleted.customerId,
-        userId: deleted.userId,
+        actorId: deleted.userId,
         action: 'google_auth_disconnected',
         entityType: 'google_auth',
         entityId: deleted.id,
-        description: 'Disconnected Google Sheets account',
+        metadata: {
+          description: 'Disconnected Google Sheets account'
+        },
       },
     });
 
