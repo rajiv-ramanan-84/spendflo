@@ -42,18 +42,42 @@ export default function GoogleSheetsImportPage() {
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
   const [readResponse, setReadResponse] = useState<ReadResponse | null>(null);
   const [importing, setImporting] = useState(false);
-
-  // Mock user and customer IDs - replace with actual auth
-  const userId = 'demo-user';
-  const customerId = 'demo-customer';
+  const [userId, setUserId] = useState<string>('');
+  const [customerId, setCustomerId] = useState<string>('');
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    checkConnection();
+    initializeUser();
   }, []);
 
-  async function checkConnection() {
+  async function initializeUser() {
     try {
-      const res = await fetch(`/api/google-sheets/list?userId=${userId}`);
+      // Get or create a default user and customer
+      const res = await fetch('/api/seed');
+      const data = await res.json();
+
+      if (data.customer && data.users) {
+        setCustomerId(data.customer.id);
+        // Use the first user (should be the FP&A user)
+        setUserId(data.users[0].id);
+
+        // Now check connection
+        await checkConnection(data.users[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to initialize user:', error);
+      addToast('error', 'Initialization failed', 'Please refresh the page');
+    } finally {
+      setInitializing(false);
+    }
+  }
+
+  async function checkConnection(userIdToCheck?: string) {
+    const uid = userIdToCheck || userId;
+    if (!uid) return;
+
+    try {
+      const res = await fetch(`/api/google-sheets/list?userId=${uid}`);
       const data = await res.json();
 
       if (data.success) {
@@ -67,6 +91,11 @@ export default function GoogleSheetsImportPage() {
   }
 
   async function handleConnect() {
+    if (!userId || !customerId) {
+      addToast('error', 'Not ready', 'Please wait for initialization to complete');
+      return;
+    }
+
     try {
       setLoading(true);
       const res = await fetch(`/api/google-sheets/auth?userId=${userId}&customerId=${customerId}`);
@@ -202,6 +231,17 @@ export default function GoogleSheetsImportPage() {
 
   function removeToast(id: string) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-pink-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Initializing...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
