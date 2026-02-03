@@ -47,11 +47,14 @@ export default function BusinessRequestV2Page() {
     try {
       const res = await fetch('/api/budgets');
       const data = await res.json();
-      setBudgets(data);
+
+      // Handle standardized API response
+      const budgetsList = data.budgets || [];
+      setBudgets(budgetsList);
 
       // Set customerId from first budget
-      if (data.length > 0) {
-        setCustomerId(data[0].customerId);
+      if (budgetsList.length > 0) {
+        setCustomerId(budgetsList[0].customerId);
       }
     } catch (error) {
       console.error('Failed to fetch budgets:', error);
@@ -183,7 +186,7 @@ export default function BusinessRequestV2Page() {
       return;
     }
 
-    if (!budgetCheck?.isAvailable) {
+    if (!budgetCheck?.available) {
       return;
     }
 
@@ -194,7 +197,7 @@ export default function BusinessRequestV2Page() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          budgetId: budgetCheck.budgetId,
+          budgetId: budgetCheck.budget?.id,
           amount: parseFloat(amount),
           requestId: `req-${Date.now()}`,
           userId: 'business-user',
@@ -489,12 +492,12 @@ export default function BusinessRequestV2Page() {
             {/* Budget status - Eye-catching banner */}
             {budgetCheck && !checkingBudget && (
               <div className={`p-5 rounded-xl border-2 shadow-lg ${
-                budgetCheck.isAvailable
+                budgetCheck.available
                   ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-400'
                   : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-400'
               }`}>
                 <div className="flex items-start">
-                  {budgetCheck.isAvailable ? (
+                  {budgetCheck.available ? (
                     <div className="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-3">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -508,23 +511,23 @@ export default function BusinessRequestV2Page() {
                     </div>
                   )}
                   <div className="flex-1">
-                    <p className={`text-base font-bold mb-2 ${budgetCheck.isAvailable ? 'text-green-700' : 'text-red-700'}`}>
-                      {budgetCheck.isAvailable ? '✓ Budget Available' : '✗ Insufficient Budget'}
+                    <p className={`text-base font-bold mb-2 ${budgetCheck.available ? 'text-green-700' : 'text-red-700'}`}>
+                      {budgetCheck.available ? '✓ Budget Available' : '✗ Insufficient Budget'}
                     </p>
-                    <p className={`text-sm mb-3 ${budgetCheck.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-sm mb-3 ${budgetCheck.available ? 'text-green-600' : 'text-red-600'}`}>
                       {budgetCheck.reason}
                     </p>
                     <div className="flex items-center gap-6 text-sm">
                       <div className="flex items-center">
                         <span className="text-gray-600 font-medium">Available:</span>
-                        <span className={`ml-2 font-bold text-lg ${budgetCheck.isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                          ${budgetCheck.available?.toLocaleString() || 0}
+                        <span className={`ml-2 font-bold text-lg ${budgetCheck.available ? 'text-green-600' : 'text-red-600'}`}>
+                          ${budgetCheck.budget?.available?.toLocaleString() || 0}
                         </span>
                       </div>
                       <div className="flex items-center">
                         <span className="text-gray-600 font-medium">Total Budget:</span>
                         <span className="ml-2 font-bold text-gray-900">
-                          ${budgetCheck.totalBudget?.toLocaleString() || 0}
+                          ${budgetCheck.budget?.budgetedAmount?.toLocaleString() || 0}
                         </span>
                       </div>
                       <div className="flex items-center">
@@ -542,7 +545,7 @@ export default function BusinessRequestV2Page() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || !budgetCheck?.isAvailable || !vendor || !purpose || !amount || !department}
+              disabled={loading || !budgetCheck?.available || !vendor || !purpose || !amount || !department}
               className="w-full py-4 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-pink-500/25 disabled:shadow-none"
             >
               {loading ? (
@@ -555,7 +558,7 @@ export default function BusinessRequestV2Page() {
                 </span>
               ) : !vendor || !purpose || !amount || !department ? (
                 'Fill in all required fields'
-              ) : !budgetCheck?.isAvailable ? (
+              ) : !budgetCheck?.available ? (
                 'Budget Not Available'
               ) : (
                 'Submit Request'
@@ -563,7 +566,7 @@ export default function BusinessRequestV2Page() {
             </button>
 
             <p className="text-xs text-center text-gray-500">
-              {budgetCheck?.isAvailable ? (
+              {budgetCheck?.available ? (
                 <>Budget will be reserved for 48 hours pending approval</>
               ) : vendor && purpose && amount && department ? (
                 <span className="text-red-600 font-medium">Please ensure sufficient budget is available before submitting</span>

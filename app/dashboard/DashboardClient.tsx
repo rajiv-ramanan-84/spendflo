@@ -74,7 +74,7 @@ export function DashboardClient() {
         const statsData = await statsRes.json();
         const budgetsData = await budgetsRes.json();
         setStats(statsData);
-        setBudgets(budgetsData);
+        setBudgets(budgetsData.budgets || []);
       } else {
         // Set empty state if API fails
         setStats({
