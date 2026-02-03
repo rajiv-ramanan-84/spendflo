@@ -29,6 +29,7 @@ model Customer {
   importHistory  ImportHistory[]
   templates      BudgetTemplate[]
   activities     Activity[]
+  googleAuths    GoogleAuth[]
 }
 
 model User {
@@ -55,6 +56,7 @@ model User {
   activities     Activity[]
   importMappings ImportMapping[]
   importHistory  ImportHistory[]
+  googleAuth     GoogleAuth?
 
   @@index([customerId])
   @@index([email])
@@ -293,4 +295,26 @@ model Activity {
   @@index([customerId])
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// ============================================
+// GOOGLE SHEETS INTEGRATION
+// ============================================
+
+model GoogleAuth {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  customerId   String
+  accessToken  String    @db.Text
+  refreshToken String?   @db.Text
+  expiryDate   DateTime
+  scope        String[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  user         User      @relation(fields: [userId], references: [id])
+  customer     Customer  @relation(fields: [customerId], references: [id])
+
+  @@index([userId])
+  @@index([customerId])
 }

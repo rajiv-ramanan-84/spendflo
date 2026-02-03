@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 /**
  * Generate a secure API key
- * Format: sk_{env}_{random32chars}
+ * Format: sfb_{env}_{random32chars}
  */
 export function generateApiKey(env: 'test' | 'live' = 'live'): {
   key: string;
@@ -19,11 +19,11 @@ export function generateApiKey(env: 'test' | 'live' = 'live'): {
     .replace(/=/g, '')
     .substring(0, 32);
 
-  // Format: sk_live_xxx or sk_test_xxx
-  const key = `sk_${env}_${randomString}`;
+  // Format: sfb_live_xxx or sfb_test_xxx
+  const key = `sfb_${env}_${randomString}`;
 
-  // Prefix for display (first 16 chars)
-  const prefix = key.substring(0, 16);
+  // Prefix for display (first 17 chars)
+  const prefix = key.substring(0, 17);
 
   return { key, prefix };
 }
@@ -51,16 +51,16 @@ export function verifyApiKey(key: string, hash: string): boolean {
  * Extract prefix from API key
  */
 export function getKeyPrefix(key: string): string {
-  return key.substring(0, 16);
+  return key.substring(0, 17);
 }
 
 /**
  * Mask API key for display
- * Example: sk_live_abc...xyz
+ * Example: sfb_live_abc...xyz
  */
 export function maskApiKey(key: string): string {
   if (key.length < 20) return key;
-  const prefix = key.substring(0, 12);
+  const prefix = key.substring(0, 13);
   const suffix = key.substring(key.length - 3);
   return `${prefix}...${suffix}`;
 }

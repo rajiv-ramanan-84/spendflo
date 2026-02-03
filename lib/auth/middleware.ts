@@ -154,7 +154,7 @@ export function withApiKey(
       const apiKey = authHeader.substring(7);
 
       // Extract key prefix for lookup
-      const keyPrefix = apiKey.substring(0, 16); // "sk_live_" + first 8 chars
+      const keyPrefix = apiKey.substring(0, 17); // "sfb_live_" + first 8 chars
 
       // Find API key in database
       const apiKeyRecord = await prisma.apiKey.findFirst({
