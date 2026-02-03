@@ -8,7 +8,7 @@ datasource db {
 }
 
 model AuditLog {
-  id        String   @id
+  id        String   @id @default(cuid())
   budgetId  String
   action    String
   oldValue  String?
@@ -20,7 +20,7 @@ model AuditLog {
 }
 
 model Budget {
-  id             String             @id
+  id             String             @id @default(cuid())
   customerId     String
   department     String
   subCategory    String?
@@ -28,7 +28,7 @@ model Budget {
   budgetedAmount Float
   source         String             @default("manual")
   createdAt      DateTime           @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @default(now()) @updatedAt
   currency       String             @default("USD")
   auditLogs      AuditLog[]
   customer       Customer           @relation(fields: [customerId], references: [id])
@@ -39,27 +39,27 @@ model Budget {
 }
 
 model BudgetUtilization {
-  id              String   @id
+  id              String   @id @default(cuid())
   budgetId        String   @unique
   committedAmount Float    @default(0)
   reservedAmount  Float    @default(0)
-  updatedAt       DateTime
+  updatedAt       DateTime  @default(now())
   Budget          Budget   @relation("BudgetToUtilization", fields: [budgetId], references: [id])
 }
 
 model Customer {
-  id        String    @id
+  id        String    @id @default(cuid())
   name      String
   domain    String    @unique
   createdAt DateTime  @default(now())
-  updatedAt DateTime
+  updatedAt DateTime  @default(now())
   budgets   Budget[]
   Request   Request[]
   User      User[]
 }
 
 model Request {
-  id             String   @id
+  id             String   @id @default(cuid())
   customerId     String
   supplier       String
   description    String
@@ -69,21 +69,21 @@ model Request {
   status         String   @default("pending")
   createdById    String
   createdAt      DateTime @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @default(now()) @updatedAt
   Budget         Budget?  @relation(fields: [budgetId], references: [id])
   User           User     @relation(fields: [createdById], references: [id])
   Customer       Customer @relation(fields: [customerId], references: [id])
 }
 
 model User {
-  id         String    @id
+  id         String    @id @default(cuid())
   email      String    @unique
   password   String
   name       String
   role       String
   customerId String
   createdAt  DateTime  @default(now())
-  updatedAt  DateTime
+  updatedAt  DateTime  @default(now()) @updatedAt
   Request    Request[]
   Customer   Customer  @relation(fields: [customerId], references: [id])
 }
