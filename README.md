@@ -269,12 +269,42 @@ Future enhancements:
 - [ ] Custom fiscal periods
 - [ ] More currencies
 
+## 📚 Comprehensive Documentation
+
+This project includes extensive documentation for technical and business stakeholders:
+
+### For CTOs & Technical Leadership
+- **[Executive Summary](./docs/EXECUTIVE_SUMMARY.md)** - High-level overview, metrics, ROI
+- **[Architecture Documentation](./docs/ARCHITECTURE.md)** - System design, diagrams, tech stack
+- **[Security Documentation](./docs/SECURITY.md)** - Security posture, compliance, roadmap
+
+### For Engineers
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Local setup, production deployment, troubleshooting
+- **[API Documentation](./API_DOCUMENTATION.md)** - Complete API reference with examples
+- **[Test Plan](./docs/TEST_PLAN.md)** - Test cases, quality assurance strategy
+
+### For Product Managers
+- **[Product Requirements](./docs/PRD.md)** - Complete functional requirements (64 FRs)
+
+## 📊 Project Status
+
+**Production URL**: https://spendflo-production.up.railway.app
+
+| Metric | Status |
+|--------|--------|
+| Test Coverage | ✅ 9/9 E2E tests passing |
+| Documentation | ✅ 75+ pages complete |
+| Deployment | ✅ Auto-deploy on push |
+| Security | ⚠️ MVP (auth planned Q1 2026) |
+| Performance | ✅ <200ms response time |
+
 ## Support
 
 For issues or questions:
 - Check `/test` page for API testing
 - Review `/audit` for change history
 - View `/dashboard` for budget health
+- Read comprehensive docs in `/docs` folder
 - Open GitHub issue
 
 ## License
