@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
 
     if (!budget) {
       return NextResponse.json({
-        isAvailable: false,
+        success: true,
+        available: false,
         reason: 'No budget found for this department/category',
         details: {
           department,
@@ -91,14 +92,17 @@ export async function POST(req: NextRequest) {
     const canAutoApprove = isAvailable && requestAmount <= autoApprovalThreshold && utilizationPercent < 90;
 
     return NextResponse.json({
-      isAvailable,
-      budgetId: budget.id,
+      success: true,
+      available: isAvailable,
+      budget: {
+        id: budget.id,
+        budgetedAmount: budget.budgetedAmount,
+        committed,
+        reserved,
+        available: effectiveAvailable,
+      },
       requestedAmount: requestAmount,
       currency: budget.currency,
-      totalBudget: budget.budgetedAmount,
-      committed,
-      reserved,
-      available: effectiveAvailable, // Effective available (considering pending)
       pendingRequests: pendingRequests.length,
       pendingAmount,
       utilizationPercent,
