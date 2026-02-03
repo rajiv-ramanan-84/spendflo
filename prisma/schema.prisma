@@ -7,16 +7,58 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model AuditLog {
-  id        String   @id @default(cuid())
-  budgetId  String
-  action    String
-  oldValue  String?
-  newValue  String?
-  changedBy String
-  reason    String?
-  createdAt DateTime @default(now())
-  budget    Budget   @relation(fields: [budgetId], references: [id])
+// ============================================
+// EXISTING MODELS (EXTENDED)
+// ============================================
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  domain    String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  // Existing relations
+  budgets   Budget[]
+  requests  Request[]
+  users     User[]
+
+  // New relations
+  apiKeys        ApiKey[]
+  importMappings ImportMapping[]
+  importHistory  ImportHistory[]
+  templates      BudgetTemplate[]
+  activities     Activity[]
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        String    // super_admin, fpa_admin, fpa_user, business_user, api_system
+  permissions String[]  @default([])
+  customerId  String
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  // Existing relations
+  customer       Customer  @relation(fields: [customerId], references: [id])
+  requests       Request[]
+
+  // New relations
+  apiKeys        ApiKey[]
+  comments       Comment[]       @relation("CommentAuthor")
+  templates      BudgetTemplate[]
+  activities     Activity[]
+  importMappings ImportMapping[]
+  importHistory  ImportHistory[]
+
+  @@index([customerId])
+  @@index([email])
+  @@index([role])
 }
 
 model Budget {
@@ -28,14 +70,47 @@ model Budget {
   budgetedAmount Float
   source         String             @default("manual")
   createdAt      DateTime           @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
+  updatedAt      DateTime           @default(now()) @updatedAt
   currency       String             @default("USD")
+
+  // Existing relations
   auditLogs      AuditLog[]
   customer       Customer           @relation(fields: [customerId], references: [id])
   utilization    BudgetUtilization? @relation("BudgetToUtilization")
-  Request        Request[]
+  requests       Request[]
+
+  // New relations
+  comments       Comment[]
 
   @@unique([customerId, department, subCategory, fiscalPeriod])
+  @@index([customerId])
+  @@index([department])
+}
+
+model Request {
+  id              String   @id @default(cuid())
+  customerId      String
+  supplier        String
+  description     String
+  amount          Float
+  budgetCategory  String?
+  budgetId        String?
+  status          String   @default("pending") // pending, auto_approved, approved, reserved, committed, rejected
+  autoApproved    Boolean  @default(false)
+  approvalReason  String?
+  rejectionReason String?
+  approvedById    String?
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  budget          Budget?  @relation(fields: [budgetId], references: [id])
+  createdBy       User     @relation(fields: [createdById], references: [id])
+  customer        Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId, status])
+  @@index([budgetId])
+  @@index([status])
 }
 
 model BudgetUtilization {
@@ -43,47 +118,179 @@ model BudgetUtilization {
   budgetId        String   @unique
   committedAmount Float    @default(0)
   reservedAmount  Float    @default(0)
-  updatedAt       DateTime  @default(now())
-  Budget          Budget   @relation("BudgetToUtilization", fields: [budgetId], references: [id])
+  updatedAt       DateTime @default(now())
+
+  budget          Budget   @relation("BudgetToUtilization", fields: [budgetId], references: [id])
 }
 
-model Customer {
+model AuditLog {
+  id        String   @id @default(cuid())
+  budgetId  String
+  action    String
+  oldValue  String?
+  newValue  String?
+  changedBy String
+  reason    String?
+  createdAt DateTime @default(now())
+
+  budget    Budget   @relation(fields: [budgetId], references: [id])
+
+  @@index([budgetId])
+  @@index([createdAt])
+}
+
+// ============================================
+// NEW MODELS - API KEY MANAGEMENT
+// ============================================
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  key         String    @unique
+  keyPrefix   String
+  customerId  String
+  createdById String
+  status      String    @default("active") // active, revoked, expired
+  permissions String[]
+  usageCount  Int       @default(0)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  createdBy   User             @relation(fields: [createdById], references: [id])
+  usageLogs   ApiKeyUsageLog[]
+
+  @@index([customerId])
+  @@index([key])
+  @@index([status])
+}
+
+model ApiKeyUsageLog {
+  id         String   @id @default(cuid())
+  apiKeyId   String
+  endpoint   String
+  method     String
+  statusCode Int
+  timestamp  DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
+
+  apiKey     ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([timestamp])
+}
+
+// ============================================
+// NEW MODELS - GOOGLE SHEETS INTEGRATION
+// ============================================
+
+model ImportMapping {
+  id           String   @id @default(cuid())
+  customerId   String
+  name         String
+  sourceType   String   @default("google_sheets") // google_sheets, csv, excel
+  mappings     Json     // Column mappings: { "Column A": "department", "Column B": "amount" }
+  aiSuggested  Boolean  @default(false)
+  aiConfidence Float?   // 0-1 confidence score
+  createdById  String
+  lastUsedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  customer     Customer        @relation(fields: [customerId], references: [id])
+  createdBy    User            @relation(fields: [createdById], references: [id])
+  imports      ImportHistory[]
+
+  @@index([customerId])
+}
+
+model ImportHistory {
+  id           String    @id @default(cuid())
+  customerId   String
+  mappingId    String?
+  sourceType   String    // google_sheets, csv, excel
+  fileName     String?
+  sheetUrl     String?
+  status       String    @default("pending") // pending, processing, completed, failed
+  totalRows    Int       @default(0)
+  successCount Int       @default(0)
+  failureCount Int       @default(0)
+  errors       Json?     // Array of error details
+  importedById String
+  createdAt    DateTime  @default(now())
+  completedAt  DateTime?
+
+  customer     Customer        @relation(fields: [customerId], references: [id])
+  mapping      ImportMapping?  @relation(fields: [mappingId], references: [id])
+  importedBy   User            @relation(fields: [importedById], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// ============================================
+// NEW MODELS - COLLABORATION
+// ============================================
+
+model Comment {
   id        String    @id @default(cuid())
-  name      String
-  domain    String    @unique
+  budgetId  String
+  parentId  String?   // For threaded comments
+  content   String
+  authorId  String
+  mentions  String[]  // Array of user IDs mentioned
+  isEdited  Boolean   @default(false)
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @default(now())
-  budgets   Budget[]
-  Request   Request[]
-  User      User[]
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  budget    Budget    @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  author    User      @relation("CommentAuthor", fields: [authorId], references: [id])
+  parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentThread")
+
+  @@index([budgetId])
+  @@index([authorId])
 }
 
-model Request {
-  id             String   @id @default(cuid())
-  customerId     String
-  supplier       String
-  description    String
-  amount         Float
-  budgetCategory String?
-  budgetId       String?
-  status         String   @default("pending")
-  createdById    String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @default(now()) @updatedAt
-  Budget         Budget?  @relation(fields: [budgetId], references: [id])
-  User           User     @relation(fields: [createdById], references: [id])
-  Customer       Customer @relation(fields: [customerId], references: [id])
+model BudgetTemplate {
+  id          String    @id @default(cuid())
+  customerId  String
+  name        String
+  description String?
+  templateData Json     // Array of budget configurations
+  tags        String[]  // For categorization
+  isPublic    Boolean   @default(false) // Shared across customer
+  createdById String
+  usageCount  Int       @default(0)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  createdBy   User      @relation(fields: [createdById], references: [id])
+
+  @@index([customerId])
+  @@index([isPublic])
 }
 
-model User {
-  id         String    @id @default(cuid())
-  email      String    @unique
-  password   String
-  name       String
-  role       String
+model Activity {
+  id         String   @id @default(cuid())
   customerId String
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @default(now()) @updatedAt
-  Request    Request[]
-  Customer   Customer  @relation(fields: [customerId], references: [id])
+  entityType String   // budget, request, comment, import
+  entityId   String
+  action     String   // created, updated, deleted, commented, approved, rejected
+  actorId    String
+  metadata   Json?    // Additional context
+  createdAt  DateTime @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  actor      User     @relation(fields: [actorId], references: [id])
+
+  @@index([customerId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
 }
