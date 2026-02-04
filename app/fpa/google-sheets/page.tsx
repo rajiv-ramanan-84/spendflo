@@ -642,11 +642,11 @@ export default function GoogleSheetsImportPage() {
                                 } focus:outline-none focus:ring-2 focus:ring-pink-500`}
                               >
                                 <option value="" className="bg-gray-800">— Select Target Field —</option>
-                                <option value="department" className="bg-gray-800">🏢 Department (required)</option>
-                                <option value="subCategory" className="bg-gray-800">📊 Sub-Category</option>
-                                <option value="fiscalPeriod" className="bg-gray-800">📅 Fiscal Period (required)</option>
-                                <option value="budgetedAmount" className="bg-gray-800">💰 Budgeted Amount (required)</option>
-                                <option value="currency" className="bg-gray-800">💵 Currency</option>
+                                <option value="department" className="bg-gray-800">Department (required)</option>
+                                <option value="subCategory" className="bg-gray-800">Sub-Category</option>
+                                <option value="fiscalPeriod" className="bg-gray-800">Fiscal Period (required)</option>
+                                <option value="budgetedAmount" className="bg-gray-800">Budgeted Amount (required)</option>
+                                <option value="currency" className="bg-gray-800">Currency</option>
                               </select>
                               {targetInfo && (
                                 <div className="flex items-center gap-2 mt-2">
@@ -715,46 +715,28 @@ export default function GoogleSheetsImportPage() {
                 })()}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-700">
+                <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-700">
                   <button
                     onClick={() => {
-                      // Reset all mappings to AI suggestions
-                      setSourceColumns(prev => prev.map(col => ({
-                        ...col,
-                        mappedTo: col.aiSuggestion || null,
-                      })));
-                      addToast('info', 'Reset to AI', 'All mappings reset to AI suggestions');
+                      setShowMappingInterface(false);
+                      setSourceColumns([]);
                     }}
-                    className="px-4 py-2 text-purple-400 hover:text-purple-300 font-medium transition-colors flex items-center gap-2"
+                    className="px-6 py-3 bg-gray-700 text-gray-300 font-semibold rounded-xl hover:bg-gray-600 transition-all"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Reset to AI
+                    Cancel
                   </button>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => {
-                        setShowMappingInterface(false);
-                        setSourceColumns([]);
-                      }}
-                      className="px-6 py-3 bg-gray-700 text-gray-300 font-semibold rounded-xl hover:bg-gray-600 transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmMappings}
-                      disabled={(() => {
-                        const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
-                        const mappedFields = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
-                        const mappedRequired = REQUIRED_FIELDS.filter(field => mappedFields.includes(field));
-                        return mappedRequired.length !== REQUIRED_FIELDS.length;
-                      })()}
-                      className="px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                    >
-                      Confirm Mappings →
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleConfirmMappings}
+                    disabled={(() => {
+                      const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
+                      const mappedFields = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
+                      const mappedRequired = REQUIRED_FIELDS.filter(field => mappedFields.includes(field));
+                      return mappedRequired.length !== REQUIRED_FIELDS.length;
+                    })()}
+                    className="px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                  >
+                    Confirm Mappings →
+                  </button>
                 </div>
               </div>
             )}
