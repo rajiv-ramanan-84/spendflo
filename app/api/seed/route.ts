@@ -105,6 +105,66 @@ export async function POST() {
       },
     });
 
+    const financeBudget = await prisma.budget.upsert({
+      where: {
+        customerId_department_subCategory_fiscalPeriod: {
+          customerId: customer.id,
+          department: 'Finance Department',
+          subCategory: 'Software',
+          fiscalPeriod: 'FY2025',
+        },
+      },
+      update: {},
+      create: {
+        customerId: customer.id,
+        department: 'Finance Department',
+        subCategory: 'Software',
+        fiscalPeriod: 'FY2025',
+        budgetedAmount: 400000,
+        source: 'manual',
+      },
+    });
+
+    const hrBudget = await prisma.budget.upsert({
+      where: {
+        customerId_department_subCategory_fiscalPeriod: {
+          customerId: customer.id,
+          department: 'Human Resources',
+          subCategory: 'Software',
+          fiscalPeriod: 'FY2025',
+        },
+      },
+      update: {},
+      create: {
+        customerId: customer.id,
+        department: 'Human Resources',
+        subCategory: 'Software',
+        fiscalPeriod: 'FY2025',
+        budgetedAmount: 200000,
+        source: 'manual',
+      },
+    });
+
+    const operationsBudget = await prisma.budget.upsert({
+      where: {
+        customerId_department_subCategory_fiscalPeriod: {
+          customerId: customer.id,
+          department: 'Operations',
+          subCategory: 'Tools',
+          fiscalPeriod: 'FY2025',
+        },
+      },
+      update: {},
+      create: {
+        customerId: customer.id,
+        department: 'Operations',
+        subCategory: 'Tools',
+        fiscalPeriod: 'FY2025',
+        budgetedAmount: 350000,
+        source: 'manual',
+      },
+    });
+
     // Create budget utilization records
     await prisma.budgetUtilization.upsert({
       where: { budgetId: engineeringBudget.id },
@@ -133,6 +193,36 @@ export async function POST() {
         budgetId: marketingBudget.id,
         committedAmount: 150000,
         reservedAmount: 30000,
+      },
+    });
+
+    await prisma.budgetUtilization.upsert({
+      where: { budgetId: financeBudget.id },
+      update: { committedAmount: 250000, reservedAmount: 40000 },
+      create: {
+        budgetId: financeBudget.id,
+        committedAmount: 250000,
+        reservedAmount: 40000,
+      },
+    });
+
+    await prisma.budgetUtilization.upsert({
+      where: { budgetId: hrBudget.id },
+      update: { committedAmount: 120000, reservedAmount: 15000 },
+      create: {
+        budgetId: hrBudget.id,
+        committedAmount: 120000,
+        reservedAmount: 15000,
+      },
+    });
+
+    await prisma.budgetUtilization.upsert({
+      where: { budgetId: operationsBudget.id },
+      update: { committedAmount: 200000, reservedAmount: 50000 },
+      create: {
+        budgetId: operationsBudget.id,
+        committedAmount: 200000,
+        reservedAmount: 50000,
       },
     });
 
@@ -185,6 +275,9 @@ export async function POST() {
         { dept: engineeringBudget.department, amount: engineeringBudget.budgetedAmount },
         { dept: salesBudget.department, amount: salesBudget.budgetedAmount },
         { dept: marketingBudget.department, amount: marketingBudget.budgetedAmount },
+        { dept: financeBudget.department, amount: financeBudget.budgetedAmount },
+        { dept: hrBudget.department, amount: hrBudget.budgetedAmount },
+        { dept: operationsBudget.department, amount: operationsBudget.budgetedAmount },
       ],
     });
   } catch (error) {
