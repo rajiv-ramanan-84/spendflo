@@ -31,8 +31,8 @@ export function Header() {
             <a href="/business/requests" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
               My Requests
             </a>
-            <a href="/fpa/upload" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
-              Upload
+            <a href="/fpa/import" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
+              Import
             </a>
             <a href="/audit" className="text-sm font-medium text-gray-600 hover:text-pink-600 transition-colors">
               Audit Log

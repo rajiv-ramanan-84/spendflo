@@ -48,9 +48,9 @@ export default function HomePage() {
             </div>
           </a>
 
-          {/* FP&A Excel Upload Tile */}
+          {/* Unified Import Budgets Tile */}
           <a
-            href="/fpa/upload"
+            href="/fpa/import"
             className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 border-2 border-gray-100 hover:border-pink-500"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full opacity-50"></div>
@@ -61,40 +61,13 @@ export default function HomePage() {
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                Excel Upload
+                Import Budgets
               </h2>
               <p className="text-gray-600 mb-4">
-                Upload and manage budgets via Excel files with AI mapping
+                Upload Excel files or connect Google Sheets with AI-powered column mapping
               </p>
               <div className="flex items-center text-pink-600 font-medium group-hover:translate-x-2 transition-transform">
-                Upload Excel
-                <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </div>
-            </div>
-          </a>
-
-          {/* Google Sheets Tile */}
-          <a
-            href="/fpa/google-sheets"
-            className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 p-8 border-2 border-gray-100 hover:border-pink-500"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full opacity-50"></div>
-            <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">
-                Google Sheets
-              </h2>
-              <p className="text-gray-600 mb-4">
-                Import budgets directly from Google Sheets with AI mapping
-              </p>
-              <div className="flex items-center text-pink-600 font-medium group-hover:translate-x-2 transition-transform">
-                Import from Sheets
+                Import Budgets
                 <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
