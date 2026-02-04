@@ -120,6 +120,8 @@ export async function POST(req: NextRequest) {
       sheetName,
       totalRows,
       totalColumns: cleanedHeaders.length,
+      headers: cleanedHeaders,
+      sampleRows,
       mappings: mappingResult.mappings,
       unmappedColumns: mappingResult.unmappedColumns,
       requiredFieldsMissing: mappingResult.requiredFieldsMissing,

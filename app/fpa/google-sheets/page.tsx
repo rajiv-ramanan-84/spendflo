@@ -29,6 +29,16 @@ interface ReadResponse {
   requiredFieldsMissing?: string[];
   canProceed?: boolean;
   message?: string;
+  headers?: string[];
+  sampleRows?: any[][];
+}
+
+interface SourceColumn {
+  name: string;
+  samples: string[];
+  mappedTo: string | null;
+  aiSuggestion?: string;
+  confidence?: number;
 }
 
 export default function GoogleSheetsImportPage() {
@@ -46,6 +56,9 @@ export default function GoogleSheetsImportPage() {
   const [customerId, setCustomerId] = useState<string>('');
   const [initializing, setInitializing] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMappingInterface, setShowMappingInterface] = useState(false);
+  const [sourceColumns, setSourceColumns] = useState<SourceColumn[]>([]);
+  const [finalMappings, setFinalMappings] = useState<ColumnMapping[]>([]);
 
   useEffect(() => {
     initializeUser();
@@ -193,8 +206,28 @@ export default function GoogleSheetsImportPage() {
 
       if (data.success) {
         setReadResponse(data);
-        setMappings(data.mappings || []);
-        addToast('success', 'AI Mapping Complete', `Mapped ${data.mappings?.length || 0} columns`);
+
+        // Prepare source columns for visual mapping
+        const headers = data.headers || [];
+        const sampleRows = data.sampleRows || [];
+        const aiMappings = data.mappings || [];
+
+        const columns: SourceColumn[] = headers.map((header: string, idx: number) => {
+          const samples = sampleRows.map((row: any[]) => row[idx]).filter(Boolean).slice(0, 3);
+          const aiMapping = aiMappings.find((m: ColumnMapping) => m.sourceColumn === header);
+
+          return {
+            name: header,
+            samples,
+            mappedTo: aiMapping ? aiMapping.targetField : null,
+            aiSuggestion: aiMapping?.targetField,
+            confidence: aiMapping?.confidence,
+          };
+        });
+
+        setSourceColumns(columns);
+        setShowMappingInterface(true);
+        addToast('success', 'Sheet Loaded', `Found ${headers.length} columns`);
       } else {
         addToast('error', 'Failed to read sheet', data.error);
       }
@@ -203,6 +236,32 @@ export default function GoogleSheetsImportPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleColumnMappingChange(columnName: string, targetField: string) {
+    setSourceColumns(prev => prev.map(col =>
+      col.name === columnName ? { ...col, mappedTo: targetField || null } : col
+    ));
+  }
+
+  function handleConfirmMappings() {
+    // Convert sourceColumns to final mappings format
+    const confirmedMappings: ColumnMapping[] = sourceColumns
+      .filter(col => col.mappedTo)
+      .map(col => ({
+        sourceColumn: col.name,
+        targetField: col.mappedTo!,
+        confidence: col.confidence || 1.0,
+        reason: col.aiSuggestion === col.mappedTo
+          ? `AI suggestion (${Math.round((col.confidence || 0) * 100)}% confidence)`
+          : 'Manually mapped',
+        sampleValues: col.samples,
+      }));
+
+    setFinalMappings(confirmedMappings);
+    setMappings(confirmedMappings);
+    setShowMappingInterface(false);
+    addToast('success', 'Mappings Confirmed', `${confirmedMappings.length} columns mapped`);
   }
 
   async function handleImport() {
@@ -242,6 +301,9 @@ export default function GoogleSheetsImportPage() {
         setAvailableSheets([]);
         setMappings([]);
         setReadResponse(null);
+        setShowMappingInterface(false);
+        setSourceColumns([]);
+        setFinalMappings([]);
       } else {
         addToast('error', 'Import failed', data.error);
       }
@@ -463,8 +525,245 @@ export default function GoogleSheetsImportPage() {
               </div>
             )}
 
+            {/* Visual Mapping Interface */}
+            {showMappingInterface && sourceColumns.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Map Your Columns</h2>
+                    <p className="text-gray-600 mt-1">Review AI suggestions and adjust mappings as needed</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowMappingInterface(false);
+                      setSourceColumns([]);
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Progress Indicator */}
+                {(() => {
+                  const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
+                  const mappedFields = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
+                  const mappedRequired = REQUIRED_FIELDS.filter(field => mappedFields.includes(field));
+                  const totalMapped = sourceColumns.filter(col => col.mappedTo).length;
+                  const canProceed = mappedRequired.length === REQUIRED_FIELDS.length;
+
+                  return (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold text-gray-900">Mapping Progress</div>
+                        <div className="text-sm text-gray-600">
+                          {totalMapped} of {sourceColumns.length} columns mapped
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 flex-wrap mt-3">
+                        {REQUIRED_FIELDS.map(field => {
+                          const isMapped = mappedFields.includes(field);
+                          return (
+                            <div key={field} className="flex items-center gap-2">
+                              {isMapped ? (
+                                <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                              <span className={`text-sm font-medium ${isMapped ? 'text-green-700' : 'text-red-600'}`}>
+                                {field} {isMapped ? '✓' : '(required)'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {!canProceed && (
+                        <p className="text-sm text-red-700 mt-3 font-medium">
+                          ⚠️ Map all required fields to proceed
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Side-by-Side Mapping Interface */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Left Side: Source Columns */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">Your Spreadsheet Columns</h3>
+                      <span className="text-sm text-gray-500">{sourceColumns.length} columns</span>
+                    </div>
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                      {sourceColumns.map((column) => (
+                        <div
+                          key={column.name}
+                          className={`p-4 rounded-xl border-2 transition-all ${
+                            column.mappedTo
+                              ? 'border-green-300 bg-green-50'
+                              : 'border-gray-200 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-900 mb-1">{column.name}</div>
+                              <div className="text-xs text-gray-500">
+                                Sample: {column.samples.join(', ') || 'No data'}
+                              </div>
+                            </div>
+                            {column.aiSuggestion && column.mappedTo === column.aiSuggestion && (
+                              <div className="ml-2 flex-shrink-0">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                                  </svg>
+                                  AI {Math.round((column.confidence || 0) * 100)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Mapping Dropdown */}
+                          <select
+                            value={column.mappedTo || ''}
+                            onChange={(e) => handleColumnMappingChange(column.name, e.target.value)}
+                            className="w-full mt-2 px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:ring-0 text-sm"
+                          >
+                            <option value="">— Not Mapped —</option>
+                            <option value="department">Department (required)</option>
+                            <option value="subCategory">Sub-Category (optional)</option>
+                            <option value="fiscalPeriod">Fiscal Period (required)</option>
+                            <option value="budgetedAmount">Budgeted Amount (required)</option>
+                            <option value="currency">Currency (optional)</option>
+                          </select>
+
+                          {column.aiSuggestion && column.mappedTo !== column.aiSuggestion && (
+                            <button
+                              onClick={() => handleColumnMappingChange(column.name, column.aiSuggestion!)}
+                              className="mt-2 text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              AI suggests: {column.aiSuggestion}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right Side: Target Fields */}
+                  <div>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">Budget Fields</h3>
+                      <p className="text-sm text-gray-600 mt-1">Map your columns to these fields</p>
+                    </div>
+
+                    <div className="space-y-3 sticky top-0">
+                      {[
+                        { field: 'department', label: 'Department', required: true, description: 'Business unit or team' },
+                        { field: 'subCategory', label: 'Sub-Category', required: false, description: 'What you\'re spending on' },
+                        { field: 'fiscalPeriod', label: 'Fiscal Period', required: true, description: 'Time period (FY2025, Q1-2025, etc.)' },
+                        { field: 'budgetedAmount', label: 'Budgeted Amount', required: true, description: 'Budget allocation' },
+                        { field: 'currency', label: 'Currency', required: false, description: 'Currency code (USD, GBP, EUR)' },
+                      ].map(({ field, label, required, description }) => {
+                        const mappedColumn = sourceColumns.find(col => col.mappedTo === field);
+                        return (
+                          <div
+                            key={field}
+                            className={`p-4 rounded-xl border-2 ${
+                              mappedColumn
+                                ? 'border-pink-300 bg-pink-50'
+                                : required
+                                ? 'border-red-200 bg-red-50'
+                                : 'border-gray-200 bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-bold text-gray-900">{label}</span>
+                                  {required ? (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800">
+                                      Required
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                      Optional
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-600">{description}</p>
+
+                                {mappedColumn && (
+                                  <div className="mt-2 flex items-center">
+                                    <svg className="w-4 h-4 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span className="text-sm font-medium text-green-700">
+                                      Mapped from: {mappedColumn.name}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {mappedColumn ? (
+                                <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              ) : required ? (
+                                <svg className="w-6 h-6 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                <svg className="w-6 h-6 text-gray-300 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      setShowMappingInterface(false);
+                      setSourceColumns([]);
+                    }}
+                    className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmMappings}
+                    disabled={(() => {
+                      const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
+                      const mappedFields = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
+                      const mappedRequired = REQUIRED_FIELDS.filter(field => mappedFields.includes(field));
+                      return mappedRequired.length !== REQUIRED_FIELDS.length;
+                    })()}
+                    className="px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Confirm Mappings →
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Step 3: Review AI Mappings */}
-            {readResponse && mappings.length > 0 && (
+            {!showMappingInterface && readResponse && mappings.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Step 3: Review AI Mappings</h2>
 
