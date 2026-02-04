@@ -45,6 +45,7 @@ export default function GoogleSheetsImportPage() {
   const [userId, setUserId] = useState<string>('');
   const [customerId, setCustomerId] = useState<string>('');
   const [initializing, setInitializing] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     initializeUser();
@@ -260,6 +261,10 @@ export default function GoogleSheetsImportPage() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }
 
+  const filteredSpreadsheets = spreadsheets.filter((sheet) =>
+    sheet.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (initializing) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -323,29 +328,115 @@ export default function GoogleSheetsImportPage() {
           <>
             {/* Step 1: Select Spreadsheet */}
             <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Step 1: Select Spreadsheet</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Step 1: Select Spreadsheet</h2>
+                <div className="text-sm text-gray-600">
+                  {spreadsheets.length} spreadsheet{spreadsheets.length !== 1 ? 's' : ''} found
+                </div>
+              </div>
 
               {spreadsheets.length === 0 ? (
-                <p className="text-gray-600">No spreadsheets found in your Google Drive</p>
-              ) : (
-                <div className="grid grid-cols-1 gap-3">
-                  {spreadsheets.map((sheet) => (
-                    <button
-                      key={sheet.id}
-                      onClick={() => handleSpreadsheetSelect(sheet.id)}
-                      className={`p-4 border-2 rounded-xl text-left transition-all ${
-                        selectedSpreadsheet === sheet.id
-                          ? 'border-pink-500 bg-pink-50'
-                          : 'border-gray-200 hover:border-pink-300'
-                      }`}
-                    >
-                      <div className="font-semibold text-gray-900">{sheet.name}</div>
-                      <div className="text-sm text-gray-500">
-                        Modified: {new Date(sheet.modifiedTime).toLocaleDateString()}
-                      </div>
-                    </button>
-                  ))}
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-600 mb-4">No spreadsheets found in your Google Drive</p>
+                  <a
+                    href="https://sheets.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-pink-600 hover:text-pink-700 font-medium"
+                  >
+                    Create a new spreadsheet
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
                 </div>
+              ) : (
+                <>
+                  {/* Search Bar */}
+                  <div className="mb-4">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search spreadsheets..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:ring-0 transition-colors"
+                      />
+                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                    {searchQuery && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        Found {filteredSpreadsheets.length} result{filteredSpreadsheets.length !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Spreadsheet List */}
+                  <div className="max-h-96 overflow-y-auto space-y-2">
+                    {filteredSpreadsheets.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No spreadsheets match "{searchQuery}"
+                      </div>
+                    ) : (
+                      filteredSpreadsheets.map((sheet) => (
+                        <button
+                          key={sheet.id}
+                          onClick={() => handleSpreadsheetSelect(sheet.id)}
+                          className={`w-full p-4 border-2 rounded-xl text-left transition-all group ${
+                            selectedSpreadsheet === sheet.id
+                              ? 'border-pink-500 bg-pink-50 shadow-sm'
+                              : 'border-gray-200 hover:border-pink-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 mt-1">
+                              <svg className={`w-8 h-8 ${selectedSpreadsheet === sheet.id ? 'text-pink-600' : 'text-green-600'}`} fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                                <path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/>
+                              </svg>
+                            </div>
+                            <div className="ml-4 flex-1">
+                              <div className="font-semibold text-gray-900 group-hover:text-pink-600">
+                                {sheet.name}
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                Modified {new Date(sheet.modifiedTime).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </div>
+                            </div>
+                            {selectedSpreadsheet === sheet.id && (
+                              <div className="flex-shrink-0 ml-4">
+                                <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
               )}
             </div>
 
