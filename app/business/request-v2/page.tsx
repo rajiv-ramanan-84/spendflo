@@ -135,10 +135,10 @@ export default function BusinessRequestV2Page() {
   async function checkBudgetAvailability() {
     setCheckingBudget(true);
     try {
-      // Find the matching budget to get subCategory AND fiscalPeriod
-      const matchingBudget = budgets.find(b => b.department === department);
+      // Find ALL matching budgets for this department
+      const matchingBudgets = budgets.filter(b => b.department === department);
 
-      if (!matchingBudget) {
+      if (matchingBudgets.length === 0) {
         setBudgetCheck({
           success: false,
           available: false,
@@ -148,28 +148,60 @@ export default function BusinessRequestV2Page() {
         return;
       }
 
-      console.log('[Budget Check] Checking budget:', {
-        department,
-        subCategory: matchingBudget.subCategory,
-        fiscalPeriod: matchingBudget.fiscalPeriod,
-        amount: parseFloat(amount),
+      console.log(`[Budget Check] Found ${matchingBudgets.length} budget(s) for ${department}`);
+
+      // Try each budget category until we find one with available budget
+      for (const budget of matchingBudgets) {
+        console.log('[Budget Check] Trying:', {
+          department,
+          subCategory: budget.subCategory,
+          fiscalPeriod: budget.fiscalPeriod,
+          amount: parseFloat(amount),
+        });
+
+        const res = await fetch('/api/budget/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId: customerId,
+            department,
+            subCategory: budget.subCategory || null,
+            fiscalPeriod: budget.fiscalPeriod,
+            amount: parseFloat(amount),
+            currency: 'USD',
+          }),
+        });
+        const data = await res.json();
+
+        // If this budget has sufficient funds, use it
+        if (data.success && data.available) {
+          console.log('[Budget Check] Found available budget:', data);
+          setBudgetCheck(data);
+          setCheckingBudget(false);
+          return;
+        }
+      }
+
+      // If no individual budget had enough, calculate total available across all categories
+      const totalBudgeted = matchingBudgets.reduce((sum, b) => sum + b.budgetedAmount, 0);
+      const totalCommitted = matchingBudgets.reduce((sum, b) => sum + (b.utilization?.committedAmount || 0), 0);
+      const totalReserved = matchingBudgets.reduce((sum, b) => sum + (b.utilization?.reservedAmount || 0), 0);
+      const totalAvailable = totalBudgeted - totalCommitted - totalReserved;
+
+      console.log('[Budget Check] No single category sufficient. Total across all categories:', {
+        budgeted: totalBudgeted,
+        available: totalAvailable,
       });
 
-      const res = await fetch('/api/budget/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: customerId,
-          department,
-          subCategory: matchingBudget.subCategory || null,
-          fiscalPeriod: matchingBudget.fiscalPeriod, // Use the actual fiscal period from the budget!
-          amount: parseFloat(amount),
-          currency: 'USD',
-        }),
+      setBudgetCheck({
+        success: true,
+        available: false,
+        reason: `Insufficient budget. Total available across all ${department} categories: $${totalAvailable.toLocaleString()}. Requested: $${parseFloat(amount).toLocaleString()}. Please contact FP&A team.`,
+        budget: {
+          budgetedAmount: totalBudgeted,
+          available: totalAvailable,
+        },
       });
-      const data = await res.json();
-      console.log('[Budget Check] Response:', data);
-      setBudgetCheck(data);
     } catch (error) {
       console.error('Budget check failed:', error);
     } finally {
