@@ -48,7 +48,34 @@ export default function GoogleSheetsImportPage() {
 
   useEffect(() => {
     initializeUser();
+    checkUrlParams();
   }, []);
+
+  function checkUrlParams() {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const error = params.get('error');
+
+    if (success === 'true') {
+      addToast('success', 'Connected!', 'Google Sheets connected successfully');
+      // Clear URL params
+      window.history.replaceState({}, '', '/fpa/google-sheets');
+      // Refresh connection status
+      setTimeout(() => {
+        if (userId) checkConnection(userId);
+      }, 1000);
+    } else if (error) {
+      const errorMessages: Record<string, string> = {
+        access_denied: 'You denied access to Google Sheets',
+        invalid_callback: 'Invalid OAuth callback parameters',
+        token_exchange_failed: 'Failed to exchange authorization code',
+        callback_error: 'An error occurred during OAuth callback',
+      };
+      addToast('error', 'Connection failed', errorMessages[error] || 'Unknown error');
+      // Clear URL params
+      window.history.replaceState({}, '', '/fpa/google-sheets');
+    }
+  }
 
   async function initializeUser() {
     try {
