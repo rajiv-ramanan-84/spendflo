@@ -58,12 +58,12 @@ export default function GoogleSheetsImportPage() {
 
     if (success === 'true') {
       addToast('success', 'Connected!', 'Google Sheets connected successfully');
-      // Clear URL params
+      // Clear URL params and reload to refresh connection status
       window.history.replaceState({}, '', '/fpa/google-sheets');
-      // Refresh connection status
+      // Simple page reload to refresh all state
       setTimeout(() => {
-        if (userId) checkConnection(userId);
-      }, 1000);
+        window.location.reload();
+      }, 1500);
     } else if (error) {
       const errorMessages: Record<string, string> = {
         access_denied: 'You denied access to Google Sheets',
