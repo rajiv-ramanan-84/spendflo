@@ -245,7 +245,16 @@ export default function UnifiedImportPage() {
 
       if (data.success && data.availableSheets) {
         setAvailableSheets(data.availableSheets);
-        addToast('success', 'Sheets loaded', `Found ${data.availableSheets.length} sheet(s)`);
+
+        // Auto-select if only one sheet
+        if (data.availableSheets.length === 1) {
+          const sheetName = data.availableSheets[0];
+          addToast('success', 'Loading data', `Auto-selected sheet: ${sheetName}`);
+          // Automatically select the only sheet
+          await handleSheetSelect(sheetName);
+        } else {
+          addToast('success', 'Sheets loaded', `Found ${data.availableSheets.length} sheets`);
+        }
       }
     } catch (error: any) {
       addToast('error', 'Failed to load sheets', error.message);
@@ -694,10 +703,13 @@ export default function UnifiedImportPage() {
                   )}
                 </div>
 
-                {/* Select Sheet */}
-                {availableSheets.length > 0 && (
+                {/* Select Sheet Tab */}
+                {availableSheets.length > 1 && (
                   <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Select Sheet</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Select Sheet Tab</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      This spreadsheet has multiple tabs. Choose which one to import.
+                    </p>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {availableSheets.map((sheet) => (
@@ -710,7 +722,12 @@ export default function UnifiedImportPage() {
                               : 'border-gray-200 hover:border-pink-300 text-gray-700'
                           }`}
                         >
-                          {sheet}
+                          <div className="flex items-center justify-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            {sheet}
+                          </div>
                         </button>
                       ))}
                     </div>
