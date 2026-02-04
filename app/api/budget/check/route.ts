@@ -30,6 +30,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Find budget
+    console.log('[Budget Check] Searching for budget with:', {
+      customerId,
+      department,
+      subCategory: subCategory || null,
+      fiscalPeriod,
+    });
+
     const budget = await prisma.budget.findFirst({
       where: {
         customerId,
@@ -43,17 +50,44 @@ export async function POST(req: NextRequest) {
     });
 
     if (!budget) {
+      // Debug: Show all budgets for this department
+      const allDeptBudgets = await prisma.budget.findMany({
+        where: {
+          customerId,
+          department,
+        },
+        select: {
+          id: true,
+          department: true,
+          subCategory: true,
+          fiscalPeriod: true,
+          budgetedAmount: true,
+        },
+      });
+
+      console.log('[Budget Check] No match found. Available budgets for this department:', allDeptBudgets);
+
       return NextResponse.json({
         success: true,
         available: false,
         reason: 'No budget found for this department/category',
         details: {
-          department,
-          subCategory,
-          fiscalPeriod,
+          searchedFor: {
+            department,
+            subCategory,
+            fiscalPeriod,
+          },
+          availableBudgets: allDeptBudgets,
         },
       });
     }
+
+    console.log('[Budget Check] Budget found:', {
+      id: budget.id,
+      budgetedAmount: budget.budgetedAmount,
+      committed: budget.utilization?.committedAmount || 0,
+      reserved: budget.utilization?.reservedAmount || 0,
+    });
 
     // Calculate available amount
     const committed = budget.utilization?.committedAmount || 0;

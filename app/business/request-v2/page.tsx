@@ -135,10 +135,25 @@ export default function BusinessRequestV2Page() {
   async function checkBudgetAvailability() {
     setCheckingBudget(true);
     try {
-      const fiscalPeriod = getFiscalPeriod(contractTerm);
-
-      // Find the matching budget to get subCategory
+      // Find the matching budget to get subCategory AND fiscalPeriod
       const matchingBudget = budgets.find(b => b.department === department);
+
+      if (!matchingBudget) {
+        setBudgetCheck({
+          success: false,
+          available: false,
+          reason: 'No budget found for this department',
+        });
+        setCheckingBudget(false);
+        return;
+      }
+
+      console.log('[Budget Check] Checking budget:', {
+        department,
+        subCategory: matchingBudget.subCategory,
+        fiscalPeriod: matchingBudget.fiscalPeriod,
+        amount: parseFloat(amount),
+      });
 
       const res = await fetch('/api/budget/check', {
         method: 'POST',
@@ -146,13 +161,14 @@ export default function BusinessRequestV2Page() {
         body: JSON.stringify({
           customerId: customerId,
           department,
-          subCategory: matchingBudget?.subCategory || null,
-          fiscalPeriod,
+          subCategory: matchingBudget.subCategory || null,
+          fiscalPeriod: matchingBudget.fiscalPeriod, // Use the actual fiscal period from the budget!
           amount: parseFloat(amount),
           currency: 'USD',
         }),
       });
       const data = await res.json();
+      console.log('[Budget Check] Response:', data);
       setBudgetCheck(data);
     } catch (error) {
       console.error('Budget check failed:', error);
