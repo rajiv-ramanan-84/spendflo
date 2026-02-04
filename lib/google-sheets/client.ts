@@ -7,7 +7,11 @@ import { OAuth2Client } from 'google-auth-library';
  */
 
 // OAuth 2.0 configuration
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
+// Note: We need both spreadsheets.readonly (to read sheets) and drive.readonly (to list files)
+const SCOPES = [
+  'https://www.googleapis.com/auth/spreadsheets.readonly',
+  'https://www.googleapis.com/auth/drive.readonly',
+];
 
 interface GoogleCredentials {
   clientId: string;

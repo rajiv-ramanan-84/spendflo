@@ -118,7 +118,10 @@ export async function POST(req: NextRequest) {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiryDate: new Date(tokens.expiryDate),
-        scope: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        scope: [
+          'https://www.googleapis.com/auth/spreadsheets.readonly',
+          'https://www.googleapis.com/auth/drive.readonly',
+        ],
       },
       update: {
         accessToken: tokens.accessToken,
