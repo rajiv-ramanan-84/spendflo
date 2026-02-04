@@ -89,6 +89,13 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('[Google Sheets List] Error:', error);
+    console.error('[Google Sheets List] Error details:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      errors: error.errors,
+      response: error.response?.data,
+    });
 
     // Handle specific Google API errors
     if (error.code === 401 || error.code === 403) {
@@ -96,13 +103,19 @@ export async function GET(req: NextRequest) {
         {
           error: 'Google authentication failed. Please reconnect your Google account.',
           requiresReauth: true,
+          details: error.message,
+          googleError: error.errors || error.response?.data,
         },
         { status: 401 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to list Google Sheets', details: error.message },
+      {
+        error: 'Failed to list Google Sheets',
+        details: error.message,
+        googleError: error.errors || error.response?.data,
+      },
       { status: 500 }
     );
   }
