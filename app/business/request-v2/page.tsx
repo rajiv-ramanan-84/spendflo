@@ -68,12 +68,19 @@ export default function BusinessRequestV2Page() {
     const month = now.getMonth() + 1;
 
     if (term === 'monthly') {
+      // Try to match imported format first
       const quarter = Math.ceil(month / 3);
-      return `Q${quarter}-${year}`;
+      const quarterMap: Record<number, string> = {
+        1: 'Jan-Mar',
+        2: 'Apr-Jun',
+        3: 'Jul-Sep',
+        4: 'Oct-Dec'
+      };
+      return `${quarterMap[quarter]} ${year}`;
     }
 
-    // For annual and one-time, use fiscal year (use FY2025 to match seed data)
-    return `FY2025`;
+    // For annual and one-time, match the Google Sheets import format
+    return `Full Year ${year}`;
   }
 
   // Smart vendor-to-department mapping
