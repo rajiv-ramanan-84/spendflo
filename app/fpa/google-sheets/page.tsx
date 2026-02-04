@@ -245,6 +245,15 @@ export default function GoogleSheetsImportPage() {
   }
 
   function handleConfirmMappings() {
+    // Validate: Check for duplicate target field mappings (safety check)
+    const mappedTargets = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
+    const duplicateTargets = mappedTargets.filter((target, index) => mappedTargets.indexOf(target) !== index);
+
+    if (duplicateTargets.length > 0) {
+      addToast('error', 'Duplicate Mappings', `Multiple columns mapped to: ${duplicateTargets.join(', ')}`);
+      return;
+    }
+
     // Convert sourceColumns to final mappings format
     const confirmedMappings: ColumnMapping[] = sourceColumns
       .filter(col => col.mappedTo)
@@ -531,9 +540,20 @@ export default function GoogleSheetsImportPage() {
               <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl p-8 mb-6 border border-gray-700">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
-                  <div>
+                  <div className="flex-1">
                     <h2 className="text-3xl font-bold text-white mb-2">Column Mapping</h2>
-                    <p className="text-gray-400">Connect your data to budget fields</p>
+                    <p className="text-gray-400">
+                      {(() => {
+                        const selectedSpreadsheetObj = spreadsheets.find(s => s.id === selectedSpreadsheet);
+                        return (
+                          <>
+                            Mapping columns from <span className="text-pink-400 font-semibold">{selectedSpreadsheetObj?.name || 'spreadsheet'}</span>
+                            {' → '}
+                            <span className="text-blue-400 font-semibold">{selectedSheet}</span>
+                          </>
+                        );
+                      })()}
+                    </p>
                   </div>
                   <button
                     onClick={() => {
@@ -642,11 +662,33 @@ export default function GoogleSheetsImportPage() {
                                 } focus:outline-none focus:ring-2 focus:ring-pink-500`}
                               >
                                 <option value="" className="bg-gray-800">— Select Target Field —</option>
-                                <option value="department" className="bg-gray-800">Department (required)</option>
-                                <option value="subCategory" className="bg-gray-800">Sub-Category</option>
-                                <option value="fiscalPeriod" className="bg-gray-800">Fiscal Period (required)</option>
-                                <option value="budgetedAmount" className="bg-gray-800">Budgeted Amount (required)</option>
-                                <option value="currency" className="bg-gray-800">Currency</option>
+                                {(() => {
+                                  // Get fields already mapped by OTHER columns
+                                  const alreadyMappedFields = sourceColumns
+                                    .filter(col => col.name !== column.name && col.mappedTo)
+                                    .map(col => col.mappedTo);
+
+                                  const allFields = [
+                                    { value: 'department', label: 'Department (required)' },
+                                    { value: 'subCategory', label: 'Sub-Category' },
+                                    { value: 'fiscalPeriod', label: 'Fiscal Period (required)' },
+                                    { value: 'budgetedAmount', label: 'Budgeted Amount (required)' },
+                                    { value: 'currency', label: 'Currency' },
+                                  ];
+
+                                  return allFields.map(field => {
+                                    // Show the option if it's not mapped by another column, or if it's THIS column's current mapping
+                                    const isAvailable = !alreadyMappedFields.includes(field.value) || column.mappedTo === field.value;
+
+                                    if (!isAvailable) return null;
+
+                                    return (
+                                      <option key={field.value} value={field.value} className="bg-gray-800">
+                                        {field.label}
+                                      </option>
+                                    );
+                                  });
+                                })()}
                               </select>
                               {targetInfo && (
                                 <div className="flex items-center gap-2 mt-2">
