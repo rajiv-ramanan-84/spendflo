@@ -756,45 +756,51 @@ export default function GoogleSheetsImportPage() {
 
                               {/* Target Field Selector */}
                               <div className="text-left">
-                                <select
-                                  value={column.mappedTo || ''}
-                                  onChange={(e) => handleColumnMappingChange(column.name, e.target.value)}
-                                  className={`w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                                    column.mappedTo
-                                      ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white border-2 border-pink-400'
-                                      : 'bg-gray-700 text-gray-300 border-2 border-gray-600 hover:border-gray-500'
-                                  } focus:outline-none focus:ring-2 focus:ring-pink-500`}
-                                >
-                                  <option value="" className="bg-gray-800">— Select Target Field —</option>
-                                  {(() => {
-                                    // Get fields already mapped by OTHER columns
-                                    const alreadyMappedFields = sourceColumns
-                                      .filter(col => col.name !== column.name && col.mappedTo)
-                                      .map(col => col.mappedTo);
+                                <div className="relative">
+                                  <select
+                                    value={column.mappedTo || ''}
+                                    onChange={(e) => handleColumnMappingChange(column.name, e.target.value)}
+                                    className={`w-full px-4 py-2.5 pr-10 rounded-lg font-semibold text-sm transition-all appearance-none cursor-pointer ${
+                                      column.mappedTo
+                                        ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white border-2 border-pink-400 hover:from-pink-600 hover:to-pink-700'
+                                        : 'bg-gray-700 text-gray-300 border-2 border-gray-600 hover:border-gray-500 hover:bg-gray-600'
+                                    } focus:outline-none focus:ring-2 focus:ring-pink-500`}
+                                  >
+                                    <option value="" className="bg-gray-800">— Not Mapped —</option>
+                                    {(() => {
+                                      // Get fields already mapped by OTHER columns
+                                      const alreadyMappedFields = sourceColumns
+                                        .filter(col => col.name !== column.name && col.mappedTo)
+                                        .map(col => col.mappedTo);
 
-                                    const allFields = [
-                                      { value: 'department', label: 'Department (required)' },
-                                      { value: 'subCategory', label: 'Sub-Category' },
-                                      { value: 'fiscalPeriod', label: 'Fiscal Period (required)' },
-                                      { value: 'budgetedAmount', label: 'Budgeted Amount (required)' },
-                                      { value: 'currency', label: 'Currency' },
-                                    ];
+                                      const allFields = [
+                                        { value: 'department', label: 'Department (required)' },
+                                        { value: 'subCategory', label: 'Sub-Category' },
+                                        { value: 'fiscalPeriod', label: 'Fiscal Period (required)' },
+                                        { value: 'budgetedAmount', label: 'Budgeted Amount (required)' },
+                                        { value: 'currency', label: 'Currency' },
+                                      ];
 
-                                    return allFields.map(field => {
-                                      // Show the option if it's not mapped by another column, or if it's THIS column's current mapping
-                                      const isAvailable = !alreadyMappedFields.includes(field.value) || column.mappedTo === field.value;
+                                      return allFields.map(field => {
+                                        // Show the option if it's not mapped by another column, or if it's THIS column's current mapping
+                                        const isAvailable = !alreadyMappedFields.includes(field.value) || column.mappedTo === field.value;
 
-                                      if (!isAvailable) return null;
+                                        if (!isAvailable) return null;
 
-                                      return (
-                                        <option key={field.value} value={field.value} className="bg-gray-800">
-                                          {field.label}
-                                        </option>
-                                      );
-                                    });
-                                  })()}
-                                </select>
-                                {targetInfo && (
+                                        return (
+                                          <option key={field.value} value={field.value} className="bg-gray-800">
+                                            {field.label}
+                                          </option>
+                                        );
+                                      });
+                                    })()}
+                                  </select>
+                                  {/* Dropdown chevron icon */}
+                                  <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </div>
+                                {targetInfo ? (
                                   <div className="flex items-center gap-2 mt-2">
                                     <div className={`w-2 h-2 rounded-full ${
                                       targetInfo.required ? 'bg-red-400' : 'bg-gray-500'
@@ -802,6 +808,10 @@ export default function GoogleSheetsImportPage() {
                                     <span className="text-xs text-gray-400">
                                       {targetInfo.required ? 'Required field' : 'Optional field'}
                                     </span>
+                                  </div>
+                                ) : (
+                                  <div className="text-xs text-gray-500 mt-2">
+                                    Click dropdown to select target field
                                   </div>
                                 )}
                               </div>
