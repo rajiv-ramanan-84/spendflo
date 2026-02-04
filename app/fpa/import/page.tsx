@@ -175,6 +175,19 @@ export default function UnifiedImportPage() {
         const sampleRows = data.sampleRows || [];
         const aiMappings = data.mappings || [];
 
+        // Check if this looks like a valid budget file
+        if (headers.length === 0) {
+          addToast('error', 'Invalid File', 'This file appears to be empty or has no readable columns. Please check your file and try again.');
+          setFile(null);
+          return;
+        }
+
+        if (aiMappings.length === 0 && headers.length < 3) {
+          addToast('error', 'Not a Budget File', 'This file doesn\'t appear to contain budget data. Budget files should have columns like Department, Fiscal Period, and Budgeted Amount. Please select a different file.');
+          setFile(null);
+          return;
+        }
+
         const columns: SourceColumn[] = headers.map((header: string, idx: number) => {
           const samples = sampleRows.map((row: any[]) => row[idx]).filter(Boolean).slice(0, 3);
           const aiMapping = aiMappings.find((m: ColumnMapping) => m.sourceColumn === header);
@@ -193,7 +206,12 @@ export default function UnifiedImportPage() {
         setDataSource('upload');
         setShowMappingInterface(true);
         setMappingMode('review');
-        addToast('success', 'File Analyzed', `Found ${headers.length} columns`);
+
+        if (aiMappings.length === 0) {
+          addToast('warning', 'Manual Mapping Needed', `Found ${headers.length} columns, but AI couldn't auto-map them. Please map columns manually.`);
+        } else {
+          addToast('success', 'File Analyzed', `Found ${headers.length} columns, AI mapped ${aiMappings.length}`);
+        }
       }
     } catch (error: any) {
       addToast('error', 'Analysis failed', error.message);
@@ -285,6 +303,19 @@ export default function UnifiedImportPage() {
         const sampleRows = data.sampleRows || [];
         const aiMappings = data.mappings || [];
 
+        // Check if this looks like a valid budget sheet
+        if (headers.length === 0) {
+          addToast('error', 'Empty Sheet', 'This sheet appears to be empty or has no readable columns. Please select a different sheet.');
+          setSelectedSheet('');
+          return;
+        }
+
+        if (aiMappings.length === 0 && headers.length < 3) {
+          addToast('error', 'Not a Budget Sheet', 'This sheet doesn\'t appear to contain budget data. Budget sheets should have columns like Department, Fiscal Period, and Budgeted Amount. Please select a different sheet.');
+          setSelectedSheet('');
+          return;
+        }
+
         const columns: SourceColumn[] = headers.map((header: string, idx: number) => {
           const samples = sampleRows.map((row: any[]) => row[idx]).filter(Boolean).slice(0, 3);
           const aiMapping = aiMappings.find((m: ColumnMapping) => m.sourceColumn === header);
@@ -303,7 +334,12 @@ export default function UnifiedImportPage() {
         setDataSource('sheets');
         setShowMappingInterface(true);
         setMappingMode('review');
-        addToast('success', 'Sheet Loaded', `Found ${headers.length} columns`);
+
+        if (aiMappings.length === 0) {
+          addToast('warning', 'Manual Mapping Needed', `Found ${headers.length} columns, but AI couldn't auto-map them. Please map columns manually.`);
+        } else {
+          addToast('success', 'Sheet Loaded', `Found ${headers.length} columns, AI mapped ${aiMappings.length}`);
+        }
       } else {
         addToast('error', 'Failed to read sheet', data.error);
       }
@@ -597,9 +633,17 @@ export default function UnifiedImportPage() {
                 {/* Select Spreadsheet */}
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">Select Spreadsheet</h2>
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-pink-500 text-white font-bold text-sm">
+                          1
+                        </span>
+                        <h2 className="text-xl font-bold text-gray-900">Select Spreadsheet File</h2>
+                      </div>
+                      <p className="text-sm text-gray-600 ml-11">Choose which Google Spreadsheet to import from</p>
+                    </div>
                     <div className="text-sm text-gray-600">
-                      {spreadsheets.length} spreadsheet{spreadsheets.length !== 1 ? 's' : ''} found
+                      {spreadsheets.length} file{spreadsheets.length !== 1 ? 's' : ''} found
                     </div>
                   </div>
 
@@ -706,9 +750,14 @@ export default function UnifiedImportPage() {
                 {/* Select Sheet Tab */}
                 {availableSheets.length > 1 && (
                   <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Select Sheet Tab</h2>
-                    <p className="text-sm text-gray-600 mb-4">
-                      This spreadsheet has multiple tabs. Choose which one to import.
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-pink-500 text-white font-bold text-sm">
+                        2
+                      </span>
+                      <h2 className="text-xl font-bold text-gray-900">Select Sheet Tab</h2>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4 ml-11">
+                      This spreadsheet has {availableSheets.length} tabs. Choose which one contains your budget data.
                     </p>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -744,24 +793,33 @@ export default function UnifiedImportPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex-1">
-                <h2 className="text-3xl font-bold text-white mb-2">
-                  {mappingMode === 'review' ? 'Review AI Mappings' : 'Edit Column Mappings'}
-                </h2>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-pink-500 text-white font-bold text-sm">
+                    {dataSource === 'sheets' && availableSheets.length > 1 ? '3' : dataSource === 'sheets' ? '2' : '2'}
+                  </span>
+                  <h2 className="text-3xl font-bold text-white">
+                    {mappingMode === 'review' ? 'Review AI Mappings' : 'Edit Column Mappings'}
+                  </h2>
+                </div>
                 <p className="text-gray-400">
                   {dataSource === 'sheets' ? (
                     (() => {
                       const selectedSpreadsheetObj = spreadsheets.find(s => s.id === selectedSpreadsheet);
                       return (
                         <>
-                          Mapping columns from <span className="text-pink-400 font-semibold">{selectedSpreadsheetObj?.name || 'spreadsheet'}</span>
-                          {' → '}
+                          Mapping data from <span className="text-pink-400 font-semibold">{selectedSpreadsheetObj?.name || 'spreadsheet'}</span>
+                          <span className="text-gray-500 mx-2">/</span>
                           <span className="text-blue-400 font-semibold">{selectedSheet}</span>
+                          <span className="text-gray-500 mx-2">→</span>
+                          <span className="text-green-400 font-semibold">SpendFlo Budget Fields</span>
                         </>
                       );
                     })()
                   ) : (
                     <>
-                      Mapping columns from <span className="text-pink-400 font-semibold">{file?.name || 'uploaded file'}</span>
+                      Mapping data from <span className="text-pink-400 font-semibold">{file?.name || 'uploaded file'}</span>
+                      <span className="text-gray-500 mx-2">→</span>
+                      <span className="text-green-400 font-semibold">SpendFlo Budget Fields</span>
                     </>
                   )}
                 </p>
