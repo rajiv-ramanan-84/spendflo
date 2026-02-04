@@ -36,6 +36,11 @@ export default function BusinessRequestV2Page() {
   const [budgetCheck, setBudgetCheck] = useState<any>(null);
   const [checkingBudget, setCheckingBudget] = useState(false);
 
+  // AI budget suggestion state
+  const [budgetSuggestion, setBudgetSuggestion] = useState<any>(null);
+  const [showSuggestionConfirm, setShowSuggestionConfirm] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
+
   // Validation errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -134,6 +139,10 @@ export default function BusinessRequestV2Page() {
 
   async function checkBudgetAvailability() {
     setCheckingBudget(true);
+    setBudgetCheck(null);
+    setBudgetSuggestion(null);
+    setShowSuggestionConfirm(false);
+
     try {
       // Find ALL matching budgets for this department
       const matchingBudgets = budgets.filter(b => b.department === department);
@@ -150,63 +159,140 @@ export default function BusinessRequestV2Page() {
 
       console.log(`[Budget Check] Found ${matchingBudgets.length} budget(s) for ${department}`);
 
-      // Try each budget category until we find one with available budget
-      for (const budget of matchingBudgets) {
-        console.log('[Budget Check] Trying:', {
-          department,
-          subCategory: budget.subCategory,
-          fiscalPeriod: budget.fiscalPeriod,
-          amount: parseFloat(amount),
-        });
-
-        const res = await fetch('/api/budget/check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: customerId,
-            department,
-            subCategory: budget.subCategory || null,
-            fiscalPeriod: budget.fiscalPeriod,
-            amount: parseFloat(amount),
-            currency: 'USD',
-          }),
-        });
-        const data = await res.json();
-
-        // If this budget has sufficient funds, use it
-        if (data.success && data.available) {
-          console.log('[Budget Check] Found available budget:', data);
-          setBudgetCheck(data);
-          setCheckingBudget(false);
-          return;
-        }
+      // If only one budget, proceed directly
+      if (matchingBudgets.length === 1) {
+        await checkSpecificBudget(matchingBudgets[0]);
+        return;
       }
 
-      // If no individual budget had enough, calculate total available across all categories
-      const totalBudgeted = matchingBudgets.reduce((sum, b) => sum + b.budgetedAmount, 0);
-      const totalCommitted = matchingBudgets.reduce((sum, b) => sum + (b.utilization?.committedAmount || 0), 0);
-      const totalReserved = matchingBudgets.reduce((sum, b) => sum + (b.utilization?.reservedAmount || 0), 0);
-      const totalAvailable = totalBudgeted - totalCommitted - totalReserved;
+      // Multiple budgets - use AI to suggest which one
+      console.log('[Budget Check] Multiple budgets found. Using AI to suggest category...');
 
-      console.log('[Budget Check] No single category sufficient. Total across all categories:', {
-        budgeted: totalBudgeted,
-        available: totalAvailable,
+      const availableBudgets = matchingBudgets.map(b => ({
+        subCategory: b.subCategory,
+        budgetedAmount: b.budgetedAmount,
+        available: b.budgetedAmount - (b.utilization?.committedAmount || 0) - (b.utilization?.reservedAmount || 0),
+      }));
+
+      const suggestionRes = await fetch('/api/budget/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          department,
+          vendor,
+          purpose,
+          amount: parseFloat(amount),
+          contractTerm,
+          availableBudgets,
+        }),
       });
 
-      setBudgetCheck({
-        success: true,
-        available: false,
-        reason: `Insufficient budget. Total available across all ${department} categories: $${totalAvailable.toLocaleString()}. Requested: $${parseFloat(amount).toLocaleString()}. Please contact FP&A team.`,
-        budget: {
-          budgetedAmount: totalBudgeted,
-          available: totalAvailable,
-        },
-      });
+      const suggestionData = await suggestionRes.json();
+
+      if (!suggestionData.success) {
+        throw new Error('Failed to get AI suggestion');
+      }
+
+      const suggestion = suggestionData.suggestion;
+      console.log('[Budget Check] AI Suggestion:', suggestion);
+
+      // If AI has low confidence or no suggestion, show FP&A contact message
+      if (!suggestion.suggestedCategory || suggestion.confidence === 'low') {
+        setBudgetCheck({
+          success: true,
+          available: false,
+          reason: suggestion.alternativeMessage || 'Unable to automatically determine the correct budget category. Please contact the FP&A team for assistance.',
+          contactFPA: true,
+        });
+        setCheckingBudget(false);
+        return;
+      }
+
+      // AI suggested a category - find the matching budget
+      const suggestedBudget = matchingBudgets.find(b => b.subCategory === suggestion.suggestedCategory);
+
+      if (!suggestedBudget) {
+        console.error('[Budget Check] AI suggested non-existent category');
+        setBudgetCheck({
+          success: true,
+          available: false,
+          reason: 'Unable to match this request to a budget category. Please contact the FP&A team.',
+          contactFPA: true,
+        });
+        setCheckingBudget(false);
+        return;
+      }
+
+      // Show confirmation UI
+      setSelectedBudget(suggestedBudget);
+      setBudgetSuggestion(suggestion);
+      setShowSuggestionConfirm(true);
+      setCheckingBudget(false);
+
     } catch (error) {
       console.error('Budget check failed:', error);
+      setBudgetCheck({
+        success: false,
+        available: false,
+        reason: 'Failed to check budget availability. Please try again or contact FP&A team.',
+      });
+      setCheckingBudget(false);
+    }
+  }
+
+  async function checkSpecificBudget(budget: Budget) {
+    try {
+      console.log('[Budget Check] Checking specific budget:', {
+        department: budget.department,
+        subCategory: budget.subCategory,
+        fiscalPeriod: budget.fiscalPeriod,
+        amount: parseFloat(amount),
+      });
+
+      const res = await fetch('/api/budget/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: customerId,
+          department: budget.department,
+          subCategory: budget.subCategory || null,
+          fiscalPeriod: budget.fiscalPeriod,
+          amount: parseFloat(amount),
+          currency: 'USD',
+        }),
+      });
+      const data = await res.json();
+      console.log('[Budget Check] Response:', data);
+      setBudgetCheck(data);
+    } catch (error) {
+      console.error('Budget check failed:', error);
+      setBudgetCheck({
+        success: false,
+        available: false,
+        reason: 'Failed to check budget. Please try again.',
+      });
     } finally {
       setCheckingBudget(false);
     }
+  }
+
+  function confirmBudgetSuggestion() {
+    if (selectedBudget) {
+      setShowSuggestionConfirm(false);
+      checkSpecificBudget(selectedBudget);
+    }
+  }
+
+  function declineBudgetSuggestion() {
+    setShowSuggestionConfirm(false);
+    setBudgetSuggestion(null);
+    setSelectedBudget(null);
+    setBudgetCheck({
+      success: true,
+      available: false,
+      reason: 'Please contact the FP&A team to determine the correct budget category for this request.',
+      contactFPA: true,
+    });
   }
 
   function validateForm(): boolean {
@@ -544,11 +630,76 @@ export default function BusinessRequestV2Page() {
               </div>
             )}
 
+            {/* AI Budget Suggestion Confirmation */}
+            {showSuggestionConfirm && budgetSuggestion && selectedBudget && (
+              <div className="p-5 rounded-xl border-2 border-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg">
+                <div className="flex items-start mb-4">
+                  <div className="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center mr-3">
+                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-base font-bold text-blue-700 mb-2">
+                      AI Budget Recommendation
+                    </p>
+                    <p className="text-sm text-blue-900 mb-3">
+                      Based on your request (<strong>{vendor}</strong> for <strong>{purpose}</strong>),
+                      we recommend using the <strong>{selectedBudget.subCategory}</strong> budget category.
+                    </p>
+                    <div className="bg-white/60 rounded-lg p-3 mb-3 border border-blue-200">
+                      <p className="text-xs text-gray-600 mb-1">AI Reasoning:</p>
+                      <p className="text-sm text-gray-800 italic">{budgetSuggestion.reasoning}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm mb-3">
+                      <div className="flex items-center">
+                        <span className="text-gray-600 font-medium">Category:</span>
+                        <span className="ml-2 font-bold text-gray-900">{selectedBudget.subCategory}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 font-medium">Available:</span>
+                        <span className="ml-2 font-bold text-green-600">
+                          ${(selectedBudget.budgetedAmount - (selectedBudget.utilization?.committedAmount || 0) - (selectedBudget.utilization?.reservedAmount || 0)).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 font-medium">Confidence:</span>
+                        <span className={`ml-2 font-bold ${
+                          budgetSuggestion.confidence === 'high' ? 'text-green-600' :
+                          budgetSuggestion.confidence === 'medium' ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {budgetSuggestion.confidence.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={confirmBudgetSuggestion}
+                    className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                  >
+                    ✓ Yes, use this budget
+                  </button>
+                  <button
+                    type="button"
+                    onClick={declineBudgetSuggestion}
+                    className="flex-1 px-4 py-2.5 bg-white text-gray-700 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                  >
+                    ✗ No, contact FP&A team
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Budget status - Eye-catching banner */}
             {budgetCheck && !checkingBudget && (
               <div className={`p-5 rounded-xl border-2 shadow-lg ${
                 budgetCheck.available
                   ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-400'
+                  : budgetCheck.contactFPA
+                  ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-400'
                   : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-400'
               }`}>
                 <div className="flex items-start">
@@ -556,6 +707,12 @@ export default function BusinessRequestV2Page() {
                     <div className="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center mr-3">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  ) : budgetCheck.contactFPA ? (
+                    <div className="flex-shrink-0 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                       </svg>
                     </div>
                   ) : (
@@ -566,32 +723,52 @@ export default function BusinessRequestV2Page() {
                     </div>
                   )}
                   <div className="flex-1">
-                    <p className={`text-base font-bold mb-2 ${budgetCheck.available ? 'text-green-700' : 'text-red-700'}`}>
-                      {budgetCheck.available ? '✓ Budget Available' : '✗ Insufficient Budget'}
+                    <p className={`text-base font-bold mb-2 ${
+                      budgetCheck.available ? 'text-green-700' :
+                      budgetCheck.contactFPA ? 'text-yellow-700' : 'text-red-700'
+                    }`}>
+                      {budgetCheck.available ? '✓ Budget Available' :
+                       budgetCheck.contactFPA ? '📧 Contact FP&A Team' : '✗ Insufficient Budget'}
                     </p>
-                    <p className={`text-sm mb-3 ${budgetCheck.available ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-sm mb-3 ${
+                      budgetCheck.available ? 'text-green-600' :
+                      budgetCheck.contactFPA ? 'text-yellow-700' : 'text-red-600'
+                    }`}>
                       {budgetCheck.reason}
                     </p>
-                    <div className="flex items-center gap-6 text-sm">
-                      <div className="flex items-center">
-                        <span className="text-gray-600 font-medium">Available:</span>
-                        <span className={`ml-2 font-bold text-lg ${budgetCheck.available ? 'text-green-600' : 'text-red-600'}`}>
-                          ${budgetCheck.budget?.available?.toLocaleString() || 0}
-                        </span>
+                    {budgetCheck.contactFPA && (
+                      <div className="mt-3 p-3 bg-white/60 rounded-lg border border-yellow-200">
+                        <p className="text-sm font-medium text-gray-900 mb-2">Contact Information:</p>
+                        <p className="text-sm text-gray-700">
+                          Email: <a href="mailto:fpa@acme.com" className="text-blue-600 hover:underline font-medium">fpa@acme.com</a>
+                        </p>
+                        <p className="text-xs text-gray-600 mt-2">
+                          The FP&A team will help determine the correct budget category for your request.
+                        </p>
                       </div>
-                      <div className="flex items-center">
-                        <span className="text-gray-600 font-medium">Total Budget:</span>
-                        <span className="ml-2 font-bold text-gray-900">
-                          ${budgetCheck.budget?.budgetedAmount?.toLocaleString() || 0}
-                        </span>
+                    )}
+                    {!budgetCheck.contactFPA && budgetCheck.budget && (
+                      <div className="flex items-center gap-6 text-sm">
+                        <div className="flex items-center">
+                          <span className="text-gray-600 font-medium">Available:</span>
+                          <span className={`ml-2 font-bold text-lg ${budgetCheck.available ? 'text-green-600' : 'text-red-600'}`}>
+                            ${budgetCheck.budget?.available?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-gray-600 font-medium">Total Budget:</span>
+                          <span className="ml-2 font-bold text-gray-900">
+                            ${budgetCheck.budget?.budgetedAmount?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-gray-600 font-medium">Utilization:</span>
+                          <span className="ml-2 font-bold text-gray-900">
+                            {budgetCheck.utilizationPercent?.toFixed(0)}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center">
-                        <span className="text-gray-600 font-medium">Utilization:</span>
-                        <span className="ml-2 font-bold text-gray-900">
-                          {budgetCheck.utilizationPercent?.toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
