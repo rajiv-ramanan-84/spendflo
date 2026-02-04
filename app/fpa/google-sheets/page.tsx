@@ -59,6 +59,7 @@ export default function GoogleSheetsImportPage() {
   const [showMappingInterface, setShowMappingInterface] = useState(false);
   const [sourceColumns, setSourceColumns] = useState<SourceColumn[]>([]);
   const [finalMappings, setFinalMappings] = useState<ColumnMapping[]>([]);
+  const [mappingMode, setMappingMode] = useState<'review' | 'edit'>('review');
 
   useEffect(() => {
     initializeUser();
@@ -227,6 +228,7 @@ export default function GoogleSheetsImportPage() {
 
         setSourceColumns(columns);
         setShowMappingInterface(true);
+        setMappingMode('review'); // Start in review mode
         addToast('success', 'Sheet Loaded', `Found ${headers.length} columns`);
       } else {
         addToast('error', 'Failed to read sheet', data.error);
@@ -270,6 +272,7 @@ export default function GoogleSheetsImportPage() {
     setFinalMappings(confirmedMappings);
     setMappings(confirmedMappings);
     setShowMappingInterface(false);
+    setMappingMode('review'); // Reset to review mode for next time
     addToast('success', 'Mappings Confirmed', `${confirmedMappings.length} columns mapped`);
   }
 
@@ -541,7 +544,9 @@ export default function GoogleSheetsImportPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex-1">
-                    <h2 className="text-3xl font-bold text-white mb-2">Column Mapping</h2>
+                    <h2 className="text-3xl font-bold text-white mb-2">
+                      {mappingMode === 'review' ? 'Review AI Mappings' : 'Edit Column Mappings'}
+                    </h2>
                     <p className="text-gray-400">
                       {(() => {
                         const selectedSpreadsheetObj = spreadsheets.find(s => s.id === selectedSpreadsheet);
@@ -559,6 +564,7 @@ export default function GoogleSheetsImportPage() {
                     onClick={() => {
                       setShowMappingInterface(false);
                       setSourceColumns([]);
+                      setMappingMode('review');
                     }}
                     className="text-gray-400 hover:text-white transition-colors"
                   >
@@ -595,127 +601,226 @@ export default function GoogleSheetsImportPage() {
                   );
                 })()}
 
-                {/* Mapping List - Single flowing interface */}
-                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                  {sourceColumns.map((column, idx) => {
-                    const TARGET_FIELD_INFO: Record<string, { label: string; required: boolean; color: string }> = {
-                      department: { label: 'Department', required: true, color: 'blue' },
-                      subCategory: { label: 'Sub-Category', required: false, color: 'purple' },
-                      fiscalPeriod: { label: 'Fiscal Period', required: true, color: 'green' },
-                      budgetedAmount: { label: 'Budgeted Amount', required: true, color: 'orange' },
-                      currency: { label: 'Currency', required: false, color: 'gray' },
-                    };
+                {/* REVIEW MODE: Compact view with only mapped columns */}
+                {mappingMode === 'review' && (
+                  <>
+                    {/* Mapped Columns */}
+                    <div className="space-y-3 mb-6">
+                      <h3 className="text-lg font-bold text-white mb-3">Mapped Columns</h3>
+                      {sourceColumns.filter(col => col.mappedTo).map((column) => {
+                        const TARGET_FIELD_INFO: Record<string, { label: string; required: boolean }> = {
+                          department: { label: 'Department', required: true },
+                          subCategory: { label: 'Sub-Category', required: false },
+                          fiscalPeriod: { label: 'Fiscal Period', required: true },
+                          budgetedAmount: { label: 'Budgeted Amount', required: true },
+                          currency: { label: 'Currency', required: false },
+                        };
 
-                    const targetInfo = column.mappedTo ? TARGET_FIELD_INFO[column.mappedTo] : null;
+                        const targetInfo = TARGET_FIELD_INFO[column.mappedTo!];
 
-                    return (
-                      <div
-                        key={column.name}
-                        className={`relative overflow-hidden rounded-xl border-2 transition-all ${
-                          column.mappedTo
-                            ? 'border-green-500/50 bg-gradient-to-r from-gray-800 to-green-900/20'
-                            : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
-                        }`}
-                      >
-                        <div className="p-4">
-                          <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
-                            {/* Source Column */}
-                            <div className="text-left">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                                <div className="font-bold text-white">{column.name}</div>
-                              </div>
-                              <div className="text-xs text-gray-400 ml-4">
-                                {column.samples.slice(0, 2).join(', ') || 'No data'}
-                              </div>
-                              {column.aiSuggestion && (
-                                <div className="mt-2 ml-4">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                    AI suggests: {TARGET_FIELD_INFO[column.aiSuggestion]?.label}
-                                  </span>
+                        return (
+                          <div
+                            key={column.name}
+                            className="relative overflow-hidden rounded-xl border-2 border-green-500/50 bg-gradient-to-r from-gray-800 to-green-900/20"
+                          >
+                            <div className="p-4">
+                              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+                                {/* Source Column */}
+                                <div className="text-left">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                                    <div className="font-bold text-white">{column.name}</div>
+                                  </div>
+                                  <div className="text-xs text-gray-400 ml-4">
+                                    {column.samples.slice(0, 2).join(', ') || 'No data'}
+                                  </div>
                                 </div>
-                              )}
+
+                                {/* Arrow Connector */}
+                                <div className="flex items-center justify-center">
+                                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                  </svg>
+                                </div>
+
+                                {/* Target Field (Read-only in review mode) */}
+                                <div className="text-left">
+                                  <div className="px-4 py-2.5 rounded-lg font-semibold text-sm bg-gradient-to-r from-pink-500 to-pink-600 text-white border-2 border-pink-400">
+                                    {targetInfo.label}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      targetInfo.required ? 'bg-red-400' : 'bg-gray-500'
+                                    }`}></div>
+                                    <span className="text-xs text-gray-400">
+                                      {targetInfo.required ? 'Required field' : 'Optional field'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Arrow Connector */}
-                            <div className="flex items-center justify-center">
-                              {column.mappedTo ? (
-                                <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                </svg>
-                              ) : (
-                                <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              )}
-                            </div>
+                            {/* AI confidence indicator */}
+                            {column.aiSuggestion && column.mappedTo === column.aiSuggestion && (
+                              <div className="absolute top-0 right-0">
+                                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
+                                  AI {Math.round((column.confidence || 0) * 100)}%
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
 
-                            {/* Target Field Selector */}
-                            <div className="text-left">
-                              <select
-                                value={column.mappedTo || ''}
-                                onChange={(e) => handleColumnMappingChange(column.name, e.target.value)}
-                                className={`w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                                  column.mappedTo
-                                    ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white border-2 border-pink-400'
-                                    : 'bg-gray-700 text-gray-300 border-2 border-gray-600 hover:border-gray-500'
-                                } focus:outline-none focus:ring-2 focus:ring-pink-500`}
+                    {/* Unmapped Columns Section */}
+                    {(() => {
+                      const unmappedCols = sourceColumns.filter(col => !col.mappedTo);
+                      return unmappedCols.length > 0 && (
+                        <div className="p-4 bg-white/5 border border-white/10 rounded-xl mb-6">
+                          <h3 className="text-sm font-bold text-gray-300 mb-2">Unmapped Columns</h3>
+                          <p className="text-xs text-gray-400 mb-3">
+                            These columns were not automatically mapped because AI was not confident about their relevance.
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {unmappedCols.map(col => (
+                              <span
+                                key={col.name}
+                                className="px-3 py-1.5 bg-gray-700 text-gray-300 text-sm rounded-lg border border-gray-600"
                               >
-                                <option value="" className="bg-gray-800">— Select Target Field —</option>
-                                {(() => {
-                                  // Get fields already mapped by OTHER columns
-                                  const alreadyMappedFields = sourceColumns
-                                    .filter(col => col.name !== column.name && col.mappedTo)
-                                    .map(col => col.mappedTo);
-
-                                  const allFields = [
-                                    { value: 'department', label: 'Department (required)' },
-                                    { value: 'subCategory', label: 'Sub-Category' },
-                                    { value: 'fiscalPeriod', label: 'Fiscal Period (required)' },
-                                    { value: 'budgetedAmount', label: 'Budgeted Amount (required)' },
-                                    { value: 'currency', label: 'Currency' },
-                                  ];
-
-                                  return allFields.map(field => {
-                                    // Show the option if it's not mapped by another column, or if it's THIS column's current mapping
-                                    const isAvailable = !alreadyMappedFields.includes(field.value) || column.mappedTo === field.value;
-
-                                    if (!isAvailable) return null;
-
-                                    return (
-                                      <option key={field.value} value={field.value} className="bg-gray-800">
-                                        {field.label}
-                                      </option>
-                                    );
-                                  });
-                                })()}
-                              </select>
-                              {targetInfo && (
-                                <div className="flex items-center gap-2 mt-2">
-                                  <div className={`w-2 h-2 rounded-full ${
-                                    targetInfo.required ? 'bg-red-400' : 'bg-gray-500'
-                                  }`}></div>
-                                  <span className="text-xs text-gray-400">
-                                    {targetInfo.required ? 'Required field' : 'Optional field'}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                                {col.name}
+                              </span>
+                            ))}
                           </div>
                         </div>
+                      );
+                    })()}
+                  </>
+                )}
 
-                        {/* AI confidence indicator */}
-                        {column.aiSuggestion && column.mappedTo === column.aiSuggestion && (
-                          <div className="absolute top-0 right-0">
-                            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
-                              AI {Math.round((column.confidence || 0) * 100)}%
+                {/* EDIT MODE: Full interface with all columns */}
+                {mappingMode === 'edit' && (
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 mb-6">
+                    {sourceColumns.map((column) => {
+                      const TARGET_FIELD_INFO: Record<string, { label: string; required: boolean }> = {
+                        department: { label: 'Department', required: true },
+                        subCategory: { label: 'Sub-Category', required: false },
+                        fiscalPeriod: { label: 'Fiscal Period', required: true },
+                        budgetedAmount: { label: 'Budgeted Amount', required: true },
+                        currency: { label: 'Currency', required: false },
+                      };
+
+                      const targetInfo = column.mappedTo ? TARGET_FIELD_INFO[column.mappedTo] : null;
+
+                      return (
+                        <div
+                          key={column.name}
+                          className={`relative overflow-hidden rounded-xl border-2 transition-all ${
+                            column.mappedTo
+                              ? 'border-green-500/50 bg-gradient-to-r from-gray-800 to-green-900/20'
+                              : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                          }`}
+                        >
+                          <div className="p-4">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
+                              {/* Source Column */}
+                              <div className="text-left">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+                                  <div className="font-bold text-white">{column.name}</div>
+                                </div>
+                                <div className="text-xs text-gray-400 ml-4">
+                                  {column.samples.slice(0, 2).join(', ') || 'No data'}
+                                </div>
+                                {column.aiSuggestion && (
+                                  <div className="mt-2 ml-4">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                      AI suggests: {TARGET_FIELD_INFO[column.aiSuggestion]?.label}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Arrow Connector */}
+                              <div className="flex items-center justify-center">
+                                {column.mappedTo ? (
+                                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                )}
+                              </div>
+
+                              {/* Target Field Selector */}
+                              <div className="text-left">
+                                <select
+                                  value={column.mappedTo || ''}
+                                  onChange={(e) => handleColumnMappingChange(column.name, e.target.value)}
+                                  className={`w-full px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+                                    column.mappedTo
+                                      ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white border-2 border-pink-400'
+                                      : 'bg-gray-700 text-gray-300 border-2 border-gray-600 hover:border-gray-500'
+                                  } focus:outline-none focus:ring-2 focus:ring-pink-500`}
+                                >
+                                  <option value="" className="bg-gray-800">— Select Target Field —</option>
+                                  {(() => {
+                                    // Get fields already mapped by OTHER columns
+                                    const alreadyMappedFields = sourceColumns
+                                      .filter(col => col.name !== column.name && col.mappedTo)
+                                      .map(col => col.mappedTo);
+
+                                    const allFields = [
+                                      { value: 'department', label: 'Department (required)' },
+                                      { value: 'subCategory', label: 'Sub-Category' },
+                                      { value: 'fiscalPeriod', label: 'Fiscal Period (required)' },
+                                      { value: 'budgetedAmount', label: 'Budgeted Amount (required)' },
+                                      { value: 'currency', label: 'Currency' },
+                                    ];
+
+                                    return allFields.map(field => {
+                                      // Show the option if it's not mapped by another column, or if it's THIS column's current mapping
+                                      const isAvailable = !alreadyMappedFields.includes(field.value) || column.mappedTo === field.value;
+
+                                      if (!isAvailable) return null;
+
+                                      return (
+                                        <option key={field.value} value={field.value} className="bg-gray-800">
+                                          {field.label}
+                                        </option>
+                                      );
+                                    });
+                                  })()}
+                                </select>
+                                {targetInfo && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      targetInfo.required ? 'bg-red-400' : 'bg-gray-500'
+                                    }`}></div>
+                                    <span className="text-xs text-gray-400">
+                                      {targetInfo.required ? 'Required field' : 'Optional field'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+
+                          {/* AI confidence indicator */}
+                          {column.aiSuggestion && column.mappedTo === column.aiSuggestion && (
+                            <div className="absolute top-0 right-0">
+                              <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-xl">
+                                AI {Math.round((column.confidence || 0) * 100)}%
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Validation Message */}
                 {(() => {
@@ -757,28 +862,49 @@ export default function GoogleSheetsImportPage() {
                 })()}
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t border-gray-700">
-                  <button
-                    onClick={() => {
-                      setShowMappingInterface(false);
-                      setSourceColumns([]);
-                    }}
-                    className="px-6 py-3 bg-gray-700 text-gray-300 font-semibold rounded-xl hover:bg-gray-600 transition-all"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleConfirmMappings}
-                    disabled={(() => {
-                      const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
-                      const mappedFields = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
-                      const mappedRequired = REQUIRED_FIELDS.filter(field => mappedFields.includes(field));
-                      return mappedRequired.length !== REQUIRED_FIELDS.length;
-                    })()}
-                    className="px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-                  >
-                    Confirm Mappings →
-                  </button>
+                <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-700">
+                  <div>
+                    {mappingMode === 'review' && (
+                      <button
+                        onClick={() => setMappingMode('edit')}
+                        className="px-6 py-3 bg-white/10 text-white font-semibold rounded-xl hover:bg-white/20 transition-all border border-white/20"
+                      >
+                        Redo Mapping
+                      </button>
+                    )}
+                    {mappingMode === 'edit' && (
+                      <button
+                        onClick={() => setMappingMode('review')}
+                        className="px-6 py-3 bg-white/10 text-white font-semibold rounded-xl hover:bg-white/20 transition-all border border-white/20"
+                      >
+                        ← Back to Review
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setShowMappingInterface(false);
+                        setSourceColumns([]);
+                        setMappingMode('review');
+                      }}
+                      className="px-6 py-3 bg-gray-700 text-gray-300 font-semibold rounded-xl hover:bg-gray-600 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmMappings}
+                      disabled={(() => {
+                        const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
+                        const mappedFields = sourceColumns.filter(col => col.mappedTo).map(col => col.mappedTo);
+                        const mappedRequired = REQUIRED_FIELDS.filter(field => mappedFields.includes(field));
+                        return mappedRequired.length !== REQUIRED_FIELDS.length;
+                      })()}
+                      className="px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-bold rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg shadow-pink-500/25 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                    >
+                      Confirm Mappings →
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
