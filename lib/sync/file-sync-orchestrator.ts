@@ -42,7 +42,7 @@ export class FileSyncOrchestrator {
       console.log(`[File Sync] Last sync: ${lastSync?.toISOString() || 'Never'}`);
 
       // Step 2: Poll for new files
-      const files = await fileReceiver.pollForNewFiles(config.fileSource, lastSync);
+      const files = await fileReceiver.pollForNewFiles(config.fileSource, lastSync ?? undefined);
 
       if (files.length === 0) {
         console.log('[File Sync] No new files found');
@@ -65,20 +65,21 @@ export class FileSyncOrchestrator {
 
       // Step 5: Detect column mappings using AI
       const headers = Object.keys(rawData[0]);
-      const sampleRows = rawData.slice(0, 10); // Use first 10 rows for detection
+      const sampleData = rawData.slice(0, 10); // Use first 10 rows for detection
+      const sampleRows = sampleData.map(row => headers.map(h => row[h])); // Convert objects to arrays
 
       console.log('[File Sync] Detecting column mappings...');
       const mappingResult = suggestMappingsEnhanced(headers, sampleRows);
 
-      console.log(`[File Sync] Mapping confidence: ${Math.round(mappingResult.overallConfidence * 100)}%`);
+      console.log(`[File Sync] Mapping confidence: ${Math.round(mappingResult.confidence.overall * 100)}%`);
       console.log('[File Sync] Detected mappings:', mappingResult.mappings.map(m =>
         `${m.sourceColumn} → ${m.targetField} (${Math.round(m.confidence * 100)}%)`
       ));
 
       // Step 6: Check if confidence is sufficient
-      if (mappingResult.overallConfidence < config.minConfidence && !config.autoApplyMapping) {
+      if (mappingResult.confidence.overall < config.minConfidence && !config.autoApplyMapping) {
         throw new Error(
-          `Column mapping confidence (${Math.round(mappingResult.overallConfidence * 100)}%) ` +
+          `Column mapping confidence (${Math.round(mappingResult.confidence.overall * 100)}%) ` +
           `is below threshold (${Math.round(config.minConfidence * 100)}%). ` +
           'Manual review required.'
         );
@@ -305,7 +306,7 @@ export class FileSyncOrchestrator {
           unchangedCount: result.stats.unchanged,
           softDeletedCount: result.stats.softDeleted,
           errorCount: result.stats.errors,
-          errors: result.errors.length > 0 ? result.errors : null,
+          errors: result.errors.length > 0 ? JSON.parse(JSON.stringify(result.errors)) : [],
           sourceType: config.sourceType,
           triggeredBy: 'file_poll',
           metadata: {

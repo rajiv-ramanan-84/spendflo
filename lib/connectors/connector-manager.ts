@@ -96,7 +96,8 @@ export class ConnectorManager {
       // For now, check if customer has uploaded budgets (internal)
       // or has Google Sheets auth configured
       const customer = await prisma.customer.findUnique({
-        where: { id: customerId }
+        where: { id: customerId },
+        include: { users: true }
       });
 
       if (!customer) return null;

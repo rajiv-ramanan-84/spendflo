@@ -391,7 +391,6 @@ export function suggestMappingsEnhanced(
 
   return {
     mappings,
-    overallConfidence, // Top-level for easy access
     unmappedColumns,
     requiredFieldsMissing,
     suggestions,
