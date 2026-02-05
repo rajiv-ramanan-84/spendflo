@@ -15,15 +15,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Auto-use default customer if not provided
-    if (!customerId || customerId === 'default-customer') {
-      const defaultCustomer = await prisma.customer.findFirst({
-        orderBy: { createdAt: 'asc' },
+    // For demo/testing, if no customerId, we'll check ALL customers
+    const checkAllCustomers = !customerId || customerId === 'default-customer';
+
+    if (!checkAllCustomers) {
+      // Validate customerId exists
+      const customer = await prisma.customer.findUnique({
+        where: { id: customerId }
       });
-      if (defaultCustomer) {
-        customerId = defaultCustomer.id;
-      } else {
+      if (!customer) {
         return NextResponse.json(
-          { error: 'No customer found. Please seed the database first or provide a valid customerId.' },
+          { error: 'Invalid customerId provided.' },
           { status: 400 }
         );
       }
@@ -31,50 +33,47 @@ export async function POST(req: NextRequest) {
 
     // Find budget - smart matching logic
     console.log('[Budget Check] Searching for budget with:', {
-      customerId,
+      customerId: customerId || '(all customers)',
       department,
       subCategory: subCategory || '(any)',
       fiscalPeriod,
     });
 
     let budgets;
+    const whereClause: any = {
+      department,
+      fiscalPeriod,
+    };
 
-    if (subCategory) {
-      // If subCategory specified, find exact match
-      budgets = await prisma.budget.findMany({
-        where: {
-          customerId,
-          department,
-          subCategory,
-          fiscalPeriod,
-        },
-        include: {
-          utilization: true,
-        },
-      });
-    } else {
-      // If no subCategory, find ALL budgets for this department/period
-      budgets = await prisma.budget.findMany({
-        where: {
-          customerId,
-          department,
-          fiscalPeriod,
-        },
-        include: {
-          utilization: true,
-        },
-      });
+    // Only filter by customerId if specific customer requested
+    if (!checkAllCustomers) {
+      whereClause.customerId = customerId;
     }
+
+    // Add subCategory filter if specified
+    if (subCategory) {
+      whereClause.subCategory = subCategory;
+    }
+
+    budgets = await prisma.budget.findMany({
+      where: whereClause,
+      include: {
+        utilization: true,
+      },
+    });
 
     if (!budgets || budgets.length === 0) {
       // Debug: Show all budgets for this department
+      const debugWhere: any = { department };
+      if (!checkAllCustomers) {
+        debugWhere.customerId = customerId;
+      }
+
       const allDeptBudgets = await prisma.budget.findMany({
-        where: {
-          customerId,
-          department,
-        },
+        where: debugWhere,
         select: {
           id: true,
+          customerId: true,
           department: true,
           subCategory: true,
           fiscalPeriod: true,
@@ -93,6 +92,7 @@ export async function POST(req: NextRequest) {
             department,
             subCategory: subCategory || '(any)',
             fiscalPeriod,
+            customerId: customerId || '(all)',
           },
           availableBudgets: allDeptBudgets,
         },
