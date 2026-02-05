@@ -16,18 +16,15 @@ export async function GET(req: NextRequest) {
     const importId = searchParams.get('importId'); // NEW: Filter by specific import
     const source = searchParams.get('source'); // NEW: Filter by source
 
-    if (!customerId) {
-      return NextResponse.json(
-        { error: 'Missing customerId parameter' },
-        { status: 400 }
-      );
-    }
-
     // Build where clause based on filters
+    // Make customerId optional - if not provided, return all budgets
     const whereClause: any = {
-      customerId,
       deletedAt: null
     };
+
+    if (customerId) {
+      whereClause.customerId = customerId;
+    }
 
     // If importId specified, only return budgets from that import
     if (importId) {

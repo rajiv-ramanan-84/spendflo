@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>PRD</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#product-requirements-document-budget-sync-system"
+id="toc-product-requirements-document-budget-sync-system">Product
+Requirements Document: Budget Sync System</a>
+<ul>
+<li><a href="#problem-statement" id="toc-problem-statement">Problem
+Statement</a>
+<ul>
+<li><a href="#current-pain-points" id="toc-current-pain-points">Current
+Pain Points</a></li>
+</ul></li>
+<li><a href="#why-this-matters" id="toc-why-this-matters">Why This
+Matters</a>
+<ul>
+<li><a href="#strategic-importance"
+id="toc-strategic-importance">Strategic Importance</a></li>
+<li><a href="#success-metrics" id="toc-success-metrics">Success
+Metrics</a></li>
+</ul></li>
+<li><a href="#user-stories" id="toc-user-stories">User Stories</a>
+<ul>
+<li><a href="#finance-manager-primary-user"
+id="toc-finance-manager-primary-user">Finance Manager (Primary
+User)</a></li>
+<li><a href="#fpa-director-automation-user"
+id="toc-fpa-director-automation-user">FP&amp;A Director (Automation
+User)</a></li>
+<li><a href="#it-administrator-integration-user"
+id="toc-it-administrator-integration-user">IT Administrator (Integration
+User)</a></li>
+<li><a href="#procurement-manager-consumer"
+id="toc-procurement-manager-consumer">Procurement Manager
+(Consumer)</a></li>
+</ul></li>
+<li><a href="#solution-overview" id="toc-solution-overview">Solution
+Overview</a>
+<ul>
+<li><a href="#how-it-works" id="toc-how-it-works">How It Works</a></li>
+</ul></li>
+<li><a href="#key-features" id="toc-key-features">Key Features</a>
+<ul>
+<li><a href="#smart-file-upload" id="toc-smart-file-upload">1. Smart
+File Upload ✨</a></li>
+<li><a href="#wrong-file-detection" id="toc-wrong-file-detection">2.
+Wrong File Detection 🛡️</a></li>
+<li><a href="#automated-sync" id="toc-automated-sync">3. Automated Sync
+🤖</a></li>
+<li><a href="#real-time-budget-checks"
+id="toc-real-time-budget-checks">4. Real-Time Budget Checks ✅</a></li>
+<li><a href="#complete-visibility" id="toc-complete-visibility">5.
+Complete Visibility 📊</a></li>
+</ul></li>
+<li><a href="#technical-approach-brief"
+id="toc-technical-approach-brief">Technical Approach (Brief)</a>
+<ul>
+<li><a href="#architecture" id="toc-architecture">Architecture</a></li>
+<li><a href="#data-model" id="toc-data-model">Data Model</a></li>
+<li><a href="#security" id="toc-security">Security</a></li>
+<li><a href="#performance" id="toc-performance">Performance</a></li>
+</ul></li>
+<li><a href="#launch-plan" id="toc-launch-plan">Launch Plan</a>
+<ul>
+<li><a href="#phase-1-pilot-week-1" id="toc-phase-1-pilot-week-1">Phase
+1: Pilot (Week 1)</a></li>
+<li><a href="#phase-2-gradual-rollout-weeks-2-4"
+id="toc-phase-2-gradual-rollout-weeks-2-4">Phase 2: Gradual Rollout
+(Weeks 2-4)</a></li>
+<li><a href="#phase-3-enterprise-features-month-2-3"
+id="toc-phase-3-enterprise-features-month-2-3">Phase 3: Enterprise
+Features (Month 2-3)</a></li>
+</ul></li>
+<li><a href="#user-experience-flow" id="toc-user-experience-flow">User
+Experience Flow</a>
+<ul>
+<li><a href="#happy-path-first-time-upload"
+id="toc-happy-path-first-time-upload">Happy Path: First-Time
+Upload</a></li>
+<li><a href="#edge-case-wrong-file-uploaded"
+id="toc-edge-case-wrong-file-uploaded">Edge Case: Wrong File
+Uploaded</a></li>
+</ul></li>
+<li><a href="#out-of-scope-v1.0" id="toc-out-of-scope-v1.0">Out of Scope
+(v1.0)</a></li>
+<li><a href="#dependencies" id="toc-dependencies">Dependencies</a></li>
+<li><a href="#risks-mitigation" id="toc-risks-mitigation">Risks &amp;
+Mitigation</a></li>
+<li><a href="#competitive-comparison"
+id="toc-competitive-comparison">Competitive Comparison</a></li>
+<li><a href="#success-definition" id="toc-success-definition">Success
+Definition</a>
+<ul>
+<li><a href="#week-1-pilot" id="toc-week-1-pilot">Week 1
+(Pilot)</a></li>
+<li><a href="#month-1-rollout" id="toc-month-1-rollout">Month 1
+(Rollout)</a></li>
+<li><a href="#quarter-1-maturity" id="toc-quarter-1-maturity">Quarter 1
+(Maturity)</a></li>
+</ul></li>
+<li><a href="#appendix-documentation"
+id="toc-appendix-documentation">Appendix: Documentation</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="product-requirements-document-budget-sync-system">Product
+Requirements Document: Budget Sync System</h1>
+<p><strong>Product:</strong> Budget Import &amp; Validation System
+<strong>Version:</strong> 1.0 <strong>Date:</strong> February 5, 2026
+<strong>Owner:</strong> Product Team <strong>Status:</strong> Ready for
+Launch</p>
+<hr />
+<h2 id="problem-statement">Problem Statement</h2>
+<h3 id="current-pain-points">Current Pain Points</h3>
+<p><strong>For Customers:</strong> - Finance teams spend 2-4 hours
+manually entering budget data into SpendFlo - Manual data entry leads to
+~15% error rate in budget imports - No way to automate budget updates -
+requires monthly manual work - Wrong file uploads (payroll, expenses)
+cause data corruption - No validation until data is already imported</p>
+<p><strong>For SpendFlo:</strong> - High support burden for budget setup
+(30% of implementation tickets) - Manual data entry blocks faster
+time-to-value - Lost enterprise deals requiring SFTP/S3 integration -
+Customer frustration during onboarding phase</p>
+<p><strong>Business Impact:</strong> - Longer sales cycles due to
+painful onboarding - Higher implementation costs - Increased churn risk
+in first 90 days - Support team overhead</p>
+<hr />
+<h2 id="why-this-matters">Why This Matters</h2>
+<h3 id="strategic-importance">Strategic Importance</h3>
+<p><strong>Customer Experience:</strong> - Reduce onboarding friction by
+95% (4 hours → 10 minutes) - Enable self-service budget management -
+Eliminate data entry errors</p>
+<p><strong>Revenue Impact:</strong> - Faster time-to-value → reduced
+churn - Enterprise readiness → unlock $500K+ deals - Competitive
+differentiation vs Coupa, Procurify, Zip</p>
+<p><strong>Operational Efficiency:</strong> - Reduce support tickets by
+~30% - Enable CS team to handle 3x more implementations - Automated
+workflows reduce manual intervention</p>
+<h3 id="success-metrics">Success Metrics</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Current</th>
+<th>Target</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Budget setup time</td>
+<td>2-4 hours</td>
+<td>5-10 min</td>
+<td>95% reduction</td>
+</tr>
+<tr class="even">
+<td>Import error rate</td>
+<td>~15%</td>
+<td>&lt;2%</td>
+<td>87% improvement</td>
+</tr>
+<tr class="odd">
+<td>Support tickets</td>
+<td>30% of impl</td>
+<td>&lt;10% of impl</td>
+<td>67% reduction</td>
+</tr>
+<tr class="even">
+<td>SFTP customers</td>
+<td>0%</td>
+<td>20%</td>
+<td>Enterprise adoption</td>
+</tr>
+<tr class="odd">
+<td>Time-to-value</td>
+<td>2+ weeks</td>
+<td>1 week</td>
+<td>50% faster</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="user-stories">User Stories</h2>
+<h3 id="finance-manager-primary-user">Finance Manager (Primary
+User)</h3>
+<blockquote>
+<p>“As a Finance Manager, I want to upload my budget Excel file and have
+it automatically imported, so I don’t waste hours on manual data
+entry.”</p>
+</blockquote>
+<p><strong>Acceptance Criteria:</strong> - Upload Excel/CSV file via web
+interface - System auto-maps columns (no manual mapping needed) - Import
+completes in &lt;30 seconds - View imported budgets immediately in
+dashboard</p>
+<h3 id="fpa-director-automation-user">FP&amp;A Director (Automation
+User)</h3>
+<blockquote>
+<p>“As an FP&amp;A Director, I want budgets to sync automatically from
+our SFTP server, so we always have up-to-date data without manual
+work.”</p>
+</blockquote>
+<p><strong>Acceptance Criteria:</strong> - Configure SFTP/S3 credentials
+once - System pulls new files daily (scheduled) - Email notification on
+successful import - Audit trail of all automated imports</p>
+<h3 id="it-administrator-integration-user">IT Administrator (Integration
+User)</h3>
+<blockquote>
+<p>“As an IT Admin, I want to connect our S3 bucket to SpendFlo, so
+budget data flows automatically from our ERP system.”</p>
+</blockquote>
+<p><strong>Acceptance Criteria:</strong> - Secure credential storage -
+Test connection before going live - Clear error messages for
+troubleshooting - No impact on existing infrastructure</p>
+<h3 id="procurement-manager-consumer">Procurement Manager
+(Consumer)</h3>
+<blockquote>
+<p>“As a Procurement Manager, I want to check budget availability
+instantly during purchase approvals, so I can approve low-risk purchases
+automatically.”</p>
+</blockquote>
+<p><strong>Acceptance Criteria:</strong> - Real-time budget check API
+(&lt;100ms) - Auto-approve requests under threshold - Clear messaging
+when budget unavailable - Track pending requests to prevent
+overspending</p>
+<hr />
+<h2 id="solution-overview">Solution Overview</h2>
+<h3 id="how-it-works">How It Works</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                     1. Budget Input                          │
+│  • Upload Excel/CSV manually                                 │
+│  • SFTP server (automated pull)                              │
+│  • S3 bucket (automated pull)                                │
+│  • Google Sheets (live sync)                                 │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│                  2. AI Analysis                              │
+│  • Auto-detect column mappings (fuzzy matching)             │
+│  • Identify file type (budget vs payroll vs expenses)       │
+│  • Validate data quality                                     │
+│  • Show confidence scores &amp; warnings                         │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│              3. User Confirmation                            │
+│  • Review detected mappings                                  │
+│  • Confirm file type (if warning)                           │
+│  • Adjust manually if needed                                 │
+│  • Click &quot;Import&quot;                                            │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│               4. Database Import                             │
+│  • Transaction-safe bulk insert                             │
+│  • Create/update budgets                                     │
+│  • Initialize utilization tracking                           │
+│  • Log import history (audit trail)                          │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+┌────────────────────▼────────────────────────────────────────┐
+│            5. Real-Time Validation                           │
+│  • Budget check API for workflows                            │
+│  • Auto-approve if under threshold                           │
+│  • Route to FP&amp;A if over threshold                           │
+│  • Reject if no budget available                             │
+└──────────────────────────────────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="key-features">Key Features</h2>
+<h3 id="smart-file-upload">1. Smart File Upload ✨</h3>
+<p><strong>What:</strong> - Upload Excel or CSV files via drag-and-drop
+- AI automatically detects and maps columns - Handles variations in
+column names (typos, abbreviations)</p>
+<p><strong>Why:</strong> - Eliminates manual column mapping (saves 15
+minutes per import) - Reduces errors from wrong mappings - Works with
+any budget file format</p>
+<p><strong>Example:</strong></p>
+<pre><code>User&#39;s file has: &quot;Dept&quot;, &quot;Budget Amt&quot;, &quot;FY Period&quot;
+System maps to: Department, Budgeted Amount, Fiscal Period
+No manual mapping needed ✓</code></pre>
+<h3 id="wrong-file-detection">2. Wrong File Detection 🛡️</h3>
+<p><strong>What:</strong> - Detects when user uploads payroll, expenses,
+or invoices - Shows confidence score and detected keywords - Asks user
+to confirm before proceeding</p>
+<p><strong>Why:</strong> - Prevents costly data corruption - Saves
+support tickets from wrong uploads - Builds user trust in system
+intelligence</p>
+<p><strong>Example:</strong></p>
+<pre><code>⚠️ WARNING: This looks like a PAYROLL file, not a budget file!
+Detected keywords: salary, employee, gross pay
+Confidence: 85%
+Are you sure you want to continue?</code></pre>
+<h3 id="automated-sync">3. Automated Sync 🤖</h3>
+<p><strong>What:</strong> - SFTP: Pull files from customer’s SFTP server
+(scheduled) - S3: Monitor customer’s S3 bucket for new files - Google
+Sheets: Sync directly from spreadsheets</p>
+<p><strong>Why:</strong> - Eliminates manual upload step entirely -
+Required for enterprise customers - Budgets stay current without human
+intervention</p>
+<p><strong>Example:</strong></p>
+<pre><code>Finance team drops &quot;budget_Q1_2026.csv&quot; on SFTP
+→ System detects new file at 2am
+→ Auto-imports budgets
+→ Sends email: &quot;15 budgets imported successfully&quot;</code></pre>
+<h3 id="real-time-budget-checks">4. Real-Time Budget Checks ✅</h3>
+<p><strong>What:</strong> - API endpoint for purchase approval workflows
+- Checks budget availability in real-time - Auto-approves low-risk
+requests (&lt;$10K engineering, &lt;$5K sales, etc.)</p>
+<p><strong>Why:</strong> - Speeds up approval workflows - Reduces manual
+FP&amp;A review for small purchases - Prevents overspending
+automatically</p>
+<p><strong>Example:</strong></p>
+<pre><code>Purchase request: $3,000 for Engineering/Software
+→ API checks budget: $50,000 available
+→ Amount under threshold ($10K)
+→ Auto-approve ✓
+→ Reserve $3,000 in budget</code></pre>
+<h3 id="complete-visibility">5. Complete Visibility 📊</h3>
+<p><strong>What:</strong> - Dashboard showing all imported budgets -
+Import history with audit trail - Budget utilization tracking
+(committed/reserved/available)</p>
+<p><strong>Why:</strong> - Finance teams need visibility into budget
+status - Audit requirements for compliance - Troubleshooting support
+issues</p>
+<hr />
+<h2 id="technical-approach-brief">Technical Approach (Brief)</h2>
+<h3 id="architecture">Architecture</h3>
+<ul>
+<li><strong>Frontend:</strong> Next.js 14 with React/TypeScript</li>
+<li><strong>Backend:</strong> Next.js API routes</li>
+<li><strong>Database:</strong> PostgreSQL with Prisma ORM</li>
+<li><strong>AI Engine:</strong> Custom fuzzy matching + keyword
+detection</li>
+<li><strong>File Processing:</strong> XLSX.js, PapaParse,
+ssh2-sftp-client</li>
+</ul>
+<h3 id="data-model">Data Model</h3>
+<pre><code>Budget (main table)
+├── customerId
+├── department
+├── subCategory
+├── fiscalPeriod
+├── budgetedAmount
+└── utilization (1:1 relation)
+
+BudgetUtilization
+├── committedAmount (approved purchases)
+├── reservedAmount (pending purchases)
+└── availableAmount (calculated)
+
+ImportHistory (audit trail)
+└── All import events logged</code></pre>
+<h3 id="security">Security</h3>
+<ul>
+<li>HTTPS for all file uploads</li>
+<li>Encrypted credentials for SFTP/S3</li>
+<li>Row-level security (customer isolation)</li>
+<li>Transaction-safe imports (rollback on error)</li>
+</ul>
+<h3 id="performance">Performance</h3>
+<ul>
+<li>Import time: &lt;30s for 1,000 rows</li>
+<li>API response: &lt;100ms for budget checks</li>
+<li>Transaction timeout: 60s</li>
+</ul>
+<hr />
+<h2 id="launch-plan">Launch Plan</h2>
+<h3 id="phase-1-pilot-week-1">Phase 1: Pilot (Week 1)</h3>
+<ul>
+<li>Deploy to production</li>
+<li>Enable for 5-10 friendly customers</li>
+<li>Monitor metrics closely</li>
+<li>Collect feedback</li>
+</ul>
+<p><strong>Success Criteria:</strong> - 0 critical bugs - &gt;95% import
+success rate - Positive customer feedback</p>
+<h3 id="phase-2-gradual-rollout-weeks-2-4">Phase 2: Gradual Rollout
+(Weeks 2-4)</h3>
+<ul>
+<li>Week 2: Enable for 25% of customers</li>
+<li>Week 3: Enable for 50% of customers</li>
+<li>Week 4: Enable for 100% of customers</li>
+</ul>
+<p><strong>Success Criteria:</strong> - Support tickets &lt;10% of
+implementations - Customer satisfaction score &gt;8/10 - Time-to-value
+reduced by 50%</p>
+<h3 id="phase-3-enterprise-features-month-2-3">Phase 3: Enterprise
+Features (Month 2-3)</h3>
+<ul>
+<li>SFTP/S3 adoption reaches 20%</li>
+<li>Advanced approval workflows</li>
+<li>Predictive budget analytics</li>
+<li>Multi-level approval routing</li>
+</ul>
+<hr />
+<h2 id="user-experience-flow">User Experience Flow</h2>
+<h3 id="happy-path-first-time-upload">Happy Path: First-Time Upload</h3>
+<p><strong>Step 1: Navigate to Import</strong> (5 seconds) - User clicks
+“Import Budgets” in navigation - Sees upload interface</p>
+<p><strong>Step 2: Upload File</strong> (10 seconds) - Drags Excel file
+into upload zone - System analyzes file (3-5 seconds) - Shows detected
+mappings</p>
+<p><strong>Step 3: Review &amp; Confirm</strong> (20 seconds) - User
+reviews column mappings (all correct ✓) - Sees “15 budgets will be
+imported” - Clicks “Import”</p>
+<p><strong>Step 4: Import Complete</strong> (5 seconds) - Progress
+indicator shows import - Success message: “✅ 15 budgets imported” -
+Redirects to dashboard</p>
+<p><strong>Total Time: 40 seconds</strong> (vs 2-4 hours manual)</p>
+<h3 id="edge-case-wrong-file-uploaded">Edge Case: Wrong File
+Uploaded</h3>
+<p><strong>Step 1-2:</strong> Same as above</p>
+<p><strong>Step 3: Warning Shown</strong></p>
+<pre><code>⚠️ This looks like a PAYROLL file
+Detected: salary, employee, gross pay
+Confidence: 85%
+
+Are you sure this is a budget file?
+[Cancel] [Continue Anyway]</code></pre>
+<p><strong>Step 4a: User Cancels</strong> - Returns to upload screen -
+Can upload correct file</p>
+<p><strong>Step 4b: User Continues</strong> - Warning logged in import
+history - Import proceeds with caution flag</p>
+<hr />
+<h2 id="out-of-scope-v1.0">Out of Scope (v1.0)</h2>
+<ul>
+<li>Multi-currency conversion (coming v1.1)</li>
+<li>Budget forecasting/predictions</li>
+<li>Integration with other accounting systems</li>
+<li>Mobile app</li>
+<li>Real-time collaboration (multiple users editing)</li>
+</ul>
+<hr />
+<h2 id="dependencies">Dependencies</h2>
+<p><strong>Before Launch:</strong> - ✅ Database migrations deployed -
+✅ All tests passing (100%) - ✅ Documentation complete - ✅ Support
+team trained</p>
+<p><strong>For SFTP/S3 Features:</strong> - Customer provides
+credentials - Customer IT sets up firewall rules (if needed) - Test
+connection during onboarding</p>
+<p><strong>For Auto-Approval:</strong> - Customer configures thresholds
+- Approval workflow integration enabled</p>
+<hr />
+<h2 id="risks-mitigation">Risks &amp; Mitigation</h2>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 30%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Risk</th>
+<th>Impact</th>
+<th>Mitigation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Customer file format not recognized</td>
+<td>Medium</td>
+<td>AI handles variations; manual mapping available</td>
+</tr>
+<tr class="even">
+<td>SFTP connectivity issues</td>
+<td>Low</td>
+<td>Comprehensive troubleshooting guide; fallback to manual</td>
+</tr>
+<tr class="odd">
+<td>Large file performance</td>
+<td>Medium</td>
+<td>60s timeout; recommend splitting &gt;5,000 row files</td>
+</tr>
+<tr class="even">
+<td>Wrong file uploaded despite warning</td>
+<td>Low</td>
+<td>User confirms; import logged with warning flag</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="competitive-comparison">Competitive Comparison</h2>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 23%" />
+<col style="width: 16%" />
+<col style="width: 26%" />
+<col style="width: 11%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Feature</th>
+<th>SpendFlo</th>
+<th>Coupa</th>
+<th>Procurify</th>
+<th>Zip</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Smart column mapping</td>
+<td>✅ AI-powered</td>
+<td>❌ Manual only</td>
+<td>❌ Manual only</td>
+<td>❌ Manual only</td>
+</tr>
+<tr class="even">
+<td>File type detection</td>
+<td>✅ Automatic</td>
+<td>❌ None</td>
+<td>❌ None</td>
+<td>❌ None</td>
+</tr>
+<tr class="odd">
+<td>SFTP/S3 automation</td>
+<td>✅ Yes</td>
+<td>✅ Enterprise only</td>
+<td>❌ No</td>
+<td>❌ No</td>
+</tr>
+<tr class="even">
+<td>Auto-approval rules</td>
+<td>✅ Configurable</td>
+<td>✅ Limited</td>
+<td>❌ No</td>
+<td>❌ No</td>
+</tr>
+<tr class="odd">
+<td>Setup time</td>
+<td>5-10 min</td>
+<td>2-4 hours</td>
+<td>2-4 hours</td>
+<td>Manual only</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Competitive Advantage:</strong> Only solution with AI-powered
+import + wrong file detection + self-service onboarding.</p>
+<hr />
+<h2 id="success-definition">Success Definition</h2>
+<h3 id="week-1-pilot">Week 1 (Pilot)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />10 customers onboarded
+successfully</label></li>
+<li><label><input type="checkbox" />0 critical bugs</label></li>
+<li><label><input type="checkbox" />Import success rate
+&gt;95%</label></li>
+<li><label><input type="checkbox" />Average setup time &lt;15
+minutes</label></li>
+</ul>
+<h3 id="month-1-rollout">Month 1 (Rollout)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />50% of customers using
+feature</label></li>
+<li><label><input type="checkbox" />Support tickets reduced by
+20%</label></li>
+<li><label><input type="checkbox" />Customer satisfaction score
+&gt;8/10</label></li>
+<li><label><input type="checkbox" />5+ SFTP/S3 integrations
+live</label></li>
+</ul>
+<h3 id="quarter-1-maturity">Quarter 1 (Maturity)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />80% adoption across customer
+base</label></li>
+<li><label><input type="checkbox" />Time-to-value reduced by
+50%</label></li>
+<li><label><input type="checkbox" />Support tickets reduced by
+30%</label></li>
+<li><label><input type="checkbox" />20% of customers using
+automation</label></li>
+<li><label><input type="checkbox" />Enterprise deals closed citing this
+feature</label></li>
+</ul>
+<hr />
+<h2 id="appendix-documentation">Appendix: Documentation</h2>
+<ul>
+<li><strong>Technical:</strong> ENGINEERING_INTEGRATION.md</li>
+<li><strong>Deployment:</strong> DEPLOYMENT_CHECKLIST.md</li>
+<li><strong>Support:</strong> CUSTOMER_FACING_GUIDE.md</li>
+<li><strong>Executive:</strong> CTO_BRIEFING.md</li>
+<li><strong>Testing:</strong> TEST_RESULTS.md</li>
+</ul>
+<hr />
+<p><strong>Questions?</strong> Contact Product Team or Engineering
+Lead.</p>
+</body>
+</html>

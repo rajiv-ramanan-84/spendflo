@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>ENGINEERING_INTEGRATION</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#budget-sync-system---engineering-integration-guide"
+id="toc-budget-sync-system---engineering-integration-guide">Budget Sync
+System - Engineering Integration Guide</a>
+<ul>
+<li><a href="#table-of-contents" id="toc-table-of-contents">Table of
+Contents</a></li>
+<li><a href="#system-overview" id="toc-system-overview">System
+Overview</a>
+<ul>
+<li><a href="#what-this-system-does" id="toc-what-this-system-does">What
+This System Does</a></li>
+<li><a href="#technology-stack" id="toc-technology-stack">Technology
+Stack</a></li>
+</ul></li>
+<li><a href="#architecture" id="toc-architecture">Architecture</a>
+<ul>
+<li><a href="#high-level-flow" id="toc-high-level-flow">High-Level
+Flow</a></li>
+<li><a href="#component-architecture"
+id="toc-component-architecture">Component Architecture</a></li>
+</ul></li>
+<li><a href="#database-schema" id="toc-database-schema">Database
+Schema</a>
+<ul>
+<li><a href="#core-tables" id="toc-core-tables">Core Tables</a></li>
+<li><a href="#relationships"
+id="toc-relationships">Relationships</a></li>
+</ul></li>
+<li><a href="#api-endpoints" id="toc-api-endpoints">API Endpoints</a>
+<ul>
+<li><a href="#file-analysis-api" id="toc-file-analysis-api">1. File
+Analysis API</a></li>
+<li><a href="#import-execution-api" id="toc-import-execution-api">2.
+Import Execution API</a></li>
+<li><a href="#budget-check-api" id="toc-budget-check-api">3. Budget
+Check API</a></li>
+<li><a href="#budget-list-api" id="toc-budget-list-api">4. Budget List
+API</a></li>
+<li><a href="#import-history-api" id="toc-import-history-api">5. Import
+History API</a></li>
+</ul></li>
+<li><a href="#integration-points"
+id="toc-integration-points">Integration Points</a>
+<ul>
+<li><a href="#integrating-with-approval-workflows"
+id="toc-integrating-with-approval-workflows">1. Integrating with
+Approval Workflows</a></li>
+<li><a href="#integrating-with-dashboard"
+id="toc-integrating-with-dashboard">2. Integrating with
+Dashboard</a></li>
+<li><a href="#scheduled-sftp-sync" id="toc-scheduled-sftp-sync">3.
+Scheduled SFTP Sync</a></li>
+<li><a href="#webhook-integration" id="toc-webhook-integration">4.
+Webhook Integration</a></li>
+</ul></li>
+<li><a href="#code-organization" id="toc-code-organization">Code
+Organization</a>
+<ul>
+<li><a href="#file-structure" id="toc-file-structure">File
+Structure</a></li>
+</ul></li>
+<li><a href="#testing" id="toc-testing">Testing</a>
+<ul>
+<li><a href="#automated-tests" id="toc-automated-tests">Automated
+Tests</a></li>
+<li><a href="#manual-testing" id="toc-manual-testing">Manual
+Testing</a></li>
+<li><a href="#performance-testing"
+id="toc-performance-testing">Performance Testing</a></li>
+</ul></li>
+<li><a href="#deployment" id="toc-deployment">Deployment</a>
+<ul>
+<li><a href="#prerequisites"
+id="toc-prerequisites">Prerequisites</a></li>
+<li><a href="#production-deployment"
+id="toc-production-deployment">Production Deployment</a></li>
+<li><a href="#post-deployment-verification"
+id="toc-post-deployment-verification">Post-Deployment
+Verification</a></li>
+</ul></li>
+<li><a href="#monitoring" id="toc-monitoring">Monitoring</a>
+<ul>
+<li><a href="#key-metrics" id="toc-key-metrics">Key Metrics</a></li>
+<li><a href="#alerts" id="toc-alerts">Alerts</a></li>
+<li><a href="#logging" id="toc-logging">Logging</a></li>
+</ul></li>
+<li><a href="#troubleshooting"
+id="toc-troubleshooting">Troubleshooting</a>
+<ul>
+<li><a href="#common-issues" id="toc-common-issues">Common
+Issues</a></li>
+</ul></li>
+<li><a href="#performance-optimization"
+id="toc-performance-optimization">Performance Optimization</a>
+<ul>
+<li><a href="#database-indexes" id="toc-database-indexes">Database
+Indexes</a></li>
+<li><a href="#query-optimization" id="toc-query-optimization">Query
+Optimization</a></li>
+<li><a href="#caching" id="toc-caching">Caching</a></li>
+</ul></li>
+<li><a href="#security-checklist" id="toc-security-checklist">Security
+Checklist</a></li>
+<li><a href="#support-contacts" id="toc-support-contacts">Support
+Contacts</a></li>
+<li><a href="#additional-resources"
+id="toc-additional-resources">Additional Resources</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="budget-sync-system---engineering-integration-guide">Budget Sync
+System - Engineering Integration Guide</h1>
+<p><strong>Audience:</strong> Head of Engineering, Development Team
+<strong>Purpose:</strong> Technical integration guide and architecture
+documentation</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#system-overview">System Overview</a></li>
+<li><a href="#architecture">Architecture</a></li>
+<li><a href="#database-schema">Database Schema</a></li>
+<li><a href="#api-endpoints">API Endpoints</a></li>
+<li><a href="#integration-points">Integration Points</a></li>
+<li><a href="#code-organization">Code Organization</a></li>
+<li><a href="#testing">Testing</a></li>
+<li><a href="#deployment">Deployment</a></li>
+<li><a href="#monitoring">Monitoring</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+<hr />
+<h2 id="system-overview">System Overview</h2>
+<h3 id="what-this-system-does">What This System Does</h3>
+<p><strong>Core Functionality:</strong> 1. Import budget data from
+multiple sources (Excel, CSV, SFTP, S3, Google Sheets) 2. AI-powered
+column mapping with fuzzy matching 3. File type validation (detects
+non-budget files like payroll/invoices) 4. Real-time budget availability
+check for approval workflows 5. Import history tracking and audit
+trail</p>
+<p><strong>Key Features:</strong> - ✅ Smart file type detection
+(prevents wrong files) - ✅ AI column mapping (handles typos,
+variations) - ✅ Transaction-safe imports (rollback on error) - ✅
+Multi-source support (Excel, SFTP, S3, Sheets) - ✅ Auto-approval rules
+(threshold-based)</p>
+<h3 id="technology-stack">Technology Stack</h3>
+<pre><code>Frontend:
+├── Next.js 14 (App Router)
+├── React 18
+├── TypeScript
+└── Tailwind CSS
+
+Backend:
+├── Next.js API Routes
+├── Node.js 18+
+└── Prisma ORM
+
+Database:
+└── PostgreSQL
+
+File Processing:
+├── xlsx (Excel parsing)
+├── papaparse (CSV parsing)
+└── ssh2-sftp-client (SFTP)
+
+External Services:
+├── AWS S3 (optional)
+└── Google Sheets API (optional)</code></pre>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<h3 id="high-level-flow">High-Level Flow</h3>
+<pre><code>┌─────────────────┐
+│  User Uploads   │
+│  Excel/CSV File │
+└────────┬────────┘
+         │
+         ↓
+┌────────────────────┐
+│  AI Analysis       │
+│  - Column mapping  │
+│  - File type check │
+│  - Validation      │
+└────────┬───────────┘
+         │
+         ↓
+┌────────────────────┐
+│  User Reviews      │
+│  - Adjust mappings │
+│  - Confirm import  │
+└────────┬───────────┘
+         │
+         ↓
+┌────────────────────┐
+│  Import Engine     │
+│  - Transform data  │
+│  - Bulk insert     │
+│  - Transaction     │
+└────────┬───────────┘
+         │
+         ↓
+┌────────────────────┐
+│  Database          │
+│  - Budget records  │
+│  - Import history  │
+│  - Audit logs      │
+└────────────────────┘</code></pre>
+<h3 id="component-architecture">Component Architecture</h3>
+<pre><code>┌─────────────────────────────────────────────┐
+│              Frontend (Next.js)             │
+├─────────────────────────────────────────────┤
+│  /fpa/import          - Visual mapper UI    │
+│  /dashboard           - Budget dashboard    │
+│  /test-import.html    - Testing interface   │
+└─────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────┐
+│            API Layer (Next.js API)          │
+├─────────────────────────────────────────────┤
+│  /api/excel/analyze   - File analysis       │
+│  /api/excel/import    - Execute import      │
+│  /api/budget/check    - Budget validation   │
+│  /api/budgets         - CRUD operations     │
+│  /api/imports/history - Import tracking     │
+└─────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────┐
+│          Business Logic Layer               │
+├─────────────────────────────────────────────┤
+│  lib/ai/mapping-engine.ts                   │
+│    - AI column mapping                      │
+│    - File type detection                    │
+│    - Confidence scoring                     │
+│                                              │
+│  lib/sync/sync-engine.ts                    │
+│    - Import orchestration                   │
+│    - Data transformation                    │
+│    - Error handling                         │
+│                                              │
+│  lib/sync/file-receiver.ts                  │
+│    - SFTP polling                           │
+│    - S3 file download                       │
+│    - File parsing                           │
+│                                              │
+│  lib/approval/engine.ts                     │
+│    - Auto-approval rules                    │
+│    - Budget availability                    │
+│    - Threshold checks                       │
+└─────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────┐
+│          Data Layer (Prisma)                │
+├─────────────────────────────────────────────┤
+│  Budget, BudgetUtilization,                 │
+│  ImportHistory, BudgetDataSourceConfig      │
+└─────────────────────────────────────────────┘
+                      ↓
+┌─────────────────────────────────────────────┐
+│            Database (PostgreSQL)            │
+└─────────────────────────────────────────────┘</code></pre>
+<hr />
+<h2 id="database-schema">Database Schema</h2>
+<h3 id="core-tables">Core Tables</h3>
+<h4 id="budget">Budget</h4>
+<pre class="prisma"><code>model Budget {
+  id              String   @id @default(cuid())
+  customerId      String
+  department      String
+  subCategory     String?
+  fiscalPeriod    String
+  budgetedAmount  Float
+  currency        String   @default(&quot;USD&quot;)
+  source          String   @default(&quot;manual&quot;)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  utilization     BudgetUtilization?
+  customer        Customer  @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([department])
+  @@index([fiscalPeriod])
+  @@index([source])
+  @@index([createdAt])
+}</code></pre>
+<h4 id="budgetutilization">BudgetUtilization</h4>
+<pre class="prisma"><code>model BudgetUtilization {
+  id              String   @id @default(cuid())
+  budgetId        String   @unique
+  committedAmount Float    @default(0)
+  reservedAmount  Float    @default(0)
+  actualSpent     Float    @default(0)
+  updatedAt       DateTime @updatedAt
+
+  budget          Budget   @relation(fields: [budgetId], references: [id])
+}</code></pre>
+<h4 id="importhistory">ImportHistory</h4>
+<pre class="prisma"><code>model ImportHistory {
+  id              String   @id @default(cuid())
+  customerId      String
+  fileName        String
+  sourceType      String
+  status          String
+  totalRows       Int
+  successRows     Int      @default(0)
+  errorRows       Int      @default(0)
+  errors          Json?
+  createdAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  customer        Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+}</code></pre>
+<h4 id="budgetdatasourceconfig">BudgetDataSourceConfig</h4>
+<pre class="prisma"><code>model BudgetDataSourceConfig {
+  id              String   @id @default(cuid())
+  customerId      String
+  sourceType      String   // &#39;sftp&#39; | &#39;s3&#39; | &#39;sheets&#39;
+  config          Json     // SFTP/S3/Sheets credentials
+  schedule        String?  // Cron expression
+  isActive        Boolean  @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  customer        Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([isActive])
+}</code></pre>
+<h3 id="relationships">Relationships</h3>
+<pre><code>Customer
+  ├── Budget (1:N)
+  ├── ImportHistory (1:N)
+  └── BudgetDataSourceConfig (1:N)
+
+Budget
+  └── BudgetUtilization (1:1)</code></pre>
+<hr />
+<h2 id="api-endpoints">API Endpoints</h2>
+<h3 id="file-analysis-api">1. File Analysis API</h3>
+<p><strong>Endpoint:</strong> <code>POST /api/excel/analyze</code></p>
+<p><strong>Purpose:</strong> Analyze uploaded file, detect columns,
+suggest mappings</p>
+<p><strong>Request:</strong></p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">FormData</span> {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  file<span class="op">:</span> <span class="bu">File</span> (CSV<span class="op">,</span> Excel)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  userId<span class="op">:</span> <span class="dt">string</span> (optional)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  success<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  fileName<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  totalRows<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  headers<span class="op">:</span> <span class="dt">string</span>[]</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  sampleRows<span class="op">:</span> <span class="dt">any</span>[][]</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  mappings<span class="op">:</span> ColumnMapping[]</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  fileTypeDetection<span class="op">:</span> {</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    likelyFileType<span class="op">:</span> <span class="st">&#39;budget&#39;</span> <span class="op">|</span> <span class="st">&#39;payroll&#39;</span> <span class="op">|</span> <span class="st">&#39;expenses&#39;</span> <span class="op">|</span> <span class="st">&#39;invoice&#39;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    confidence<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    budgetConfidence<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    warnings<span class="op">:</span> <span class="dt">string</span>[]</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  canProceed<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Example:</strong></p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:3000/api/excel/analyze <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-F</span> <span class="st">&quot;file=@budget.csv&quot;</span> <span class="dt">\</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-F</span> <span class="st">&quot;userId=user_123&quot;</span></span></code></pre></div>
+<hr />
+<h3 id="import-execution-api">2. Import Execution API</h3>
+<p><strong>Endpoint:</strong> <code>POST /api/excel/import</code></p>
+<p><strong>Purpose:</strong> Execute budget import with confirmed
+mappings</p>
+<p><strong>Request:</strong></p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  userId<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  fileName<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  mappings<span class="op">:</span> {</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    sourceColumn<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    targetField<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  }[]</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  rows<span class="op">:</span> <span class="dt">any</span>[][]</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  success<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  importId<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  imported<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  errors<span class="op">:</span> <span class="dt">any</span>[]</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  stats<span class="op">:</span> {</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    totalRows<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    successRows<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    errorRows<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="budget-check-api">3. Budget Check API</h3>
+<p><strong>Endpoint:</strong> <code>POST /api/budget/check</code></p>
+<p><strong>Purpose:</strong> Check if budget is available for a purchase
+request</p>
+<p><strong>Request:</strong></p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  department<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  subCategory<span class="op">?:</span> <span class="dt">string</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  fiscalPeriod<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  amount<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  currency<span class="op">?:</span> <span class="dt">string</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  success<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  available<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  budget<span class="op">:</span> {</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    id<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    budgetedAmount<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    committed<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    reserved<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    available<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>  canAutoApprove<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  autoApprovalThreshold<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  utilizationPercent<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  reason<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Example:</strong></p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> response <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&#39;/api/budget/check&#39;</span><span class="op">,</span> {</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">method</span><span class="op">:</span> <span class="st">&#39;POST&#39;</span><span class="op">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">headers</span><span class="op">:</span> { <span class="st">&#39;Content-Type&#39;</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }<span class="op">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">body</span><span class="op">:</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>({</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">customerId</span><span class="op">:</span> <span class="st">&#39;cust_123&#39;</span><span class="op">,</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">department</span><span class="op">:</span> <span class="st">&#39;Engineering&#39;</span><span class="op">,</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">subCategory</span><span class="op">:</span> <span class="st">&#39;Software&#39;</span><span class="op">,</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">fiscalPeriod</span><span class="op">:</span> <span class="st">&#39;FY2025&#39;</span><span class="op">,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">amount</span><span class="op">:</span> <span class="dv">5000</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> result <span class="op">=</span> <span class="cf">await</span> response<span class="op">.</span><span class="fu">json</span>()<span class="op">;</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (result<span class="op">.</span><span class="at">available</span> <span class="op">&amp;&amp;</span> result<span class="op">.</span><span class="at">canAutoApprove</span>) {</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Auto-approve the purchase</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> <span class="cf">if</span> (result<span class="op">.</span><span class="at">available</span>) {</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Requires manual approval</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Reject - insufficient budget</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="budget-list-api">4. Budget List API</h3>
+<p><strong>Endpoint:</strong> <code>GET /api/budgets</code></p>
+<p><strong>Purpose:</strong> Get budgets with optional filtering</p>
+<p><strong>Query Parameters:</strong></p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">:</span> <span class="dt">string</span> (required)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  importId<span class="op">?:</span> <span class="dt">string</span>    <span class="co">// Filter by specific import</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  source<span class="op">?:</span> <span class="dt">string</span>      <span class="co">// Filter by source (excel, sftp, etc.)</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  department<span class="op">?:</span> <span class="dt">string</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  success<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  count<span class="op">:</span> <span class="dt">number</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  budgets<span class="op">:</span> Budget[]</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  filters<span class="op">:</span> {</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    customerId<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    importId<span class="op">?:</span> <span class="dt">string</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    source<span class="op">?:</span> <span class="dt">string</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="import-history-api">5. Import History API</h3>
+<p><strong>Endpoint:</strong> <code>GET /api/imports/history</code></p>
+<p><strong>Purpose:</strong> Get import history for a customer</p>
+<p><strong>Query Parameters:</strong></p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">:</span> <span class="dt">string</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  limit<span class="op">?:</span> <span class="dt">number</span> (<span class="cf">default</span><span class="op">:</span> <span class="dv">50</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  success<span class="op">:</span> <span class="dt">boolean</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  imports<span class="op">:</span> ImportHistory[]</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="integration-points">Integration Points</h2>
+<h3 id="integrating-with-approval-workflows">1. Integrating with
+Approval Workflows</h3>
+<p><strong>Scenario:</strong> User creates a purchase request, system
+needs to check budget</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">// In your purchase request handler</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">handlePurchaseRequest</span>(request<span class="op">:</span> PurchaseRequest) {</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Step 1: Check budget availability</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> budgetCheck <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&#39;/api/budget/check&#39;</span><span class="op">,</span> {</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    method<span class="op">:</span> <span class="st">&#39;POST&#39;</span><span class="op">,</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    headers<span class="op">:</span> { <span class="st">&#39;Content-Type&#39;</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }<span class="op">,</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    body<span class="op">:</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>({</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>      customerId<span class="op">:</span> request<span class="op">.</span><span class="at">customerId</span><span class="op">,</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>      department<span class="op">:</span> request<span class="op">.</span><span class="at">department</span><span class="op">,</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>      subCategory<span class="op">:</span> request<span class="op">.</span><span class="at">category</span><span class="op">,</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>      fiscalPeriod<span class="op">:</span> request<span class="op">.</span><span class="at">fiscalPeriod</span><span class="op">,</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>      amount<span class="op">:</span> request<span class="op">.</span><span class="at">amount</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  })<span class="op">;</span></span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> result <span class="op">=</span> <span class="cf">await</span> budgetCheck<span class="op">.</span><span class="fu">json</span>()<span class="op">;</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Step 2: Make decision based on result</span></span>
+<span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="op">!</span>result<span class="op">.</span><span class="at">available</span>) {</span>
+<span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>      status<span class="op">:</span> <span class="st">&#39;rejected&#39;</span><span class="op">,</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>      reason<span class="op">:</span> result<span class="op">.</span><span class="at">reason</span></span>
+<span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>    }<span class="op">;</span></span>
+<span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (result<span class="op">.</span><span class="at">canAutoApprove</span>) {</span>
+<span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Auto-approve and reserve budget</span></span>
+<span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> <span class="fu">reserveBudget</span>(result<span class="op">.</span><span class="at">budget</span><span class="op">.</span><span class="at">id</span><span class="op">,</span> request<span class="op">.</span><span class="at">amount</span>)<span class="op">;</span></span>
+<span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb21-30"><a href="#cb21-30" aria-hidden="true" tabindex="-1"></a>      status<span class="op">:</span> <span class="st">&#39;approved&#39;</span><span class="op">,</span></span>
+<span id="cb21-31"><a href="#cb21-31" aria-hidden="true" tabindex="-1"></a>      reason<span class="op">:</span> <span class="st">&#39;Auto-approved - budget available&#39;</span></span>
+<span id="cb21-32"><a href="#cb21-32" aria-hidden="true" tabindex="-1"></a>    }<span class="op">;</span></span>
+<span id="cb21-33"><a href="#cb21-33" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb21-34"><a href="#cb21-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-35"><a href="#cb21-35" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Requires manual approval</span></span>
+<span id="cb21-36"><a href="#cb21-36" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> {</span>
+<span id="cb21-37"><a href="#cb21-37" aria-hidden="true" tabindex="-1"></a>    status<span class="op">:</span> <span class="st">&#39;pending&#39;</span><span class="op">,</span></span>
+<span id="cb21-38"><a href="#cb21-38" aria-hidden="true" tabindex="-1"></a>    reason<span class="op">:</span> result<span class="op">.</span><span class="at">reason</span><span class="op">,</span></span>
+<span id="cb21-39"><a href="#cb21-39" aria-hidden="true" tabindex="-1"></a>    requiresApprovalFrom<span class="op">:</span> <span class="st">&#39;FP&amp;A&#39;</span></span>
+<span id="cb21-40"><a href="#cb21-40" aria-hidden="true" tabindex="-1"></a>  }<span class="op">;</span></span>
+<span id="cb21-41"><a href="#cb21-41" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="integrating-with-dashboard">2. Integrating with Dashboard</h3>
+<p><strong>Scenario:</strong> Display budgets on existing dashboard</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Fetch budgets for dashboard</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">loadDashboardBudgets</span>(customerId<span class="op">:</span> <span class="dt">string</span>) {</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> response <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="vs">`/api/budgets?customerId=</span><span class="sc">${</span>customerId<span class="sc">}</span><span class="vs">`</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  )<span class="op">;</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> data <span class="op">=</span> <span class="cf">await</span> response<span class="op">.</span><span class="fu">json</span>()<span class="op">;</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> data<span class="op">.</span><span class="at">budgets</span><span class="op">.</span><span class="fu">map</span>(budget <span class="kw">=&gt;</span> ({</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>    department<span class="op">:</span> budget<span class="op">.</span><span class="at">department</span><span class="op">,</span></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>    category<span class="op">:</span> budget<span class="op">.</span><span class="at">subCategory</span><span class="op">,</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>    budgeted<span class="op">:</span> budget<span class="op">.</span><span class="at">budgetedAmount</span><span class="op">,</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>    available<span class="op">:</span> <span class="fu">calculateAvailable</span>(budget)<span class="op">,</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>    utilization<span class="op">:</span> <span class="fu">calculateUtilization</span>(budget)</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  }))<span class="op">;</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculateAvailable</span>(budget<span class="op">:</span> Budget) {</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> committed <span class="op">=</span> budget<span class="op">.</span><span class="at">utilization</span><span class="op">?.</span><span class="at">committedAmount</span> <span class="op">||</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> reserved <span class="op">=</span> budget<span class="op">.</span><span class="at">utilization</span><span class="op">?.</span><span class="at">reservedAmount</span> <span class="op">||</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> budget<span class="op">.</span><span class="at">budgetedAmount</span> <span class="op">-</span> committed <span class="op">-</span> reserved<span class="op">;</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculateUtilization</span>(budget<span class="op">:</span> Budget) {</span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> committed <span class="op">=</span> budget<span class="op">.</span><span class="at">utilization</span><span class="op">?.</span><span class="at">committedAmount</span> <span class="op">||</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> reserved <span class="op">=</span> budget<span class="op">.</span><span class="at">utilization</span><span class="op">?.</span><span class="at">reservedAmount</span> <span class="op">||</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> ((committed <span class="op">+</span> reserved) <span class="op">/</span> budget<span class="op">.</span><span class="at">budgetedAmount</span>) <span class="op">*</span> <span class="dv">100</span><span class="op">;</span></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h3 id="scheduled-sftp-sync">3. Scheduled SFTP Sync</h3>
+<p><strong>Scenario:</strong> Automatically sync budgets from customer
+SFTP daily</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Set up cron job (e.g., using node-cron or Vercel cron)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> cron <span class="im">from</span> <span class="st">&#39;node-cron&#39;</span><span class="op">;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { fileReceiver } <span class="im">from</span> <span class="st">&#39;@/lib/sync/file-receiver&#39;</span><span class="op">;</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { syncEngine } <span class="im">from</span> <span class="st">&#39;@/lib/sync/sync-engine&#39;</span><span class="op">;</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Run daily at 2 AM</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>cron<span class="op">.</span><span class="fu">schedule</span>(<span class="st">&#39;0 2 * * *&#39;</span><span class="op">,</span> <span class="kw">async</span> () <span class="kw">=&gt;</span> {</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>  <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(<span class="st">&#39;Starting scheduled SFTP sync...&#39;</span>)<span class="op">;</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Get all active SFTP configs</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> configs <span class="op">=</span> <span class="cf">await</span> prisma<span class="op">.</span><span class="at">budgetDataSourceConfig</span><span class="op">.</span><span class="fu">findMany</span>({</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    where<span class="op">:</span> {</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>      sourceType<span class="op">:</span> <span class="st">&#39;sftp&#39;</span><span class="op">,</span></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>      isActive<span class="op">:</span> <span class="kw">true</span></span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  })<span class="op">;</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> (<span class="kw">const</span> config <span class="kw">of</span> configs) {</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span> {</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Poll SFTP for new files</span></span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>      <span class="kw">const</span> files <span class="op">=</span> <span class="cf">await</span> fileReceiver<span class="op">.</span><span class="fu">pollForNewFiles</span>({</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>        type<span class="op">:</span> <span class="st">&#39;sftp&#39;</span><span class="op">,</span></span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>        config<span class="op">:</span> config<span class="op">.</span><span class="at">config</span></span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>      }<span class="op">,</span> config<span class="op">.</span><span class="at">lastSyncAt</span>)<span class="op">;</span></span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Import each file</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>      <span class="cf">for</span> (<span class="kw">const</span> file <span class="kw">of</span> files) {</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">await</span> syncEngine<span class="op">.</span><span class="fu">syncFromFile</span>(config<span class="op">.</span><span class="at">customerId</span><span class="op">,</span> file<span class="op">.</span><span class="at">filePath</span>)<span class="op">;</span></span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Update last sync time</span></span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>      <span class="cf">await</span> prisma<span class="op">.</span><span class="at">budgetDataSourceConfig</span><span class="op">.</span><span class="fu">update</span>({</span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>        where<span class="op">:</span> { id<span class="op">:</span> config<span class="op">.</span><span class="at">id</span> }<span class="op">,</span></span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>        data<span class="op">:</span> { lastSyncAt<span class="op">:</span> <span class="kw">new</span> <span class="bu">Date</span>() }</span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>      })<span class="op">;</span></span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">catch</span> (error) {</span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a>      <span class="bu">console</span><span class="op">.</span><span class="fu">error</span>(<span class="vs">`SFTP sync failed for </span><span class="sc">${</span>config<span class="op">.</span><span class="at">customerId</span><span class="sc">}</span><span class="vs">:`</span><span class="op">,</span> error)<span class="op">;</span></span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a>      <span class="co">// Send alert to ops team</span></span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<hr />
+<h3 id="webhook-integration">4. Webhook Integration</h3>
+<p><strong>Scenario:</strong> Notify external systems when import
+completes</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Add webhook to import completion</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">notifyImportComplete</span>(importHistory<span class="op">:</span> ImportHistory) {</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> webhookUrl <span class="op">=</span> <span class="cf">await</span> <span class="fu">getWebhookUrl</span>(importHistory<span class="op">.</span><span class="at">customerId</span>)<span class="op">;</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (webhookUrl) {</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> <span class="fu">fetch</span>(webhookUrl<span class="op">,</span> {</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>      method<span class="op">:</span> <span class="st">&#39;POST&#39;</span><span class="op">,</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>      headers<span class="op">:</span> { <span class="st">&#39;Content-Type&#39;</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }<span class="op">,</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>      body<span class="op">:</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>({</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>        event<span class="op">:</span> <span class="st">&#39;budget.import.completed&#39;</span><span class="op">,</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>        customerId<span class="op">:</span> importHistory<span class="op">.</span><span class="at">customerId</span><span class="op">,</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>        importId<span class="op">:</span> importHistory<span class="op">.</span><span class="at">id</span><span class="op">,</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>        totalRows<span class="op">:</span> importHistory<span class="op">.</span><span class="at">totalRows</span><span class="op">,</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>        successRows<span class="op">:</span> importHistory<span class="op">.</span><span class="at">successRows</span><span class="op">,</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>        errorRows<span class="op">:</span> importHistory<span class="op">.</span><span class="at">errorRows</span><span class="op">,</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">:</span> importHistory<span class="op">.</span><span class="at">completedAt</span></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>      })</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="code-organization">Code Organization</h2>
+<h3 id="file-structure">File Structure</h3>
+<pre><code>spendflo-budget-enhancements/
+├── app/
+│   ├── api/
+│   │   ├── budget/
+│   │   │   └── check/
+│   │   │       └── route.ts          # Budget availability API
+│   │   ├── budgets/
+│   │   │   └── route.ts              # Budget CRUD
+│   │   ├── excel/
+│   │   │   ├── analyze/
+│   │   │   │   └── route.ts          # File analysis
+│   │   │   └── import/
+│   │   │       └── route.ts          # Import execution
+│   │   ├── imports/
+│   │   │   └── history/
+│   │   │       └── route.ts          # Import history
+│   │   └── dashboard/
+│   │       └── stats/
+│   │           └── route.ts          # Dashboard stats
+│   ├── fpa/
+│   │   └── import/
+│   │       └── page.tsx              # Visual mapper UI
+│   └── dashboard/
+│       └── page.tsx                  # Budget dashboard
+│
+├── lib/
+│   ├── ai/
+│   │   └── mapping-engine.ts         # AI column mapping
+│   ├── sync/
+│   │   ├── sync-engine.ts            # Import orchestration
+│   │   └── file-receiver.ts          # SFTP/S3 handling
+│   ├── approval/
+│   │   └── engine.ts                 # Auto-approval logic
+│   └── prisma.ts                     # Database client
+│
+├── prisma/
+│   ├── schema.prisma                 # Database schema
+│   └── migrations/                   # Migration history
+│
+├── public/
+│   ├── test-import.html              # Testing interface
+│   ├── test-budget-check.html        # Budget check tester
+│   └── test-sync.html                # Quick upload test
+│
+└── test-data/
+    ├── 1_standard_format.csv         # Test files
+    ├── payroll_sample.csv
+    └── ...</code></pre>
+<hr />
+<h2 id="testing">Testing</h2>
+<h3 id="automated-tests">Automated Tests</h3>
+<p><strong>Run all tests:</strong></p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> test</span></code></pre></div>
+<p><strong>File Type Detection Tests:</strong></p>
+<div class="sourceCode" id="cb27"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> /tmp/test_detection.py</span></code></pre></div>
+<p><strong>Expected Results:</strong> - Budget file: ✅ PASS (no
+warnings) - Payroll file: ✅ PASS (warning shown) - Expenses file: ✅
+PASS (warning shown) - Invoice file: ✅ PASS (warning shown)</p>
+<h3 id="manual-testing">Manual Testing</h3>
+<p><strong>Test Import Flow:</strong></p>
+<div class="sourceCode" id="cb28"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ex">1.</span> Open http://localhost:3000/fpa/import</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="ex">2.</span> Upload test-data/1_standard_format.csv</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="ex">3.</span> Verify AI mappings are correct</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="ex">4.</span> Click <span class="st">&quot;Import&quot;</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="ex">5.</span> Verify success message</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="ex">6.</span> Check database: SELECT <span class="pp">*</span> FROM <span class="st">&quot;Budget&quot;</span> ORDER BY <span class="st">&quot;createdAt&quot;</span> DESC LIMIT 10<span class="kw">;</span></span></code></pre></div>
+<p><strong>Test Budget Check API:</strong></p>
+<div class="sourceCode" id="cb29"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get customer ID</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="va">CUSTOMER_ID</span><span class="op">=</span><span class="va">$(</span><span class="ex">curl</span> <span class="at">-s</span> http://localhost:3000/api/seed <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-o</span> <span class="st">&#39;&quot;id&quot;:&quot;[^&quot;]*&quot;&#39;</span> <span class="kw">|</span> <span class="fu">head</span> <span class="at">-1</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-d</span><span class="st">&#39;&quot;&#39;</span> <span class="at">-f4</span><span class="va">)</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Test budget check</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST http://localhost:3000/api/budget/check <span class="dt">\</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;{</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="dt">\&quot;</span><span class="st">customerId</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="va">$CUSTOMER_ID</span><span class="dt">\&quot;</span><span class="st">,</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="dt">\&quot;</span><span class="st">department</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">Engineering</span><span class="dt">\&quot;</span><span class="st">,</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="dt">\&quot;</span><span class="st">subCategory</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">Software</span><span class="dt">\&quot;</span><span class="st">,</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="dt">\&quot;</span><span class="st">fiscalPeriod</span><span class="dt">\&quot;</span><span class="st">: </span><span class="dt">\&quot;</span><span class="st">FY2025</span><span class="dt">\&quot;</span><span class="st">,</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="st">    </span><span class="dt">\&quot;</span><span class="st">amount</span><span class="dt">\&quot;</span><span class="st">: 5000</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a><span class="st">  }&quot;</span></span></code></pre></div>
+<h3 id="performance-testing">Performance Testing</h3>
+<p><strong>Test Large Import:</strong></p>
+<div class="sourceCode" id="cb30"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate large test file</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/generate_large_budget.py <span class="at">--rows</span> 1000 <span class="op">&gt;</span> test-large.csv</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Time the import</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="bu">time</span> curl <span class="at">-X</span> POST http://localhost:3000/api/sync/upload <span class="dt">\</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">-F</span> <span class="st">&quot;file=@test-large.csv&quot;</span> <span class="dt">\</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">-F</span> <span class="st">&quot;customerId=</span><span class="va">$CUSTOMER_ID</span><span class="st">&quot;</span></span></code></pre></div>
+<p><strong>Expected Performance:</strong> - 100 rows: &lt;5 seconds -
+1000 rows: &lt;30 seconds - Budget check API: &lt;100ms</p>
+<hr />
+<h2 id="deployment">Deployment</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<div class="sourceCode" id="cb31"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install dependencies</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> install</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Set environment variables</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="va">DATABASE_URL</span><span class="op">=</span><span class="st">&quot;postgresql://user:pass@host:5432/db&quot;</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="va">NEXTAUTH_SECRET</span><span class="op">=</span><span class="st">&quot;your-secret&quot;</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="va">NEXTAUTH_URL</span><span class="op">=</span><span class="st">&quot;https://your-domain.com&quot;</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Run migrations</span></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a><span class="ex">npx</span> prisma migrate deploy</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Build</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span></code></pre></div>
+<h3 id="production-deployment">Production Deployment</h3>
+<p><strong>Vercel:</strong></p>
+<div class="sourceCode" id="cb32"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vercel</span> <span class="at">--prod</span></span></code></pre></div>
+<p><strong>Docker:</strong></p>
+<div class="sourceCode" id="cb33"><pre
+class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> node:18-alpine</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="kw">WORKDIR</span> /app</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="kw">COPY</span> package*.json ./</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">npm</span> ci <span class="at">--only</span><span class="op">=</span>production</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="kw">COPY</span> . .</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">npx</span> prisma generate</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">npm</span> run build</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a><span class="kw">EXPOSE</span> 3000</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="kw">CMD</span> [<span class="st">&quot;npm&quot;</span>, <span class="st">&quot;start&quot;</span>]</span></code></pre></div>
+<p><strong>Manual:</strong></p>
+<div class="sourceCode" id="cb34"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Build</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ex">npm</span> run build</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Start</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="va">NODE_ENV</span><span class="op">=</span>production <span class="ex">npm</span> start</span></code></pre></div>
+<h3 id="post-deployment-verification">Post-Deployment Verification</h3>
+<div class="sourceCode" id="cb35"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Check health</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> https://your-domain.com/api/health</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Test import</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST https://your-domain.com/api/excel/analyze <span class="dt">\</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">-F</span> <span class="st">&quot;file=@test-data/1_standard_format.csv&quot;</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Check database</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="ex">psql</span> <span class="va">$DATABASE_URL</span> <span class="at">-c</span> <span class="st">&quot;SELECT COUNT(*) FROM </span><span class="dt">\&quot;</span><span class="st">Budget</span><span class="dt">\&quot;</span><span class="st">;&quot;</span></span></code></pre></div>
+<hr />
+<h2 id="monitoring">Monitoring</h2>
+<h3 id="key-metrics">Key Metrics</h3>
+<p><strong>Application Metrics:</strong></p>
+<div class="sourceCode" id="cb36"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Track these metrics</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">counter</span>(<span class="st">&#39;budget.import.started&#39;</span>)<span class="op">;</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">counter</span>(<span class="st">&#39;budget.import.succeeded&#39;</span>)<span class="op">;</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">counter</span>(<span class="st">&#39;budget.import.failed&#39;</span>)<span class="op">;</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">histogram</span>(<span class="st">&#39;budget.import.duration_ms&#39;</span>)<span class="op">;</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">counter</span>(<span class="st">&#39;budget.check.requests&#39;</span>)<span class="op">;</span></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">histogram</span>(<span class="st">&#39;budget.check.duration_ms&#39;</span>)<span class="op">;</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>metrics<span class="op">.</span><span class="fu">counter</span>(<span class="st">&#39;file.type.warning&#39;</span>)<span class="op">;</span></span></code></pre></div>
+<p><strong>Database Queries to Monitor:</strong></p>
+<div class="sourceCode" id="cb37"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Import success rate</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">COUNT</span>(<span class="cf">CASE</span> <span class="cf">WHEN</span> status <span class="op">=</span> <span class="st">&#39;completed&#39;</span> <span class="cf">THEN</span> <span class="dv">1</span> <span class="cf">END</span>) <span class="op">*</span> <span class="fl">100.0</span> <span class="op">/</span> <span class="fu">COUNT</span>(<span class="op">*</span>) <span class="kw">as</span> success_rate</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="ot">&quot;ImportHistory&quot;</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="ot">&quot;createdAt&quot;</span> <span class="op">&gt;</span> NOW() <span class="op">-</span> <span class="dt">INTERVAL</span> <span class="st">&#39;24 hours&#39;</span>;</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- Average import time</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">AVG</span>(<span class="fu">EXTRACT</span>(EPOCH <span class="kw">FROM</span> (<span class="ot">&quot;completedAt&quot;</span> <span class="op">-</span> <span class="ot">&quot;createdAt&quot;</span>))) <span class="kw">as</span> avg_seconds</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="ot">&quot;ImportHistory&quot;</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> status <span class="op">=</span> <span class="st">&#39;completed&#39;</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a><span class="kw">AND</span> <span class="ot">&quot;createdAt&quot;</span> <span class="op">&gt;</span> NOW() <span class="op">-</span> <span class="dt">INTERVAL</span> <span class="st">&#39;24 hours&#39;</span>;</span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- File type warnings</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> sourceType, <span class="fu">COUNT</span>(<span class="op">*</span>)</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="ot">&quot;ImportHistory&quot;</span></span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> errors:<span class="ch">:text</span> <span class="kw">LIKE</span> <span class="st">&#39;%file type%&#39;</span></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a><span class="kw">GROUP</span> <span class="kw">BY</span> sourceType;</span></code></pre></div>
+<h3 id="alerts">Alerts</h3>
+<p><strong>Set up alerts for:</strong> - Import failure rate &gt; 10% -
+API response time &gt; 1 second - SFTP connection failures &gt; 3 in 1
+hour - Database query time &gt; 5 seconds</p>
+<h3 id="logging">Logging</h3>
+<p><strong>Important log events:</strong></p>
+<div class="sourceCode" id="cb38"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Import started</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>logger<span class="op">.</span><span class="fu">info</span>(<span class="st">&#39;Import started&#39;</span><span class="op">,</span> {</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">,</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>  fileName<span class="op">,</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>  totalRows</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="co">// Import completed</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>logger<span class="op">.</span><span class="fu">info</span>(<span class="st">&#39;Import completed&#39;</span><span class="op">,</span> {</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">,</span></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>  importId<span class="op">,</span></span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>  successRows<span class="op">,</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>  errorRows<span class="op">,</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>  durationMs</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a><span class="co">// File type warning</span></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>logger<span class="op">.</span><span class="fu">warn</span>(<span class="st">&#39;Non-budget file detected&#39;</span><span class="op">,</span> {</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">,</span></span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>  fileName<span class="op">,</span></span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>  detectedType<span class="op">,</span></span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a>  confidence</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a><span class="co">// Budget check</span></span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a>logger<span class="op">.</span><span class="fu">info</span>(<span class="st">&#39;Budget check&#39;</span><span class="op">,</span> {</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a>  customerId<span class="op">,</span></span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a>  department<span class="op">,</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a>  amount<span class="op">,</span></span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a>  available<span class="op">,</span></span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a>  canAutoApprove</span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-issues">Common Issues</h3>
+<h4 id="import-fails-with-transaction-timeout">1. Import Fails with
+“Transaction timeout”</h4>
+<p><strong>Cause:</strong> Large file taking &gt; 60 seconds to
+import</p>
+<p><strong>Fix:</strong></p>
+<div class="sourceCode" id="cb39"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Increase timeout in sync-engine.ts</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> prisma<span class="op">.</span><span class="fu">$transaction</span>(<span class="kw">async</span> (tx) <span class="kw">=&gt;</span> {</span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">// ... import logic</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>}<span class="op">,</span> { timeout<span class="op">:</span> <span class="dv">120000</span> })<span class="op">;</span> <span class="co">// 2 minutes</span></span></code></pre></div>
+<h4 id="sftp-connection-fails">2. SFTP Connection Fails</h4>
+<p><strong>Diagnostics:</strong></p>
+<div class="sourceCode" id="cb40"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Test SFTP manually</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sftp</span> username@hostname</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> /remote/path</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Check credentials</span></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="ex">node</span> <span class="at">-e</span> <span class="st">&quot;</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a><span class="st">const Client = require(&#39;ssh2-sftp-client&#39;);</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a><span class="st">const sftp = new Client();</span></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="st">sftp.connect({</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="st">  host: &#39;hostname&#39;,</span></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a><span class="st">  username: &#39;user&#39;,</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a><span class="st">  password: &#39;pass&#39;</span></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="st">}).then(() =&gt; console.log(&#39;Connected&#39;)).catch(console.error);</span></span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;</span></span></code></pre></div>
+<p><strong>Common fixes:</strong> - Verify firewall allows port 22 -
+Check credentials are correct - Ensure SSH key has correct permissions
+(600) - Verify remote path exists</p>
+<h4 id="file-type-detection-incorrect">3. File Type Detection
+Incorrect</h4>
+<p><strong>Cause:</strong> File has unusual column names</p>
+<p><strong>Fix:</strong></p>
+<div class="sourceCode" id="cb41"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Add custom keywords in mapping-engine.ts</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> FILE_TYPE_KEYWORDS <span class="op">=</span> {</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  budget<span class="op">:</span> [</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span>existing<span class="op">,</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;custom-budget-term&#39;</span><span class="op">,</span>  <span class="co">// Add customer-specific terms</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  ]</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>}<span class="op">;</span></span></code></pre></div>
+<h4 id="budget-check-returns-wrong-result">4. Budget Check Returns Wrong
+Result</h4>
+<p><strong>Diagnostics:</strong></p>
+<div class="sourceCode" id="cb42"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Check budget data</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="op">*</span> <span class="kw">FROM</span> <span class="ot">&quot;Budget&quot;</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> <span class="ot">&quot;customerId&quot;</span> <span class="op">=</span> <span class="st">&#39;cust_123&#39;</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="kw">AND</span> <span class="ot">&quot;department&quot;</span> <span class="op">=</span> <span class="st">&#39;Engineering&#39;</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="kw">AND</span> <span class="ot">&quot;fiscalPeriod&quot;</span> <span class="op">=</span> <span class="st">&#39;FY2025&#39;</span>;</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- Check utilization</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> b.<span class="op">*</span>, u.<span class="op">*</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="ot">&quot;Budget&quot;</span> b</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a><span class="kw">LEFT</span> <span class="kw">JOIN</span> <span class="ot">&quot;BudgetUtilization&quot;</span> u <span class="kw">ON</span> u.<span class="ot">&quot;budgetId&quot;</span> <span class="op">=</span> b.<span class="kw">id</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> b.<span class="ot">&quot;customerId&quot;</span> <span class="op">=</span> <span class="st">&#39;cust_123&#39;</span>;</span></code></pre></div>
+<hr />
+<h2 id="performance-optimization">Performance Optimization</h2>
+<h3 id="database-indexes">Database Indexes</h3>
+<p><strong>Critical indexes:</strong></p>
+<div class="sourceCode" id="cb43"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_budget_customer <span class="kw">ON</span> <span class="ot">&quot;Budget&quot;</span>(<span class="ot">&quot;customerId&quot;</span>);</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_budget_department <span class="kw">ON</span> <span class="ot">&quot;Budget&quot;</span>(<span class="ot">&quot;department&quot;</span>);</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_budget_period <span class="kw">ON</span> <span class="ot">&quot;Budget&quot;</span>(<span class="ot">&quot;fiscalPeriod&quot;</span>);</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_budget_source <span class="kw">ON</span> <span class="ot">&quot;Budget&quot;</span>(<span class="ot">&quot;source&quot;</span>);</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="kw">CREATE</span> <span class="kw">INDEX</span> idx_budget_created <span class="kw">ON</span> <span class="ot">&quot;Budget&quot;</span>(<span class="ot">&quot;createdAt&quot;</span>);</span></code></pre></div>
+<h3 id="query-optimization">Query Optimization</h3>
+<p><strong>Slow query:</strong></p>
+<div class="sourceCode" id="cb44"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Bad - loads all budgets</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> budgets <span class="op">=</span> <span class="cf">await</span> prisma<span class="op">.</span><span class="at">budget</span><span class="op">.</span><span class="fu">findMany</span>({</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  where<span class="op">:</span> { customerId }</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<p><strong>Optimized:</strong></p>
+<div class="sourceCode" id="cb45"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Good - paginated with select</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> budgets <span class="op">=</span> <span class="cf">await</span> prisma<span class="op">.</span><span class="at">budget</span><span class="op">.</span><span class="fu">findMany</span>({</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  where<span class="op">:</span> { customerId }<span class="op">,</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>  select<span class="op">:</span> {</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    id<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a>    department<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a>    fiscalPeriod<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>    budgetedAmount<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>    utilization<span class="op">:</span> {</span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>      select<span class="op">:</span> {</span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>        committedAmount<span class="op">:</span> <span class="kw">true</span><span class="op">,</span></span>
+<span id="cb45-12"><a href="#cb45-12" aria-hidden="true" tabindex="-1"></a>        reservedAmount<span class="op">:</span> <span class="kw">true</span></span>
+<span id="cb45-13"><a href="#cb45-13" aria-hidden="true" tabindex="-1"></a>      }</span>
+<span id="cb45-14"><a href="#cb45-14" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb45-15"><a href="#cb45-15" aria-hidden="true" tabindex="-1"></a>  }<span class="op">,</span></span>
+<span id="cb45-16"><a href="#cb45-16" aria-hidden="true" tabindex="-1"></a>  take<span class="op">:</span> <span class="dv">100</span><span class="op">,</span></span>
+<span id="cb45-17"><a href="#cb45-17" aria-hidden="true" tabindex="-1"></a>  skip<span class="op">:</span> page <span class="op">*</span> <span class="dv">100</span></span>
+<span id="cb45-18"><a href="#cb45-18" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<h3 id="caching">Caching</h3>
+<p><strong>Cache budget check results:</strong></p>
+<div class="sourceCode" id="cb46"><pre
+class="sourceCode typescript"><code class="sourceCode typescript"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> { Redis } <span class="im">from</span> <span class="st">&#39;@upstash/redis&#39;</span><span class="op">;</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> redis <span class="op">=</span> <span class="kw">new</span> <span class="fu">Redis</span>({ url<span class="op">:</span> <span class="bu">process</span><span class="op">.</span><span class="at">env</span><span class="op">.</span><span class="at">REDIS_URL</span> })<span class="op">;</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">function</span> <span class="fu">checkBudget</span>(params) {</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> cacheKey <span class="op">=</span> <span class="vs">`budget:</span><span class="sc">${</span>params<span class="op">.</span><span class="at">customerId</span><span class="sc">}</span><span class="vs">:</span><span class="sc">${</span>params<span class="op">.</span><span class="at">department</span><span class="sc">}</span><span class="vs">:</span><span class="sc">${</span>params<span class="op">.</span><span class="at">fiscalPeriod</span><span class="sc">}</span><span class="vs">`</span><span class="op">;</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Check cache first</span></span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> cached <span class="op">=</span> <span class="cf">await</span> redis<span class="op">.</span><span class="fu">get</span>(cacheKey)<span class="op">;</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (cached) <span class="cf">return</span> cached<span class="op">;</span></span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Compute result</span></span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">const</span> result <span class="op">=</span> <span class="cf">await</span> <span class="fu">computeBudgetCheck</span>(params)<span class="op">;</span></span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">// Cache for 5 minutes</span></span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>  <span class="cf">await</span> redis<span class="op">.</span><span class="fu">set</span>(cacheKey<span class="op">,</span> result<span class="op">,</span> { ex<span class="op">:</span> <span class="dv">300</span> })<span class="op">;</span></span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> result<span class="op">;</span></span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<hr />
+<h2 id="security-checklist">Security Checklist</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />All API endpoints require
+authentication</label></li>
+<li><label><input type="checkbox" />Customer data isolation enforced
+(WHERE customerId = ?)</label></li>
+<li><label><input type="checkbox" />File upload size limited (10MB
+recommended)</label></li>
+<li><label><input type="checkbox" />SQL injection protection
+verified</label></li>
+<li><label><input type="checkbox" />XSS protection enabled</label></li>
+<li><label><input type="checkbox" />SFTP/S3 credentials encrypted in
+database</label></li>
+<li><label><input type="checkbox" />Sensitive logs masked</label></li>
+<li><label><input type="checkbox" />Rate limiting enabled on
+APIs</label></li>
+<li><label><input type="checkbox" />CORS configured
+correctly</label></li>
+<li><label><input type="checkbox" />HTTPS enforced in
+production</label></li>
+</ul>
+<hr />
+<h2 id="support-contacts">Support Contacts</h2>
+<p><strong>Engineering:</strong> - Team Lead: [Name/Email] - On-call:
+[Rotation schedule]</p>
+<p><strong>Database:</strong> - DBA: [Name/Email]</p>
+<p><strong>Infrastructure:</strong> - DevOps: [Name/Email]</p>
+<hr />
+<h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li><strong>API Documentation:</strong> See COMPLETE_CONTEXT.md</li>
+<li><strong>Budget Check Guide:</strong> See
+BUDGET_CHECK_API_GUIDE.md</li>
+<li><strong>SFTP Setup:</strong> See SFTP_QUICK_CHECK.md</li>
+<li><strong>Customer Guide:</strong> See CUSTOMER_FACING_GUIDE.md</li>
+</ul>
+</body>
+</html>

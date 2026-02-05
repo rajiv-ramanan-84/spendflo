@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>CUSTOMER_FACING_GUIDE</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#budget-sync-system---customer-facing-team-guide"
+id="toc-budget-sync-system---customer-facing-team-guide">Budget Sync
+System - Customer-Facing Team Guide</a>
+<ul>
+<li><a href="#table-of-contents" id="toc-table-of-contents">Table of
+Contents</a></li>
+<li><a href="#feature-overview" id="toc-feature-overview">Feature
+Overview</a>
+<ul>
+<li><a href="#what-is-budget-sync" id="toc-what-is-budget-sync">What Is
+Budget Sync?</a></li>
+<li><a href="#key-features" id="toc-key-features">Key Features</a></li>
+</ul></li>
+<li><a href="#customer-benefits" id="toc-customer-benefits">Customer
+Benefits</a>
+<ul>
+<li><a href="#time-savings" id="toc-time-savings">Time Savings</a></li>
+<li><a href="#business-impact" id="toc-business-impact">Business
+Impact</a></li>
+</ul></li>
+<li><a href="#how-to-demo" id="toc-how-to-demo">How to Demo</a>
+<ul>
+<li><a href="#minute-demo-script" id="toc-minute-demo-script">5-Minute
+Demo Script</a></li>
+</ul></li>
+<li><a href="#onboarding-customers"
+id="toc-onboarding-customers">Onboarding Customers</a>
+<ul>
+<li><a href="#pre-implementation-checklist"
+id="toc-pre-implementation-checklist">Pre-Implementation
+Checklist</a></li>
+<li><a href="#implementation-steps"
+id="toc-implementation-steps">Implementation Steps</a></li>
+</ul></li>
+<li><a href="#common-questions" id="toc-common-questions">Common
+Questions</a>
+<ul>
+<li><a href="#general" id="toc-general">General</a></li>
+<li><a href="#file-upload" id="toc-file-upload">File Upload</a></li>
+<li><a href="#automation" id="toc-automation">Automation</a></li>
+<li><a href="#budget-checks" id="toc-budget-checks">Budget
+Checks</a></li>
+</ul></li>
+<li><a href="#troubleshooting"
+id="toc-troubleshooting">Troubleshooting</a>
+<ul>
+<li><a href="#issue-import-failed" id="toc-issue-import-failed">Issue:
+Import Failed</a></li>
+<li><a href="#issue-wrong-file-type-warning"
+id="toc-issue-wrong-file-type-warning">Issue: Wrong File Type
+Warning</a></li>
+<li><a href="#issue-sftp-connection-failed"
+id="toc-issue-sftp-connection-failed">Issue: SFTP Connection
+Failed</a></li>
+<li><a
+href="#issue-budget-check-returns-not-available-but-budget-exists"
+id="toc-issue-budget-check-returns-not-available-but-budget-exists">Issue:
+Budget Check Returns “Not Available” but Budget Exists</a></li>
+</ul></li>
+<li><a href="#support-playbooks" id="toc-support-playbooks">Support
+Playbooks</a>
+<ul>
+<li><a href="#playbook-new-customer-onboarding"
+id="toc-playbook-new-customer-onboarding">Playbook: New Customer
+Onboarding</a></li>
+<li><a href="#playbook-file-format-issues"
+id="toc-playbook-file-format-issues">Playbook: File Format
+Issues</a></li>
+<li><a href="#playbook-sftp-troubleshooting"
+id="toc-playbook-sftp-troubleshooting">Playbook: SFTP
+Troubleshooting</a></li>
+</ul></li>
+<li><a href="#quick-reference" id="toc-quick-reference">Quick
+Reference</a>
+<ul>
+<li><a href="#key-links" id="toc-key-links">Key Links</a></li>
+<li><a href="#support-contacts" id="toc-support-contacts">Support
+Contacts</a></li>
+<li><a href="#file-requirements" id="toc-file-requirements">File
+Requirements</a></li>
+<li><a href="#auto-approval-thresholds"
+id="toc-auto-approval-thresholds">Auto-Approval Thresholds</a></li>
+</ul></li>
+<li><a href="#success-metrics" id="toc-success-metrics">Success
+Metrics</a>
+<ul>
+<li><a href="#track-these-for-your-customers"
+id="toc-track-these-for-your-customers">Track These for Your
+Customers</a></li>
+</ul></li>
+<li><a href="#training-resources" id="toc-training-resources">Training
+Resources</a>
+<ul>
+<li><a href="#new-team-members" id="toc-new-team-members">New Team
+Members</a></li>
+<li><a href="#customer-resources" id="toc-customer-resources">Customer
+Resources</a></li>
+</ul></li>
+<li><a href="#feedback" id="toc-feedback">Feedback</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="budget-sync-system---customer-facing-team-guide">Budget Sync
+System - Customer-Facing Team Guide</h1>
+<p><strong>Audience:</strong> Support, Sales, Customer Success,
+Implementation <strong>Purpose:</strong> Help customers set up and use
+budget import features</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#feature-overview">Feature Overview</a></li>
+<li><a href="#customer-benefits">Customer Benefits</a></li>
+<li><a href="#how-to-demo">How to Demo</a></li>
+<li><a href="#onboarding-customers">Onboarding Customers</a></li>
+<li><a href="#common-questions">Common Questions</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#support-playbooks">Support Playbooks</a></li>
+</ol>
+<hr />
+<h2 id="feature-overview">Feature Overview</h2>
+<h3 id="what-is-budget-sync">What Is Budget Sync?</h3>
+<p>Budget Sync allows customers to automatically import and sync their
+budget data from Excel files, SFTP servers, S3 buckets, or Google Sheets
+into SpendFlo.</p>
+<h3 id="key-features">Key Features</h3>
+<p><strong>✨ Smart Upload</strong> - Upload Excel or CSV files - AI
+automatically maps columns - Detects and warns about wrong file types
+(payroll, invoices, etc.)</p>
+<p><strong>🤖 Automated Sync</strong> - SFTP: Customer drops files on
+SFTP server, we pull them automatically - S3: We pull files from
+customer’s S3 bucket - Google Sheets: We sync directly from their
+sheets</p>
+<p><strong>✅ Real-Time Validation</strong> - Check budget availability
+before purchases - Auto-approve within policy - Prevent overspending</p>
+<p><strong>📊 Complete Visibility</strong> - See all imported budgets in
+dashboard - Track import history - Monitor budget utilization</p>
+<hr />
+<h2 id="customer-benefits">Customer Benefits</h2>
+<h3 id="time-savings">Time Savings</h3>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 26%" />
+<col style="width: 23%" />
+<col style="width: 30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task</th>
+<th>Before</th>
+<th>After</th>
+<th>Savings</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Budget setup</td>
+<td>2-4 hours</td>
+<td>5-10 minutes</td>
+<td><strong>95% faster</strong></td>
+</tr>
+<tr class="even">
+<td>Monthly updates</td>
+<td>1 hour</td>
+<td>Automatic</td>
+<td><strong>100% elimination</strong></td>
+</tr>
+<tr class="odd">
+<td>Data entry errors</td>
+<td>Manual fixes</td>
+<td>AI prevents</td>
+<td><strong>~15 errors/month avoided</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="business-impact">Business Impact</h3>
+<p><strong>For Finance Teams:</strong> - ✅ No more manual data entry -
+✅ Always up-to-date budgets - ✅ Automated approval workflows - ✅
+Real-time budget visibility</p>
+<p><strong>For Procurement Teams:</strong> - ✅ Instant budget checks -
+✅ Auto-approve low-risk purchases - ✅ Prevent overspending - ✅ Faster
+purchase approvals</p>
+<p><strong>For IT Teams:</strong> - ✅ SFTP/S3 integration = hands-off -
+✅ Enterprise security standards - ✅ Audit trail included - ✅ No
+manual processes to maintain</p>
+<hr />
+<h2 id="how-to-demo">How to Demo</h2>
+<h3 id="minute-demo-script">5-Minute Demo Script</h3>
+<p><strong>Slide 1: The Problem (30 seconds)</strong> &gt; “Right now,
+updating budgets in procurement systems is painful. Finance teams spend
+hours manually entering data, and it’s error-prone. Let me show you a
+better way.”</p>
+<p><strong>Slide 2: Smart Upload (2 minutes)</strong></p>
+<ol type="1">
+<li>Open: <code>https://app.spendflo.com/fpa/import</code></li>
+<li>Click “Upload Excel”</li>
+<li>Select sample budget file</li>
+<li><strong>Point out:</strong> “See how the AI automatically detected
+which columns are departments, budgets, and time periods? No manual
+mapping needed.”</li>
+<li>Click “Import”</li>
+<li><strong>Point out:</strong> “15 budgets imported in 5 seconds. That
+would have taken 30+ minutes manually.”</li>
+</ol>
+<p><strong>Slide 3: Wrong File Protection (1 minute)</strong></p>
+<ol type="1">
+<li>Upload payroll file (or mention it)</li>
+<li><strong>Point out:</strong> “The system detected this is payroll
+data, not budgets, and warns you. This prevents costly mistakes.”</li>
+</ol>
+<p><strong>Slide 4: Automation (1 minute)</strong></p>
+<blockquote>
+<p>“Once you’re set up, we can pull files automatically: - Drop files on
+your SFTP server → We import them daily - Update your Google Sheet → We
+sync it automatically - Upload to S3 bucket → We detect and process new
+files</p>
+<p>Your budgets stay updated without anyone lifting a finger.”</p>
+</blockquote>
+<p><strong>Slide 5: Budget Checks (30 seconds)</strong></p>
+<blockquote>
+<p>“When someone requests a purchase, we check budgets in real-time: -
+Budget available + under threshold = Auto-approved - Budget available +
+over threshold = Routed to FP&amp;A - No budget = Rejected
+automatically</p>
+<p>Your approval workflows become faster and smarter.”</p>
+</blockquote>
+<p><strong>Close: ROI Summary (30 seconds)</strong> &gt; “You save 2-4
+hours per month per finance team member. That’s $2,000-$4,000 per year
+in labor costs alone. Plus fewer errors, faster approvals, and better
+budget control.”</p>
+<hr />
+<h2 id="onboarding-customers">Onboarding Customers</h2>
+<h3 id="pre-implementation-checklist">Pre-Implementation Checklist</h3>
+<p><strong>Discovery Questions:</strong></p>
+<ol type="1">
+<li><strong>Current Process</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />How do you manage budgets
+today?</label></li>
+<li><label><input type="checkbox" />What format are your budget files?
+(Excel, CSV, ERP export)</label></li>
+<li><label><input type="checkbox" />How often do budgets
+change?</label></li>
+<li><label><input type="checkbox" />Who maintains budgets?</label></li>
+</ul></li>
+<li><strong>File Format</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Can we see a sample budget
+file?</label></li>
+<li><label><input type="checkbox" />What columns do you
+have?</label></li>
+<li><label><input type="checkbox" />Any unusual formats or
+quirks?</label></li>
+</ul></li>
+<li><strong>Automation Needs</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Want automated sync?
+(SFTP/S3/Sheets)</label></li>
+<li><label><input type="checkbox" />If yes, who sets up
+SFTP/S3?</label></li>
+<li><label><input type="checkbox" />What’s the update
+frequency?</label></li>
+</ul></li>
+<li><strong>Approval Workflow</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Current approval
+thresholds?</label></li>
+<li><label><input type="checkbox" />Who approves what
+amounts?</label></li>
+<li><label><input type="checkbox" />Want auto-approval for small
+purchases?</label></li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="implementation-steps">Implementation Steps</h3>
+<h4 id="step-1-test-import-15-minutes">Step 1: Test Import (15
+minutes)</h4>
+<ol type="1">
+<li><strong>Get sample file from customer</strong>
+<ul>
+<li>Ask: “Can you send us a sample budget file?”</li>
+<li>Verify it has: Department, Fiscal Period, Budget Amount</li>
+</ul></li>
+<li><strong>Test upload</strong>
+<ul>
+<li>Log into customer’s account</li>
+<li>Go to: Budget Import page</li>
+<li>Upload their file</li>
+<li>Verify AI mapping looks correct</li>
+<li>Click Import</li>
+</ul></li>
+<li><strong>Verify data</strong>
+<ul>
+<li>Check budgets appear on dashboard</li>
+<li>Confirm amounts are correct</li>
+<li>Ask customer to review</li>
+</ul></li>
+</ol>
+<p><strong>If file format issues:</strong> - Take screenshot of columns
+- Ask: “What should this column map to?” - Use manual mapping if needed
+- Document for future reference</p>
+<hr />
+<h4 id="step-2-set-up-automation-optional-30-minutes">Step 2: Set Up
+Automation (Optional, 30 minutes)</h4>
+<p><strong>For SFTP:</strong></p>
+<ol type="1">
+<li><p><strong>Get credentials from customer:</strong></p>
+<pre><code>Host: sftp.customer.com
+Port: 22 (usually)
+Username: spendflo
+Password: ***
+Directory: /budgets/
+File pattern: budget*.csv</code></pre></li>
+<li><p><strong>Test connection:</strong></p>
+<ul>
+<li>Use SFTP client to verify access</li>
+<li>Check files are readable</li>
+<li>Verify directory permissions</li>
+</ul></li>
+<li><p><strong>Configure in SpendFlo:</strong></p>
+<ul>
+<li>Add SFTP config in admin panel</li>
+<li>Set schedule (daily at 2am recommended)</li>
+<li>Enable sync</li>
+</ul></li>
+<li><p><strong>Verify first sync:</strong></p>
+<ul>
+<li>Wait for scheduled time OR trigger manual sync</li>
+<li>Check import history</li>
+<li>Verify budgets imported correctly</li>
+</ul></li>
+</ol>
+<p><strong>For S3:</strong></p>
+<ol type="1">
+<li><p><strong>Get AWS credentials:</strong></p>
+<pre><code>Bucket: customer-budgets
+Region: us-east-1
+Access Key ID: ***
+Secret Access Key: ***
+Prefix: budgets/</code></pre></li>
+<li><p><strong>Test access:</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">aws</span> s3 ls s3://customer-budgets/budgets/ <span class="at">--profile</span> customer</span></code></pre></div></li>
+<li><p><strong>Configure in SpendFlo</strong></p></li>
+<li><p><strong>Verify first sync</strong></p></li>
+</ol>
+<p><strong>For Google Sheets:</strong></p>
+<ol type="1">
+<li>Customer authorizes Google Sheets access</li>
+<li>Select spreadsheet to sync</li>
+<li>Map columns</li>
+<li>Set sync frequency</li>
+<li>Verify first sync</li>
+</ol>
+<hr />
+<h4 id="step-3-configure-approval-rules-10-minutes">Step 3: Configure
+Approval Rules (10 minutes)</h4>
+<ol type="1">
+<li><p><strong>Set department thresholds:</strong></p>
+<pre><code>Engineering: $10,000 auto-approve
+Sales: $5,000 auto-approve
+Marketing: $7,500 auto-approve
+Finance: $3,000 auto-approve</code></pre></li>
+<li><p><strong>Test budget checks:</strong></p>
+<ul>
+<li>Create test purchase request</li>
+<li>Verify budget check works</li>
+<li>Confirm auto-approval triggers correctly</li>
+</ul></li>
+</ol>
+<hr />
+<h4 id="step-4-train-customer-20-minutes">Step 4: Train Customer (20
+minutes)</h4>
+<p><strong>For Finance Team:</strong> - Show how to upload new budgets -
+Explain AI mapping - Demo import history - Show dashboard</p>
+<p><strong>For Procurement Team:</strong> - Explain budget checks in
+purchase flow - Show when requests auto-approve - Explain FP&amp;A
+escalation</p>
+<p><strong>For IT Team:</strong> - Explain SFTP/S3 setup (if using) -
+Share troubleshooting guide - Provide support contact</p>
+<hr />
+<h2 id="common-questions">Common Questions</h2>
+<h3 id="general">General</h3>
+<p><strong>Q: What file formats do you support?</strong> A: Excel
+(.xlsx, .xls), CSV, and Google Sheets. Most ERP exports work fine.</p>
+<p><strong>Q: Can you handle our specific format?</strong> A: Yes! Our
+AI handles most formats automatically. If it’s unusual, we can test with
+your sample file and adjust if needed.</p>
+<p><strong>Q: What if our column names are different?</strong> A: The AI
+handles variations automatically (e.g., “Dept” = “Department”, “Budget
+Amt” = “Budgeted Amount”). You can also manually map columns.</p>
+<p><strong>Q: Is our data secure?</strong> A: Yes. Files are encrypted
+in transit (HTTPS), stored temporarily (7 days), then deleted. SFTP/S3
+credentials are encrypted in our database.</p>
+<hr />
+<h3 id="file-upload">File Upload</h3>
+<p><strong>Q: Why is it saying “This looks like a payroll
+file”?</strong> A: The AI detected keywords like “salary”, “employee”,
+etc. This prevents accidental wrong file uploads. If it’s actually a
+budget file with unusual names, you can click “Continue Anyway”.</p>
+<p><strong>Q: Import failed. What happened?</strong> A: Check the error
+message. Common issues: - Missing required columns (Department, Fiscal
+Period, Budget Amount) - Invalid amounts (non-numeric values) - Wrong
+file encoding</p>
+<p><strong>Q: Can I import multiple years at once?</strong> A: Yes! Just
+include all data in one file. The Fiscal Period column differentiates
+them.</p>
+<p><strong>Q: What if I need to update budgets?</strong> A: Just upload
+a new file. New budgets are added, existing ones can be updated.</p>
+<hr />
+<h3 id="automation">Automation</h3>
+<p><strong>Q: How often does SFTP sync run?</strong> A: By default,
+daily at 2am. We can customize the schedule.</p>
+<p><strong>Q: What happens if the SFTP connection fails?</strong> A:
+You’ll receive an alert email. The sync will retry automatically. Manual
+upload is always available as backup.</p>
+<p><strong>Q: Can we test SFTP before going live?</strong> A: Yes! We do
+a test sync during implementation to verify everything works.</p>
+<p><strong>Q: Do you delete files from our SFTP server?</strong> A: No,
+we only download. You control file retention on your server.</p>
+<hr />
+<h3 id="budget-checks">Budget Checks</h3>
+<p><strong>Q: How does auto-approval work?</strong> A: Requests are
+auto-approved if: 1. Budget is available 2. Amount is under department
+threshold 3. Budget utilization is under 90%</p>
+<p><strong>Q: What are the thresholds?</strong> A: Default thresholds by
+department: - Engineering: $10,000 - Sales: $5,000 - Marketing: $7,500 -
+Finance: $3,000 - Others: $5,000</p>
+<p>These can be customized per customer.</p>
+<p><strong>Q: What if multiple people request from the same
+budget?</strong> A: We track pending requests (last 48 hours) and
+account for them in availability calculations to prevent
+overspending.</p>
+<p><strong>Q: Can we have different thresholds by department?</strong>
+A: Yes! Thresholds are configurable per department.</p>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="issue-import-failed">Issue: Import Failed</h3>
+<p><strong>Symptom:</strong> Error message “Import failed”</p>
+<p><strong>Diagnosis:</strong> 1. Check error message in import history
+2. Common causes: - Missing required columns - Invalid data (non-numeric
+amounts) - File encoding issues - Empty file</p>
+<p><strong>Resolution:</strong> 1. Open the file in Excel 2. Verify
+required columns exist: - Department (text) - Fiscal Period (text, e.g.,
+“FY2025”) - Budget Amount (number, e.g., 50000) 3. Check for: - Empty
+rows (delete them) - Text in amount columns (fix to numbers) - Special
+characters in column names (remove) 4. Re-upload</p>
+<p><strong>If still failing:</strong> - Get the file from customer -
+Send to engineering: [support email] - Include error message
+screenshot</p>
+<hr />
+<h3 id="issue-wrong-file-type-warning">Issue: Wrong File Type
+Warning</h3>
+<p><strong>Symptom:</strong> “This looks like a payroll file”
+warning</p>
+<p><strong>Diagnosis:</strong> - AI detected keywords like “salary”,
+“employee”, etc. - File may actually be wrong type OR - Budget file with
+unusual column names</p>
+<p><strong>Resolution:</strong> 1. Ask customer: “Is this definitely a
+budget file?” 2. If YES: - Click “Continue Anyway” - Import will proceed
+with warning 3. If NO: - Cancel - Ask for correct budget file</p>
+<p><strong>When to escalate:</strong> - Customer insists it’s a budget
+file - Import fails even after continuing - Unusual format needs
+engineering review</p>
+<hr />
+<h3 id="issue-sftp-connection-failed">Issue: SFTP Connection Failed</h3>
+<p><strong>Symptom:</strong> Alert: “SFTP sync failed for customer
+X”</p>
+<p><strong>Diagnosis:</strong> 1. Check error message: - “Connection
+refused” = Network/firewall issue - “Authentication failed” = Wrong
+credentials - “Permission denied” = Directory access issue</p>
+<p><strong>Resolution:</strong></p>
+<p><strong>For “Connection refused”:</strong> 1. Verify host and port
+with customer 2. Ask: “Can you access the SFTP from your office?” 3.
+Check if IP whitelist needed 4. Test connection manually:
+<code>bash    sftp -P 22 username@hostname</code></p>
+<p><strong>For “Authentication failed”:</strong> 1. Verify credentials
+with customer 2. Ask them to test login 3. Update credentials in
+SpendFlo</p>
+<p><strong>For “Permission denied”:</strong> 1. Verify directory path
+with customer 2. Ask: “Does the SpendFlo user have read access to
+/budgets/?” 3. May need customer IT to fix permissions</p>
+<hr />
+<h3
+id="issue-budget-check-returns-not-available-but-budget-exists">Issue:
+Budget Check Returns “Not Available” but Budget Exists</h3>
+<p><strong>Symptom:</strong> Purchase request rejected but customer says
+budget exists</p>
+<p><strong>Diagnosis:</strong> 1. Check budget in dashboard 2. Verify
+fiscal period matches 3. Check sub-category (must match exactly or be
+null) 4. Check utilization</p>
+<p><strong>Resolution:</strong> 1. Go to Budgets page 2. Search for
+department + fiscal period 3. Check available amount:
+<code>Budgeted - Committed - Reserved</code> 4. If available amount &lt;
+requested: Explain to customer 5. If budget doesn’t match: Check if
+sub-category or period is different 6. If still issues: Check with
+engineering</p>
+<hr />
+<h2 id="support-playbooks">Support Playbooks</h2>
+<h3 id="playbook-new-customer-onboarding">Playbook: New Customer
+Onboarding</h3>
+<p><strong>When:</strong> New customer wants to use budget imports</p>
+<p><strong>Time:</strong> 30-45 minutes</p>
+<p><strong>Steps:</strong></p>
+<ol type="1">
+<li><strong>Discovery (5 min)</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Ask about current budget
+process</label></li>
+<li><label><input type="checkbox" />Get sample budget file</label></li>
+<li><label><input type="checkbox" />Understand update
+frequency</label></li>
+</ul></li>
+<li><strong>Test Import (10 min)</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Upload sample file</label></li>
+<li><label><input type="checkbox" />Verify AI mapping</label></li>
+<li><label><input type="checkbox" />Execute import</label></li>
+<li><label><input type="checkbox" />Show results to
+customer</label></li>
+</ul></li>
+<li><strong>Automation Setup (15 min, if needed)</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Get SFTP/S3/Sheets
+credentials</label></li>
+<li><label><input type="checkbox" />Test connection</label></li>
+<li><label><input type="checkbox" />Configure sync schedule</label></li>
+<li><label><input type="checkbox" />Run test sync</label></li>
+</ul></li>
+<li><strong>Training (10 min)</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Show upload process</label></li>
+<li><label><input type="checkbox" />Explain warnings</label></li>
+<li><label><input type="checkbox" />Demo dashboard</label></li>
+<li><label><input type="checkbox" />Share documentation</label></li>
+</ul></li>
+<li><strong>Follow-up (next day)</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Check first automated sync (if
+applicable)</label></li>
+<li><label><input type="checkbox" />Answer any questions</label></li>
+<li><label><input type="checkbox" />Mark onboarding
+complete</label></li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="playbook-file-format-issues">Playbook: File Format Issues</h3>
+<p><strong>When:</strong> Customer’s file won’t import correctly</p>
+<p><strong>Time:</strong> 10-20 minutes</p>
+<p><strong>Steps:</strong></p>
+<ol type="1">
+<li><strong>Get the file</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Ask customer to send file (email or
+secure link)</label></li>
+<li><label><input type="checkbox" />Download and open in
+Excel</label></li>
+</ul></li>
+<li><strong>Inspect format</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Check for required columns
+(Department, Fiscal Period, Budget Amount)</label></li>
+<li><label><input type="checkbox" />Look for unusual
+formatting</label></li>
+<li><label><input type="checkbox" />Check for empty rows</label></li>
+<li><label><input type="checkbox" />Verify amounts are numbers (not
+text)</label></li>
+</ul></li>
+<li><strong>Test manually</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Upload to test
+environment</label></li>
+<li><label><input type="checkbox" />Check error message</label></li>
+<li><label><input type="checkbox" />Note which mappings
+failed</label></li>
+</ul></li>
+<li><strong>Fix or escalate</strong>
+<ul>
+<li><strong>If simple fix:</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Guide customer to fix
+file</label></li>
+<li><label><input type="checkbox" />Test again</label></li>
+</ul></li>
+<li><strong>If complex:</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Send file to
+engineering</label></li>
+<li><label><input type="checkbox" />Create ticket</label></li>
+<li><label><input type="checkbox" />Update customer with
+timeline</label></li>
+</ul></li>
+</ul></li>
+</ol>
+<hr />
+<h3 id="playbook-sftp-troubleshooting">Playbook: SFTP
+Troubleshooting</h3>
+<p><strong>When:</strong> Automated SFTP sync failing</p>
+<p><strong>Time:</strong> 15-30 minutes</p>
+<p><strong>Steps:</strong></p>
+<ol type="1">
+<li><strong>Check error logs</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Go to Import History</label></li>
+<li><label><input type="checkbox" />Find failed sync</label></li>
+<li><label><input type="checkbox" />Read error message</label></li>
+</ul></li>
+<li><strong>Test connection</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Use SFTP client</label></li>
+<li><label><input type="checkbox" />Try to connect with same
+credentials</label></li>
+<li><label><input type="checkbox" />Document what happens</label></li>
+</ul></li>
+<li><strong>Customer communication</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Email customer IT team</label></li>
+<li><label><input type="checkbox" />Include error message</label></li>
+<li><label><input type="checkbox" />Ask for verification of:</label>
+<ul class="task-list">
+<li><label><input type="checkbox" />Host/port correct</label></li>
+<li><label><input type="checkbox" />Credentials valid</label></li>
+<li><label><input type="checkbox" />Directory accessible</label></li>
+<li><label><input type="checkbox" />Network/firewall allows
+connection</label></li>
+</ul></li>
+</ul></li>
+<li><strong>Resolution</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Update credentials if
+changed</label></li>
+<li><label><input type="checkbox" />Fix directory path if
+wrong</label></li>
+<li><label><input type="checkbox" />Work with customer IT on
+firewall</label></li>
+<li><label><input type="checkbox" />Re-enable sync once
+working</label></li>
+</ul></li>
+<li><strong>Verify</strong>
+<ul class="task-list">
+<li><label><input type="checkbox" />Trigger manual sync
+test</label></li>
+<li><label><input type="checkbox" />Check import history shows
+success</label></li>
+<li><label><input type="checkbox" />Monitor next scheduled
+sync</label></li>
+</ul></li>
+</ol>
+<hr />
+<h2 id="quick-reference">Quick Reference</h2>
+<h3 id="key-links">Key Links</h3>
+<ul>
+<li><strong>Import Page:</strong> <code>/fpa/import</code></li>
+<li><strong>Budget Dashboard:</strong> <code>/dashboard</code></li>
+<li><strong>Import History:</strong>
+<code>/api/imports/history</code></li>
+<li><strong>Test Interface:</strong> <code>/test-import.html</code>
+(internal)</li>
+</ul>
+<h3 id="support-contacts">Support Contacts</h3>
+<ul>
+<li><strong>Engineering:</strong> [Email/Slack]</li>
+<li><strong>Product:</strong> [Email/Slack]</li>
+<li><strong>Documentation:</strong> [Link to knowledge base]</li>
+</ul>
+<h3 id="file-requirements">File Requirements</h3>
+<p><strong>Required Columns:</strong> - Department (text) - Fiscal
+Period (text) - Budget Amount (number)</p>
+<p><strong>Optional Columns:</strong> - Sub-Category - Currency</p>
+<p><strong>Supported Formats:</strong> - Excel: .xlsx, .xls - CSV: .csv
+- Max size: 10MB - Max rows: 10,000 (recommended)</p>
+<h3 id="auto-approval-thresholds">Auto-Approval Thresholds</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Department</th>
+<th>Threshold</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Engineering</td>
+<td>$10,000</td>
+</tr>
+<tr class="even">
+<td>Sales</td>
+<td>$5,000</td>
+</tr>
+<tr class="odd">
+<td>Marketing</td>
+<td>$7,500</td>
+</tr>
+<tr class="even">
+<td>Finance</td>
+<td>$3,000</td>
+</tr>
+<tr class="odd">
+<td>HR</td>
+<td>$5,000</td>
+</tr>
+<tr class="even">
+<td>Others</td>
+<td>$5,000</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="success-metrics">Success Metrics</h2>
+<h3 id="track-these-for-your-customers">Track These for Your
+Customers</h3>
+<ul>
+<li>⏱️ <strong>Time to First Import:</strong> Target &lt;15 minutes</li>
+<li>✅ <strong>Import Success Rate:</strong> Target &gt;95%</li>
+<li>🔄 <strong>Automation Adoption:</strong> % of customers using
+SFTP/S3</li>
+<li>🎯 <strong>Auto-Approval Rate:</strong> % of requests
+auto-approved</li>
+<li>😊 <strong>Customer Satisfaction:</strong> Survey score</li>
+</ul>
+<hr />
+<h2 id="training-resources">Training Resources</h2>
+<h3 id="new-team-members">New Team Members</h3>
+<p><strong>Watch:</strong> - 5-minute product demo video - Customer
+onboarding walkthrough</p>
+<p><strong>Read:</strong> - This guide - FILE_TYPE_DETECTION_GUIDE.md -
+BUDGET_CHECK_API_GUIDE.md</p>
+<p><strong>Practice:</strong> - Import sample file - Test wrong file
+warning - Run through onboarding playbook</p>
+<h3 id="customer-resources">Customer Resources</h3>
+<p><strong>To Share:</strong> - Quick start guide (1-pager) - Video
+tutorial (link) - Sample budget template - FAQ document</p>
+<hr />
+<h2 id="feedback">Feedback</h2>
+<p>Found issues or have suggestions? Contact: -
+<strong>Product:</strong> [Email] - <strong>Engineering:</strong>
+[Email] - <strong>Documentation:</strong> [Email]</p>
+<p>Help us improve this guide for the next person! 🚀</p>
+</body>
+</html>
