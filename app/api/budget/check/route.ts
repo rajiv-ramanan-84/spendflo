@@ -5,13 +5,32 @@ import { getAutoApprovalThreshold } from '@/lib/approval/engine';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    let { customerId, department, subCategory, fiscalPeriod, amount, currency = 'USD' } = body;
+    let {
+      customerId,
+      department,
+      subCategory,
+      fiscalPeriod,
+      amount,
+      currency = 'USD',
+      // NEW: Audit trail fields from orchestrator
+      requestId,
+      userId,
+      userName,
+      userEmail,
+      vendor,
+      purpose,
+    } = body;
 
     if (!department || !fiscalPeriod || !amount) {
       return NextResponse.json(
         { error: 'Missing required fields: department, fiscalPeriod, amount' },
         { status: 400 }
       );
+    }
+
+    // Validate audit trail fields (recommended but not required for backward compatibility)
+    if (!requestId || !userId) {
+      console.warn('[Budget Check] Missing audit trail fields (requestId, userId). This is OK for testing but should be provided in production.');
     }
 
     // Auto-use default customer if not provided
@@ -83,7 +102,7 @@ export async function POST(req: NextRequest) {
 
       console.log('[Budget Check] No match found. Available budgets for this department:', allDeptBudgets);
 
-      return NextResponse.json({
+      const noBudgetResponse = {
         success: true,
         available: false,
         reason: 'No budget found for this department/period',
@@ -96,7 +115,36 @@ export async function POST(req: NextRequest) {
           },
           availableBudgets: allDeptBudgets,
         },
-      });
+      };
+
+      // AUDIT LOG: Track failed budget checks too
+      try {
+        await prisma.budgetCheckLog.create({
+          data: {
+            requestId: requestId || `check_${Date.now()}`,
+            userId: userId || 'unknown',
+            userName: userName || 'Unknown User',
+            userEmail: userEmail || 'unknown@example.com',
+            customerId: customerId || 'unknown',
+            department,
+            subCategory: subCategory || null,
+            fiscalPeriod,
+            amount,
+            currency,
+            available: false,
+            budgetId: null, // No budget found
+            canAutoApprove: false,
+            reason: noBudgetResponse.reason,
+            response: noBudgetResponse,
+            vendor: vendor || null,
+            purpose: purpose || null,
+          },
+        });
+      } catch (auditError: any) {
+        console.error('[Budget Check] Failed to log audit trail:', auditError.message);
+      }
+
+      return NextResponse.json(noBudgetResponse);
     }
 
     // Sum all matching budgets
@@ -148,7 +196,7 @@ export async function POST(req: NextRequest) {
     const autoApprovalThreshold = getAutoApprovalThreshold(department);
     const canAutoApprove = isAvailable && requestAmount <= autoApprovalThreshold && utilizationPercent < 90;
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       available: isAvailable,
       budget: {
@@ -176,7 +224,38 @@ export async function POST(req: NextRequest) {
           ? `Budget available. Will be auto-approved.`
           : `Budget available. Requires FP&A approval (${requestAmount > autoApprovalThreshold ? 'exceeds threshold' : 'budget critical'}).`
         : `Insufficient budget. Available: $${effectiveAvailable.toLocaleString()}, Requested: $${requestAmount.toLocaleString()}. Please contact FP&A team.`,
-    });
+    };
+
+    // AUDIT LOG: Track every budget check for compliance
+    try {
+      await prisma.budgetCheckLog.create({
+        data: {
+          requestId: requestId || `check_${Date.now()}`, // Fallback for testing
+          userId: userId || 'unknown',
+          userName: userName || 'Unknown User',
+          userEmail: userEmail || 'unknown@example.com',
+          customerId: customerId || 'unknown',
+          department,
+          subCategory: subCategory || null,
+          fiscalPeriod,
+          amount: requestAmount,
+          currency: budget.currency,
+          available: isAvailable,
+          budgetId: budget.id,
+          canAutoApprove,
+          reason: responseData.reason,
+          response: responseData, // Store full response for debugging
+          vendor: vendor || null,
+          purpose: purpose || null,
+        },
+      });
+      console.log('[Budget Check] Logged to audit trail:', { requestId, userId, available: isAvailable });
+    } catch (auditError: any) {
+      // Don't fail the request if audit logging fails
+      console.error('[Budget Check] Failed to log audit trail:', auditError.message);
+    }
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error('[Budget Check] Error:', error);
     return NextResponse.json(

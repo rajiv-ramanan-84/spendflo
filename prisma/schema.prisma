@@ -392,3 +392,45 @@ model SyncHistory {
   @@index([status])
   @@index([startTime])
 }
+
+// ============================================
+// NEW MODEL - BUDGET CHECK AUDIT LOG
+// ============================================
+
+model BudgetCheckLog {
+  id           String   @id @default(cuid())
+
+  // Request context (from Spendflo orchestrator)
+  requestId    String   // Spendflo intake request ID
+  userId       String   // User who submitted the intake request
+  userName     String   // User's full name for audit trail
+  userEmail    String   // User's email for audit trail
+
+  // Budget check parameters
+  customerId   String
+  department   String
+  subCategory  String?
+  fiscalPeriod String
+  amount       Float
+  currency     String   @default("USD")
+
+  // Check result
+  available    Boolean
+  budgetId     String?  // Which budget was matched (if found)
+  canAutoApprove Boolean @default(false)
+  reason       String?  // Human-readable reason
+
+  // Full API response (for debugging)
+  response     Json
+
+  // Metadata
+  vendor       String?  // Optional: vendor name
+  purpose      String?  // Optional: request purpose
+  timestamp    DateTime @default(now())
+
+  @@index([requestId])
+  @@index([userId])
+  @@index([customerId])
+  @@index([department])
+  @@index([timestamp])
+}
