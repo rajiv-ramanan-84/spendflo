@@ -29,27 +29,44 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Find budget
+    // Find budget - smart matching logic
     console.log('[Budget Check] Searching for budget with:', {
       customerId,
       department,
-      subCategory: subCategory || null,
+      subCategory: subCategory || '(any)',
       fiscalPeriod,
     });
 
-    const budget = await prisma.budget.findFirst({
-      where: {
-        customerId,
-        department,
-        subCategory: subCategory || null,
-        fiscalPeriod,
-      },
-      include: {
-        utilization: true,
-      },
-    });
+    let budgets;
 
-    if (!budget) {
+    if (subCategory) {
+      // If subCategory specified, find exact match
+      budgets = await prisma.budget.findMany({
+        where: {
+          customerId,
+          department,
+          subCategory,
+          fiscalPeriod,
+        },
+        include: {
+          utilization: true,
+        },
+      });
+    } else {
+      // If no subCategory, find ALL budgets for this department/period
+      budgets = await prisma.budget.findMany({
+        where: {
+          customerId,
+          department,
+          fiscalPeriod,
+        },
+        include: {
+          utilization: true,
+        },
+      });
+    }
+
+    if (!budgets || budgets.length === 0) {
       // Debug: Show all budgets for this department
       const allDeptBudgets = await prisma.budget.findMany({
         where: {
@@ -70,11 +87,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         available: false,
-        reason: 'No budget found for this department/category',
+        reason: 'No budget found for this department/period',
         details: {
           searchedFor: {
             department,
-            subCategory,
+            subCategory: subCategory || '(any)',
             fiscalPeriod,
           },
           availableBudgets: allDeptBudgets,
@@ -82,17 +99,23 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    console.log('[Budget Check] Budget found:', {
-      id: budget.id,
-      budgetedAmount: budget.budgetedAmount,
-      committed: budget.utilization?.committedAmount || 0,
-      reserved: budget.utilization?.reservedAmount || 0,
+    // Sum all matching budgets
+    const totalBudgeted = budgets.reduce((sum, b) => sum + b.budgetedAmount, 0);
+    const totalCommitted = budgets.reduce((sum, b) => sum + (b.utilization?.committedAmount || 0), 0);
+    const totalReserved = budgets.reduce((sum, b) => sum + (b.utilization?.reservedAmount || 0), 0);
+    const available = totalBudgeted - totalCommitted - totalReserved;
+
+    console.log('[Budget Check] Budget(s) found:', {
+      count: budgets.length,
+      budgets: budgets.map(b => ({ id: b.id, subCategory: b.subCategory, amount: b.budgetedAmount })),
+      totalBudgeted,
+      totalCommitted,
+      totalReserved,
+      available,
     });
 
-    // Calculate available amount
-    const committed = budget.utilization?.committedAmount || 0;
-    const reserved = budget.utilization?.reservedAmount || 0;
-    const available = budget.budgetedAmount - committed - reserved;
+    // Use first budget for reference (for ID, etc.)
+    const budget = budgets[0];
 
     // NEW: Check pending requests in last 48 hours
     const cutoffDate = new Date(Date.now() - 48 * 60 * 60 * 1000);
@@ -119,7 +142,7 @@ export async function POST(req: NextRequest) {
     }
 
     const isAvailable = effectiveAvailable >= requestAmount;
-    const utilizationPercent = ((committed + reserved) / budget.budgetedAmount) * 100;
+    const utilizationPercent = ((totalCommitted + totalReserved) / totalBudgeted) * 100;
 
     // Check auto-approval eligibility
     const autoApprovalThreshold = getAutoApprovalThreshold(department);
@@ -130,10 +153,16 @@ export async function POST(req: NextRequest) {
       available: isAvailable,
       budget: {
         id: budget.id,
-        budgetedAmount: budget.budgetedAmount,
-        committed,
-        reserved,
+        budgetedAmount: totalBudgeted,
+        committed: totalCommitted,
+        reserved: totalReserved,
         available: effectiveAvailable,
+        matchedBudgets: budgets.length,
+        budgetBreakdown: budgets.map(b => ({
+          id: b.id,
+          subCategory: b.subCategory,
+          amount: b.budgetedAmount,
+        })),
       },
       requestedAmount: requestAmount,
       currency: budget.currency,
