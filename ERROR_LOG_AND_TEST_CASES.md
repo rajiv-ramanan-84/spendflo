@@ -522,6 +522,151 @@ curl -X POST http://localhost:3000/api/excel/analyze \
 
 ---
 
+### ❌ ERROR #11: Budget Check Failing with Multiple SubCategories (CRITICAL)
+
+**Status:** ✅ FIXED
+**Severity:** CRITICAL - Feature completely broken
+**Date Found:** February 5, 2026 (User reported)
+**Date Fixed:** February 5, 2026
+
+**Symptom:**
+- Request Budget form shows "Insufficient Budget" error
+- User requests $100,000 for Customer Support
+- Budget exists ($720,000 available) but check fails
+- Error: "Failed to check budget availability"
+
+**User Quote:**
+> "Budget is available in customer support, but it's not able to fetch it. Even this was a common error that we found out last time. When there are multiple budgets, it doesn't know where to check and it is failing."
+
+**Root Cause:**
+- Budget check API did EXACT match on `subCategory` field
+- Database has budgets WITH subCategories:
+  - "Customer Support" → "Support software": $720,000
+  - "Customer Support" → "Training materials": $25,000
+- Request form submitted WITHOUT subCategory (null)
+- Query looked for: `subCategory = null` → NO MATCH ❌
+- Budgets exist but query couldn't find them
+
+**Technical Details:**
+```typescript
+// BEFORE (broken):
+const budget = await prisma.budget.findFirst({
+  where: {
+    customerId,
+    department,
+    subCategory: subCategory || null,  // Exact match on null
+    fiscalPeriod,
+  },
+});
+// Result: No budget found (returns 400 error)
+
+// AFTER (fixed):
+let budgets;
+if (subCategory) {
+  // If subCategory specified, find exact match
+  budgets = await prisma.budget.findMany({
+    where: { customerId, department, subCategory, fiscalPeriod },
+  });
+} else {
+  // If NO subCategory, find ALL budgets for dept/period
+  budgets = await prisma.budget.findMany({
+    where: { customerId, department, fiscalPeriod },  // No subCategory filter
+  });
+}
+
+// Sum all matching budgets
+const totalBudgeted = budgets.reduce((sum, b) => sum + b.budgetedAmount, 0);
+// Result: $720,000 + $25,000 = $745,000 available ✓
+```
+
+**Fix Applied:**
+- Changed from `findFirst` (single budget) to `findMany` (multiple budgets)
+- If subCategory provided → exact match on specific budget
+- If NO subCategory → find ALL budgets for department/period and SUM them
+- Return breakdown showing which budgets were matched
+
+**Files Changed:**
+- `app/api/budget/check/route.ts` (lines 32-160)
+
+**Response Enhancement:**
+```json
+{
+  "success": true,
+  "available": true,
+  "budget": {
+    "budgetedAmount": 745000,  // Summed total
+    "matchedBudgets": 2,       // Number of budgets summed
+    "budgetBreakdown": [        // Show what was matched
+      {"id": "abc", "subCategory": "Support software", "amount": 720000},
+      {"id": "def", "subCategory": "Training materials", "amount": 25000}
+    ]
+  }
+}
+```
+
+**Test Cases:**
+```bash
+# Test 1: Request without subCategory (WAS FAILING)
+curl -X POST https://spendflo.vercel.app/api/budget/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "department": "Customer Support",
+    "fiscalPeriod": "Full Year 2025",
+    "amount": 100000
+  }'
+# Expected: {"available":true} ✓
+
+# Test 2: Request with specific subCategory
+curl -X POST https://spendflo.vercel.app/api/budget/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "department": "Customer Support",
+    "subCategory": "Support software",
+    "fiscalPeriod": "Full Year 2025",
+    "amount": 100000
+  }'
+# Expected: {"available":true, "matchedBudgets":1} ✓
+
+# Test 3: Department with single budget (no subCategories)
+curl -X POST https://spendflo.vercel.app/api/budget/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "department": "Engineering",
+    "fiscalPeriod": "FY2025",
+    "amount": 50000
+  }'
+# Expected: {"available":true} ✓
+
+# Test 4: Request exceeds total available
+curl -X POST https://spendflo.vercel.app/api/budget/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "department": "Customer Support",
+    "fiscalPeriod": "Full Year 2025",
+    "amount": 1000000
+  }'
+# Expected: {"available":false} ✓
+```
+
+**Prevention:**
+- When designing APIs, consider "fuzzy matching" vs "exact matching"
+- For budget checks, default to showing ALL available budgets
+- Let user drill down to specific subCategory if needed
+- Add integration tests for multi-budget scenarios
+
+**Pattern Identified:**
+This is the SECOND time this pattern occurred:
+1. ERROR #1: Dashboard API required customerId → made optional
+2. ERROR #11: Budget check required exact subCategory → made flexible
+
+**Lesson Learned:**
+- Required fields should be truly REQUIRED for security/data integrity
+- Optional fields should support multiple matching strategies
+- When in doubt, be MORE flexible, not more strict
+- Test with REAL production data patterns
+
+---
+
 ## Test Data Issues
 
 ### ❌ ERROR #10: Budget Check API - No Budget Found (Expected)
@@ -749,7 +894,28 @@ echo "🎉 All regression tests passed!"
 
 ---
 
-**Last Error Fixed:** Dashboard Loading Issue (ERROR #1)
-**Total Errors Fixed:** 10
+## Summary of Fixes
+
+| Error # | Issue | Severity | Status | Date Fixed |
+|---------|-------|----------|--------|------------|
+| #1 | Dashboard infinite loading | CRITICAL | ✅ Fixed | Feb 5, 2026 |
+| #2 | Vercel build - ssh2 module | HIGH | ✅ Fixed | Feb 5, 2026 |
+| #3 | TypeScript - ssh2 types | MEDIUM | ✅ Fixed | Feb 5, 2026 |
+| #4 | TypeScript - interface mismatch | MEDIUM | ✅ Fixed | Feb 5, 2026 |
+| #5 | Prisma - missing include | MEDIUM | ✅ Fixed | Feb 5, 2026 |
+| #6 | TypeScript - null vs undefined | LOW | ✅ Fixed | Feb 5, 2026 |
+| #7 | TypeScript - array type mismatch | MEDIUM | ✅ Fixed | Feb 5, 2026 |
+| #8 | Prisma JSON field type | MEDIUM | ✅ Fixed | Feb 5, 2026 |
+| #9 | Invoice detection wrong | MEDIUM | ✅ Fixed | Feb 5, 2026 |
+| #10 | Budget check (no data) | N/A | Expected | Feb 5, 2026 |
+| #11 | Budget check multi-subCategory | CRITICAL | ✅ Fixed | Feb 5, 2026 |
+
+**Last Error Fixed:** Budget Check Multiple SubCategories (ERROR #11)
+**Total Errors Fixed:** 10 (excluding #10 which is expected behavior)
 **Production Stability:** ✅ STABLE
 **Ready for CTO Demo:** ✅ YES
+
+**Recurring Pattern Identified:** API parameter validation too strict
+- Fix #1: Made customerId optional in /api/budgets
+- Fix #11: Made subCategory flexible in /api/budget/check
+- **Action:** Review all APIs for similar patterns
