@@ -1,0 +1,6 @@
+Expense ID,Submitted By,Department,Vendor,Merchant,Description,Amount,Receipt,Purchase Date,Expense Report,Approver,Status
+EXP001,John Smith,Engineering,AWS,Amazon Web Services,Cloud hosting,2500,Yes,2025-01-15,RPT-2025-001,Manager,Pending
+EXP002,Jane Doe,Sales,Salesforce,Salesforce Inc,CRM subscription,1200,Yes,2025-01-10,RPT-2025-002,Director,Approved
+EXP003,Bob Johnson,Marketing,Google,Google Ads,Ad campaign,5000,Yes,2025-01-12,RPT-2025-003,VP Marketing,Approved
+EXP004,Alice Williams,Finance,QuickBooks,Intuit,Accounting software,800,Yes,2025-01-08,RPT-2025-004,CFO,Approved
+EXP005,Charlie Brown,HR,LinkedIn,LinkedIn Corp,Recruiting subscription,3000,Yes,2025-01-20,RPT-2025-005,HR Director,Pending

@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
             }
           }
         }
-      });
+      }, { timeout: 60000 }); // 60 second timeout for large imports
 
       // Update import history to completed
       await prisma.importHistory.update({

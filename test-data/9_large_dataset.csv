@@ -1,0 +1,49 @@
+Department,Sub Category,Fiscal Period,Budget Amount,Currency
+Engineering,Software Licenses,FY 2025,250000,USD
+Engineering,Cloud Infrastructure,FY 2025,200000,USD
+Engineering,Development Tools,FY 2025,50000,USD
+Engineering,Hardware,FY 2025,100000,USD
+Engineering,Contractors,FY 2025,150000,USD
+Engineering,Training,FY 2025,30000,USD
+Sales,Travel,FY 2025,50000,USD
+Sales,Marketing Events,FY 2025,125000,USD
+Sales,Tools & CRM,FY 2025,50000,USD
+Sales,Client Entertainment,FY 2025,25000,USD
+Sales,Contractors,FY 2025,75000,USD
+Sales,Training,FY 2025,20000,USD
+Marketing,Digital Advertising,FY 2025,150000,USD
+Marketing,Content Creation,FY 2025,80000,USD
+Marketing,Events & Conferences,FY 2025,100000,USD
+Marketing,PR & Communications,FY 2025,50000,USD
+Marketing,Tools & Software,FY 2025,30000,USD
+Marketing,Design Services,FY 2025,40000,USD
+HR,Recruiting,FY 2025,40000,USD
+HR,Training & Development,FY 2025,30000,USD
+HR,Employee Benefits,FY 2025,25000,USD
+HR,HR Software,FY 2025,15000,USD
+HR,Events & Team Building,FY 2025,20000,USD
+Operations,Facilities,FY 2025,120000,USD
+Operations,Equipment,FY 2025,60000,USD
+Operations,Office Supplies,FY 2025,15000,USD
+Operations,IT Infrastructure,FY 2025,80000,USD
+Operations,Security,FY 2025,40000,USD
+Finance,Accounting Software,FY 2025,25000,USD
+Finance,Consulting,FY 2025,40000,USD
+Finance,Banking Fees,FY 2025,10000,USD
+Finance,Insurance,FY 2025,35000,USD
+Legal,Legal Consulting,FY 2025,50000,USD
+Legal,Contract Management,FY 2025,15000,USD
+Legal,Compliance,FY 2025,25000,USD
+Legal,IP & Patents,FY 2025,30000,USD
+Customer Success,Support Tools,FY 2025,40000,USD
+Customer Success,Training,FY 2025,25000,USD
+Customer Success,Travel,FY 2025,20000,USD
+Product,Design Tools,FY 2025,30000,USD
+Product,Research Tools,FY 2025,25000,USD
+Product,Prototyping,FY 2025,20000,USD
+Product,User Testing,FY 2025,15000,USD
+IT,Software Licenses,FY 2025,50000,USD
+IT,Hardware,FY 2025,40000,USD
+IT,Cloud Services,FY 2025,60000,USD
+IT,Security Tools,FY 2025,35000,USD
+IT,Support Services,FY 2025,25000,USD

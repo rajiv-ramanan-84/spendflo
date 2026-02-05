@@ -28,12 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'userId is required' },
-        { status: 400 }
-      );
-    }
+    // userId is optional for file analysis (only needed for import)
 
     // Validate file type
     const fileName = file.name.toLowerCase();
@@ -108,6 +103,7 @@ export async function POST(req: NextRequest) {
       requiredFieldsMissing: mappingResult.requiredFieldsMissing,
       suggestions: mappingResult.suggestions,
       canProceed: mappingResult.requiredFieldsMissing.length === 0,
+      fileTypeDetection: mappingResult.fileTypeDetection,
     });
   } catch (error: any) {
     console.error('[Excel Analyze] Error:', error);

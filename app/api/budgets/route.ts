@@ -1,80 +1,100 @@
-import { NextResponse } from 'next/server';
+/**
+ * API: View Budgets
+ *
+ * GET /api/budgets?customerId=xxx
+ *
+ * Simple endpoint to view imported budgets
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    // Get customerId from query params
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const customerId = searchParams.get('customerId');
+    const importId = searchParams.get('importId'); // NEW: Filter by specific import
+    const source = searchParams.get('source'); // NEW: Filter by source
 
-    const where = customerId ? { customerId } : {};
-
-    const budgets = await prisma.budget.findMany({
-      where,
-      include: {
-        utilization: true,
-      },
-      orderBy: {
-        department: 'asc',
-      },
-    });
-    return NextResponse.json({
-      success: true,
-      budgets,
-    });
-  } catch (error) {
-    console.error('Error fetching budgets:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch budgets' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { customerId, department, subCategory, budgetedAmount, fiscalPeriod, currency } = body;
-
-    if (!customerId || !department || !budgetedAmount || !fiscalPeriod) {
+    if (!customerId) {
       return NextResponse.json(
-        { error: 'Missing required fields: customerId, department, budgetedAmount, fiscalPeriod' },
+        { error: 'Missing customerId parameter' },
         { status: 400 }
       );
     }
 
-    const budget = await prisma.budget.create({
-      data: {
-        customerId,
-        department,
-        subCategory: subCategory || null,
-        budgetedAmount: parseFloat(budgetedAmount),
-        fiscalPeriod,
-        currency: currency || 'USD',
-        source: 'manual',
-      },
-      include: {
-        utilization: true,
-      },
-    });
+    // Build where clause based on filters
+    const whereClause: any = {
+      customerId,
+      deletedAt: null
+    };
 
-    await prisma.budgetUtilization.create({
-      data: {
-        budgetId: budget.id,
-        committedAmount: 0,
-        reservedAmount: 0,
-      },
+    // If importId specified, only return budgets from that import
+    if (importId) {
+      // Get the import history record
+      const importHistory = await prisma.importHistory.findUnique({
+        where: { id: importId }
+      });
+
+      if (!importHistory) {
+        return NextResponse.json(
+          { error: 'Import not found' },
+          { status: 404 }
+        );
+      }
+
+      // Filter by creation time window (budgets created during this import)
+      const importStartTime = importHistory.createdAt;
+      const importEndTime = importHistory.completedAt || new Date();
+
+      whereClause.createdAt = {
+        gte: importStartTime,
+        lte: importEndTime
+      };
+
+      whereClause.source = importHistory.sourceType;
+    }
+
+    // If source specified, filter by source
+    if (source) {
+      whereClause.source = source;
+    }
+
+    const budgets = await prisma.budget.findMany({
+      where: whereClause,
+      orderBy: [
+        { department: 'asc' },
+        { fiscalPeriod: 'asc' }
+      ],
+      select: {
+        id: true,
+        department: true,
+        subCategory: true,
+        fiscalPeriod: true,
+        budgetedAmount: true,
+        currency: true,
+        source: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
 
     return NextResponse.json({
       success: true,
-      budget,
+      count: budgets.length,
+      budgets,
+      filters: {
+        customerId,
+        importId: importId || null,
+        source: source || null
+      }
     });
-  } catch (error) {
-    console.error('Error creating budget:', error);
+
+  } catch (error: any) {
+    console.error('[Budgets API] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to create budget' },
+      { error: 'Failed to fetch budgets', details: error.message },
       { status: 500 }
     );
   }
-}     
+}

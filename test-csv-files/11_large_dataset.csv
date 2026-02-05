@@ -1,0 +1,39 @@
+Department,Sub Category,Fiscal Period,Budget Amount,Currency
+Engineering,Software Development,FY 2025,500000,USD
+Engineering,Infrastructure,FY 2025,200000,USD
+Engineering,Tools & Licenses,FY 2025,100000,USD
+Engineering,Cloud Services,FY 2025,250000,USD
+Engineering,Security,FY 2025,75000,USD
+Sales,Direct Sales,FY 2025,300000,USD
+Sales,Inside Sales,FY 2025,150000,USD
+Sales,Travel,FY 2025,75000,USD
+Sales,Marketing Events,FY 2025,125000,USD
+Sales,Commission,FY 2025,400000,USD
+Sales,Sales Tools,FY 2025,50000,USD
+Marketing,Digital Advertising,FY 2025,200000,USD
+Marketing,Content Marketing,FY 2025,100000,USD
+Marketing,PR & Communications,FY 2025,75000,USD
+Marketing,Events & Sponsorships,FY 2025,150000,USD
+Marketing,Marketing Automation,FY 2025,50000,USD
+Marketing,Creative Services,FY 2025,80000,USD
+HR,Recruiting,FY 2025,120000,USD
+HR,Training & Development,FY 2025,60000,USD
+HR,Employee Benefits,FY 2025,200000,USD
+HR,HR Systems,FY 2025,40000,USD
+HR,Team Events,FY 2025,30000,USD
+Operations,Office Rent,FY 2025,180000,USD
+Operations,Office Supplies,FY 2025,25000,USD
+Operations,IT Support,FY 2025,75000,USD
+Operations,Facilities Management,FY 2025,50000,USD
+Operations,Utilities,FY 2025,35000,USD
+Finance,Accounting Software,FY 2025,40000,USD
+Finance,Legal Services,FY 2025,80000,USD
+Finance,Insurance,FY 2025,60000,USD
+Finance,Banking Fees,FY 2025,15000,USD
+Product,Product Management Tools,FY 2025,30000,USD
+Product,User Research,FY 2025,50000,USD
+Product,Design Tools,FY 2025,25000,USD
+Product,Analytics,FY 2025,40000,USD
+Customer Success,Support Tools,FY 2025,35000,USD
+Customer Success,Training Programs,FY 2025,45000,USD
+Customer Success,Customer Events,FY 2025,60000,USD

@@ -8,7 +8,24 @@ This service provides budget management APIs for integration with SpendFlo's wor
 
 ## Authentication
 
-Currently, the APIs are open. Add authentication headers as needed when integrating with SpendFlo.
+Currently, the APIs are **open** (no authentication required) for easier integration.
+
+---
+
+## Quick Reference: Required Fields
+
+For the primary budget check endpoint, these fields are **REQUIRED**:
+
+| Field | Type | Required | Example | Description |
+|-------|------|----------|---------|-------------|
+| `department` | string | ✅ | "Engineering" | Department name (must match budget file exactly) |
+| `fiscalPeriod` | string | ✅ | "FY2025" | Fiscal period (must match budget file format) |
+| `amount` | number | ✅ | 50000 | Purchase amount (must be > 0) |
+| `subCategory` | string | ⚠️ Conditional | "Software Licenses" | Required only if department has multiple budget categories |
+| `currency` | string | ❌ | "USD" | Optional - defaults to USD |
+| `customerId` | string | ❌ | "cust_123" | Optional - auto-detected if omitted |
+
+**📄 See `INTAKE_FORM_CONFIGURATION.md` for detailed guidance on configuring customer intake forms.**
 
 ---
 
@@ -32,27 +49,62 @@ Verify if sufficient budget is available for a request.
 }
 ```
 
-**Response**:
+**Response (Budget Available)**:
 ```json
 {
-  "isAvailable": true,
-  "budgetId": "budget-id-here",
+  "success": true,
+  "available": true,
+  "budget": {
+    "id": "budget-id-here",
+    "budgetedAmount": 500000,
+    "committed": 250000,
+    "reserved": 50000,
+    "available": 200000
+  },
   "requestedAmount": 10000,
   "currency": "USD",
-  "totalBudget": 500000,
-  "committed": 250000,
-  "reserved": 50000,
-  "available": 200000,
+  "pendingRequests": 2,
+  "pendingAmount": 10000,
   "utilizationPercent": 60,
-  "reason": "Budget available"
+  "canAutoApprove": true,
+  "autoApprovalThreshold": 100000,
+  "reason": "Budget available. Will be auto-approved."
+}
+```
+
+**Response (Budget NOT Available)**:
+```json
+{
+  "success": true,
+  "available": false,
+  "reason": "No budget found for this department/category",
+  "details": {
+    "searchedFor": {
+      "department": "Engineering",
+      "subCategory": "Software",
+      "fiscalPeriod": "FY2025"
+    },
+    "availableBudgets": [
+      {
+        "id": "budget-xyz",
+        "department": "Engineering",
+        "subCategory": "Cloud Infrastructure",
+        "fiscalPeriod": "FY2025",
+        "budgetedAmount": 300000
+      }
+    ]
+  }
 }
 ```
 
 **Notes**:
-- `subCategory` is optional
+- `subCategory` is optional (omit if department has only one budget)
 - `currency` defaults to USD if not specified
+- `customerId` is optional (auto-uses first customer if omitted)
 - Automatic currency conversion between USD and GBP (GBP to USD ~1.27, USD to GBP ~0.79)
-- Returns `isAvailable: false` if no budget found or insufficient funds
+- Returns `available: false` if no budget found or insufficient funds
+- When no budget found, API returns helpful `details` with available budgets
+- `canAutoApprove` indicates if request meets auto-approval criteria (amount < threshold AND utilization < 90%)
 
 ---
 

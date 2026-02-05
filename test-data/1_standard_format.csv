@@ -1,0 +1,16 @@
+Department,Sub Category,Fiscal Period,Budget Amount,Currency
+Engineering,Software,FY 2025,500000,USD
+Engineering,Hardware,FY 2025,100000,USD
+Engineering,Cloud Services,FY 2025,250000,USD
+Sales,Travel,FY 2025,75000,USD
+Sales,Marketing Events,FY 2025,125000,USD
+Sales,Tools & Software,FY 2025,50000,USD
+Marketing,Advertising,FY 2025,200000,USD
+Marketing,Content Creation,FY 2025,80000,USD
+Marketing,Events,FY 2025,150000,USD
+HR,Recruiting,FY 2025,50000,USD
+HR,Training,FY 2025,30000,USD
+Operations,Facilities,FY 2025,120000,USD
+Operations,Equipment,FY 2025,60000,USD
+Finance,Software,FY 2025,40000,USD
+Legal,Consulting,FY 2025,75000,USD

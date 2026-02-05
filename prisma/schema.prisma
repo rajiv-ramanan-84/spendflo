@@ -30,6 +30,8 @@ model Customer {
   templates      BudgetTemplate[]
   activities     Activity[]
   googleAuths    GoogleAuth[]
+  dataSourceConfigs BudgetDataSourceConfig[]
+  syncHistory    SyncHistory[]
 }
 
 model User {
@@ -74,6 +76,7 @@ model Budget {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @default(now()) @updatedAt
   currency       String             @default("USD")
+  deletedAt      DateTime?          // Soft delete timestamp for sync
 
   // Existing relations
   auditLogs      AuditLog[]
@@ -87,6 +90,7 @@ model Budget {
   @@unique([customerId, department, subCategory, fiscalPeriod])
   @@index([customerId])
   @@index([department])
+  @@index([deletedAt])
 }
 
 model Request {
@@ -317,4 +321,74 @@ model GoogleAuth {
 
   @@index([userId])
   @@index([customerId])
+}
+
+// ============================================
+// SCHEDULED SYNC INTEGRATION
+// ============================================
+
+model BudgetDataSourceConfig {
+  id              String    @id @default(cuid())
+  customerId      String
+  sourceType      String    // google_sheets, anaplan, prophix, workday, file_drop
+  enabled         Boolean   @default(true)
+  frequency       String    @default("every_4_hours") // hourly, every_4_hours, every_12_hours, daily, manual
+
+  // Source-specific configuration (stored as JSON)
+  sourceConfig    Json      // SFTP credentials, S3 bucket, API keys, file path, column mappings, etc.
+
+  // Sync metadata
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?   // success, partial, failed
+  nextSyncAt      DateTime?
+  syncEnabled     Boolean   @default(true)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  syncHistory     SyncHistory[]
+
+  @@index([customerId])
+  @@index([enabled])
+  @@index([nextSyncAt])
+}
+
+model SyncHistory {
+  id              String    @id @default(cuid())
+  customerId      String
+  configId        String
+  syncId          String    @unique // sync_<timestamp>_<customerId>
+  status          String    // success, partial, failed
+
+  // Execution details
+  startTime       DateTime
+  endTime         DateTime
+  durationMs      Int
+
+  // Statistics
+  totalRows       Int       @default(0)
+  createdCount    Int       @default(0)
+  updatedCount    Int       @default(0)
+  unchangedCount  Int       @default(0)
+  softDeletedCount Int      @default(0)
+  errorCount      Int       @default(0)
+
+  // Error details
+  errors          Json?     // Array of { row, field, error, severity }
+
+  // Metadata
+  sourceType      String
+  triggeredBy     String    @default("cron") // cron, manual, api
+  metadata        Json?     // Additional context
+
+  createdAt       DateTime  @default(now())
+
+  customer        Customer               @relation(fields: [customerId], references: [id])
+  config          BudgetDataSourceConfig @relation(fields: [configId], references: [id])
+
+  @@index([customerId])
+  @@index([configId])
+  @@index([status])
+  @@index([startTime])
 }

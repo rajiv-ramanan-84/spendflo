@@ -26,6 +26,17 @@ interface SourceColumn {
   confidence?: number;
 }
 
+interface FileTypeDetection {
+  likelyFileType: 'budget' | 'payroll' | 'expenses' | 'invoice' | 'unknown';
+  confidence: number;
+  budgetConfidence: number;
+  warnings: string[];
+  detectedKeywords: {
+    budget: string[];
+    nonBudget: string[];
+  };
+}
+
 interface ReadResponse {
   success: boolean;
   spreadsheetId?: string;
@@ -40,6 +51,7 @@ interface ReadResponse {
   message?: string;
   headers?: string[];
   sampleRows?: any[][];
+  fileTypeDetection?: FileTypeDetection;
 }
 
 type ImportMode = 'upload' | 'sheets';
@@ -122,10 +134,18 @@ export default function UnifiedImportPage() {
         if (mode === 'sheets') {
           await checkConnection(data.users[0].id);
         }
+      } else {
+        // Still allow file upload even if seed fails
+        console.warn('Seed API returned no data, using defaults');
+        addToast('warning', 'Using test mode', 'Customer ID: test_customer_123');
+        setCustomerId('test_customer_123');
+        setUserId('test_user_123');
       }
     } catch (error) {
       console.error('Failed to initialize user:', error);
-      addToast('error', 'Initialization failed', 'Please refresh the page');
+      addToast('warning', 'Using test mode', 'You can still upload and map files');
+      setCustomerId('test_customer_123');
+      setUserId('test_user_123');
     } finally {
       setInitializing(false);
     }
@@ -174,12 +194,65 @@ export default function UnifiedImportPage() {
         const headers = data.headers || [];
         const sampleRows = data.sampleRows || [];
         const aiMappings = data.mappings || [];
+        const fileTypeDetection = data.fileTypeDetection;
 
         // Check if this looks like a valid budget file
         if (headers.length === 0) {
           addToast('error', 'Invalid File', 'This file appears to be empty or has no readable columns. Please check your file and try again.');
           setFile(null);
           return;
+        }
+
+        // Check file type detection
+        if (fileTypeDetection) {
+          if (fileTypeDetection.likelyFileType === 'payroll') {
+            const confirmed = window.confirm(
+              `⚠️ WARNING: This looks like a PAYROLL file, not a budget file!\n\n` +
+              `Confidence: ${Math.round(fileTypeDetection.confidence * 100)}%\n` +
+              `Detected keywords: ${fileTypeDetection.detectedKeywords.nonBudget.slice(0, 5).join(', ')}\n\n` +
+              `Budget files should contain:\n` +
+              `- Department names\n` +
+              `- Fiscal periods (FY2025, Q1 2025, etc.)\n` +
+              `- Budget amounts\n\n` +
+              `Are you SURE you want to continue with this file?`
+            );
+            if (!confirmed) {
+              setFile(null);
+              addToast('info', 'Upload Cancelled', 'Please upload a budget file instead.');
+              return;
+            }
+            addToast('warning', 'Proceeding with Non-Budget File', 'You chose to continue. Please verify mappings carefully.');
+          } else if (fileTypeDetection.likelyFileType === 'expenses') {
+            const confirmed = window.confirm(
+              `⚠️ WARNING: This looks like an EXPENSES file, not a budget file!\n\n` +
+              `Confidence: ${Math.round(fileTypeDetection.confidence * 100)}%\n` +
+              `Detected keywords: ${fileTypeDetection.detectedKeywords.nonBudget.slice(0, 5).join(', ')}\n\n` +
+              `Budget files contain planned allocations, not actual expenses.\n\n` +
+              `Are you SURE you want to continue with this file?`
+            );
+            if (!confirmed) {
+              setFile(null);
+              addToast('info', 'Upload Cancelled', 'Please upload a budget file instead.');
+              return;
+            }
+            addToast('warning', 'Proceeding with Non-Budget File', 'You chose to continue. Please verify mappings carefully.');
+          } else if (fileTypeDetection.likelyFileType === 'invoice') {
+            const confirmed = window.confirm(
+              `⚠️ WARNING: This looks like an INVOICE file, not a budget file!\n\n` +
+              `Confidence: ${Math.round(fileTypeDetection.confidence * 100)}%\n` +
+              `Detected keywords: ${fileTypeDetection.detectedKeywords.nonBudget.slice(0, 5).join(', ')}\n\n` +
+              `Budget files contain planned allocations, not invoices.\n\n` +
+              `Are you SURE you want to continue with this file?`
+            );
+            if (!confirmed) {
+              setFile(null);
+              addToast('info', 'Upload Cancelled', 'Please upload a budget file instead.');
+              return;
+            }
+            addToast('warning', 'Proceeding with Non-Budget File', 'You chose to continue. Please verify mappings carefully.');
+          } else if (fileTypeDetection.budgetConfidence < 0.3 && fileTypeDetection.likelyFileType !== 'unknown') {
+            addToast('warning', 'Low Budget Confidence', `This file has low confidence of being a budget file (${Math.round(fileTypeDetection.budgetConfidence * 100)}%). Please verify carefully.`);
+          }
         }
 
         if (aiMappings.length === 0 && headers.length < 3) {
@@ -378,6 +451,20 @@ export default function UnifiedImportPage() {
           : 'Manually mapped',
         sampleValues: col.samples,
       }));
+
+    // Check if all required fields are mapped
+    const REQUIRED_FIELDS = ['department', 'fiscalPeriod', 'budgetedAmount'];
+    const mappedFields = confirmedMappings.map(m => m.targetField);
+    const allRequiredMapped = REQUIRED_FIELDS.every(field => mappedFields.includes(field));
+
+    // Update readResponse to reflect current mapping state
+    if (readResponse) {
+      setReadResponse({
+        ...readResponse,
+        canProceed: allRequiredMapped,
+        requiredFieldsMissing: REQUIRED_FIELDS.filter(field => !mappedFields.includes(field))
+      });
+    }
 
     setMappings(confirmedMappings);
     setShowMappingInterface(false);

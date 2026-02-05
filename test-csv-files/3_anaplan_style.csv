@@ -1,0 +1,8 @@
+Cost Center,Expense Type,Time Period,Plan Amount,Currency Code,Version,Scenario
+Engineering,Software Licenses,FY 2025,500000,USD,Budget,Actual
+Engineering,Hardware Equipment,FY 2025,100000,USD,Budget,Actual
+Sales,Travel & Entertainment,FY 2025,75000,USD,Budget,Actual
+Sales,Trade Shows,FY 2025,125000,USD,Budget,Actual
+Marketing,Digital Advertising,FY 2025,200000,USD,Budget,Actual
+HR,Recruitment Services,FY 2025,80000,USD,Budget,Actual
+Operations,Office Rent,FY 2025,100000,USD,Budget,Actual

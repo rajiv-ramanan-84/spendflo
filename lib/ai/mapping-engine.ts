@@ -17,6 +17,18 @@ export interface MappingResult {
   unmappedColumns: string[];
   requiredFieldsMissing: string[];
   suggestions: string[];
+  fileTypeDetection?: FileTypeDetection;
+}
+
+export interface FileTypeDetection {
+  likelyFileType: 'budget' | 'payroll' | 'expenses' | 'invoice' | 'unknown';
+  confidence: number; // 0-1 how confident we are about the file type
+  budgetConfidence: number; // 0-1 how much this looks like a budget file
+  warnings: string[];
+  detectedKeywords: {
+    budget: string[];
+    nonBudget: string[];
+  };
 }
 
 // Required fields for budget import
@@ -102,6 +114,31 @@ const VALUE_PATTERNS = {
 };
 
 /**
+ * Keywords to identify different file types
+ */
+const FILE_TYPE_KEYWORDS = {
+  budget: [
+    'budget', 'budgeted', 'allocated', 'allocation', 'fiscal', 'planned',
+    'forecast', 'department', 'cost center', 'opex', 'capex', 'q1', 'q2', 'q3', 'q4', 'fy'
+  ],
+  payroll: [
+    'salary', 'payroll', 'employee', 'emp', 'wage', 'compensation', 'bonus',
+    'gross pay', 'net pay', 'deduction', 'tax', 'social security', 'benefits',
+    'employee id', 'emp id', 'hourly rate', 'overtime', 'timesheet'
+  ],
+  expenses: [
+    'expense', 'reimbursement', 'receipt', 'claim', 'vendor', 'merchant',
+    'transaction', 'card', 'credit card', 'purchase date', 'submitted by',
+    'approver', 'expense report'
+  ],
+  invoice: [
+    'invoice', 'bill', 'po number', 'purchase order', 'supplier', 'vendor',
+    'due date', 'payment terms', 'line item', 'quantity', 'unit price',
+    'invoice number', 'invoice date', 'total due', 'amount due'
+  ]
+};
+
+/**
  * Analyze column headers and sample data to suggest mappings
  */
 export function suggestMappings(
@@ -133,6 +170,9 @@ export function suggestMappings(
     }
   }
 
+  // Detect file type
+  const fileTypeDetection = detectFileType(headers, sampleRows);
+
   // Check for missing required fields
   const mappedFields = new Set(mappings.map(m => m.targetField));
   const requiredFieldsMissing = REQUIRED_FIELDS.filter(
@@ -140,13 +180,125 @@ export function suggestMappings(
   );
 
   // Generate suggestions
-  const suggestions = generateSuggestions(mappings, requiredFieldsMissing, unmappedColumns);
+  const suggestions = generateSuggestions(
+    mappings,
+    requiredFieldsMissing,
+    unmappedColumns,
+    fileTypeDetection
+  );
 
   return {
     mappings,
     unmappedColumns,
     requiredFieldsMissing,
     suggestions,
+    fileTypeDetection,
+  };
+}
+
+/**
+ * Detect what type of file this is based on headers and content
+ */
+function detectFileType(headers: string[], sampleRows: any[][]): FileTypeDetection {
+  const allText = [...headers, ...sampleRows.flat().map(v => String(v || ''))].join(' ').toLowerCase();
+
+  const detectedKeywords = {
+    budget: [] as string[],
+    nonBudget: [] as string[]
+  };
+
+  // Count keyword matches for each file type
+  const scores: Record<string, number> = {
+    budget: 0,
+    payroll: 0,
+    expenses: 0,
+    invoice: 0
+  };
+
+  // Check budget keywords
+  FILE_TYPE_KEYWORDS.budget.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    if (regex.test(allText)) {
+      scores.budget += 1;
+      detectedKeywords.budget.push(keyword);
+    }
+  });
+
+  // Check non-budget keywords
+  FILE_TYPE_KEYWORDS.payroll.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    if (regex.test(allText)) {
+      scores.payroll += 1;
+      detectedKeywords.nonBudget.push(keyword);
+    }
+  });
+
+  FILE_TYPE_KEYWORDS.expenses.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    if (regex.test(allText)) {
+      scores.expenses += 1;
+      detectedKeywords.nonBudget.push(keyword);
+    }
+  });
+
+  FILE_TYPE_KEYWORDS.invoice.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    if (regex.test(allText)) {
+      scores.invoice += 1;
+      detectedKeywords.nonBudget.push(keyword);
+    }
+  });
+
+  // Determine likely file type (check more specific types first)
+  const maxScore = Math.max(...Object.values(scores));
+  const totalNonBudgetScore = scores.payroll + scores.expenses + scores.invoice;
+
+  let likelyFileType: FileTypeDetection['likelyFileType'] = 'unknown';
+  let confidence = 0;
+  const warnings: string[] = [];
+
+  if (maxScore === 0) {
+    likelyFileType = 'unknown';
+    confidence = 0;
+    warnings.push('Unable to determine file type - no recognizable keywords found');
+  } else if (scores.budget >= scores.payroll && scores.budget >= scores.expenses && scores.budget >= scores.invoice) {
+    likelyFileType = 'budget';
+    confidence = Math.min(scores.budget / 5, 1.0); // Normalize to 0-1
+
+    if (totalNonBudgetScore > 0) {
+      warnings.push(
+        `File appears to be a budget file, but also contains ${totalNonBudgetScore} non-budget keyword(s). Please verify this is the correct file.`
+      );
+    }
+  } else if (scores.payroll > scores.budget && scores.payroll > scores.invoice) {
+    likelyFileType = 'payroll';
+    confidence = Math.min(scores.payroll / 5, 1.0);
+    warnings.push(
+      `⚠️ This looks like a PAYROLL file, not a budget file. Found keywords: ${detectedKeywords.nonBudget.slice(0, 5).join(', ')}`
+    );
+  } else if (scores.invoice > scores.budget && scores.invoice >= scores.expenses) {
+    // Invoice check before expenses (more specific)
+    likelyFileType = 'invoice';
+    confidence = Math.min(scores.invoice / 5, 1.0);
+    warnings.push(
+      `⚠️ This looks like an INVOICE file, not a budget file. Found keywords: ${detectedKeywords.nonBudget.slice(0, 5).join(', ')}`
+    );
+  } else if (scores.expenses > scores.budget) {
+    likelyFileType = 'expenses';
+    confidence = Math.min(scores.expenses / 5, 1.0);
+    warnings.push(
+      `⚠️ This looks like an EXPENSES file, not a budget file. Found keywords: ${detectedKeywords.nonBudget.slice(0, 5).join(', ')}`
+    );
+  }
+
+  const budgetConfidence = scores.budget > 0 ? Math.min(scores.budget / Math.max(totalNonBudgetScore || 1, 3), 1.0) : 0;
+
+  return {
+    likelyFileType,
+    confidence,
+    budgetConfidence,
+    warnings,
+    detectedKeywords
   };
 }
 
@@ -242,9 +394,29 @@ function detectFieldType(
 function generateSuggestions(
   mappings: ColumnMapping[],
   missingFields: string[],
-  unmappedColumns: string[]
+  unmappedColumns: string[],
+  fileTypeDetection?: FileTypeDetection
 ): string[] {
   const suggestions: string[] = [];
+
+  // File type warnings (highest priority)
+  if (fileTypeDetection && fileTypeDetection.warnings.length > 0) {
+    suggestions.push(...fileTypeDetection.warnings);
+  }
+
+  // Wrong file type - critical warning
+  if (fileTypeDetection && fileTypeDetection.likelyFileType !== 'budget' && fileTypeDetection.likelyFileType !== 'unknown') {
+    suggestions.push(
+      `🚨 CRITICAL: This appears to be a ${fileTypeDetection.likelyFileType.toUpperCase()} file (confidence: ${Math.round(fileTypeDetection.confidence * 100)}%). Budget files should contain columns like department, fiscal period, and budget amounts. Please verify you uploaded the correct file.`
+    );
+  }
+
+  // Low budget confidence
+  if (fileTypeDetection && fileTypeDetection.budgetConfidence < 0.3 && fileTypeDetection.likelyFileType === 'budget') {
+    suggestions.push(
+      `⚠️ Low confidence this is a budget file (${Math.round(fileTypeDetection.budgetConfidence * 100)}%). Please verify the file contains budget data.`
+    );
+  }
 
   // Missing required fields
   if (missingFields.length > 0) {

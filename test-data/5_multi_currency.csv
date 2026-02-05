@@ -1,0 +1,11 @@
+Department,Sub Category,Fiscal Period,Budget Amount,Currency
+Engineering,Software,FY 2025,500000,USD
+Engineering,Hardware,FY 2025,100000,USD
+Sales - EMEA,Travel,FY 2025,65000,EUR
+Sales - EMEA,Events,FY 2025,110000,EUR
+Marketing - UK,Advertising,FY 2025,150000,GBP
+Marketing - UK,Content,FY 2025,60000,GBP
+Sales - APAC,Travel,FY 2025,8000000,JPY
+Sales - APAC,Events,FY 2025,15000000,JPY
+HR - India,Recruiting,FY 2025,3500000,INR
+Operations - Canada,Facilities,FY 2025,160000,CAD

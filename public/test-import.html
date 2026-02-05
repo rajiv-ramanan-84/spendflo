@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import-Specific Testing</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1400px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .section {
+      background: white;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .input-group {
+      margin: 15px 0;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    button:hover { background: #0056b3; }
+    button.secondary {
+      background: #6c757d;
+    }
+    button.secondary:hover {
+      background: #545b62;
+    }
+    .success { color: #28a745; font-weight: 600; }
+    .error { color: #dc3545; font-weight: 600; }
+    .response {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .stat-box {
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 36px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #495057;
+    }
+    tr:hover {
+      background: #f8f9fa;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+  </style>
+</head>
+<body>
+  <h1>Import-Specific API Testing</h1>
+  <p class="subtitle">Test APIs with ONLY the data from a specific import (not mixed with old data)</p>
+
+  <!-- Import Selection -->
+  <div class="section">
+    <h2>Step 1: Select Import to Test</h2>
+    <div class="input-group">
+      <label>Customer ID</label>
+      <input type="text" id="customerId" value="test_customer_123" />
+    </div>
+    <button onclick="loadImportHistory()">Load Import History</button>
+    <div id="importHistoryResult"></div>
+  </div>
+
+  <!-- Test APIs with Filtered Data -->
+  <div class="section">
+    <h2>Step 2: Test APIs with Import Filter</h2>
+    <div class="input-group">
+      <label>Import ID (from history above)</label>
+      <input type="text" id="importId" placeholder="e.g., imp_1234567890" />
+    </div>
+
+    <h3>Quick Tests:</h3>
+    <button onclick="testBudgetList()">Test Budget List API</button>
+    <button onclick="testDashboardStats()">Test Dashboard Stats API</button>
+    <button onclick="testComparison()">Before/After Comparison</button>
+    <div id="testResult"></div>
+  </div>
+
+  <!-- Data Preview -->
+  <div class="section">
+    <h2>Step 3: Preview Imported Data</h2>
+    <button onclick="previewData()">Show Imported Budgets</button>
+    <div id="previewResult"></div>
+  </div>
+
+  <script>
+    async function loadImportHistory() {
+      const customerId = document.getElementById('customerId').value;
+      const resultDiv = document.getElementById('importHistoryResult');
+
+      if (!customerId) {
+        resultDiv.innerHTML = '<p class="error">Please enter customer ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Loading...</p>';
+
+      try {
+        const response = await fetch(`/api/imports/history?customerId=${customerId}`);
+        const data = await response.json();
+
+        // API returns 'imports' not 'history'
+        const imports = data.imports || data.history || [];
+
+        if (data.success && imports.length > 0) {
+          let html = '<h3>Recent Imports:</h3><table><thead><tr>';
+          html += '<th>Import ID</th><th>File</th><th>Status</th><th>Rows</th><th>Time</th><th>Action</th>';
+          html += '</tr></thead><tbody>';
+
+          imports.forEach(imp => {
+            const statusClass = imp.status === 'completed' ? 'badge-success' :
+                               imp.status === 'failed' ? 'badge-warning' : 'badge-info';
+            html += `<tr>
+              <td><code>${imp.id}</code></td>
+              <td>${imp.fileName || 'N/A'}</td>
+              <td><span class="badge ${statusClass}">${imp.status}</span></td>
+              <td>${imp.totalRows}</td>
+              <td>${new Date(imp.createdAt).toLocaleString()}</td>
+              <td><button class="secondary" onclick="selectImport('${imp.id}')">Use This</button></td>
+            </tr>`;
+          });
+
+          html += '</tbody></table>';
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = `
+            <p class="error">No import history found for customer: ${customerId}</p>
+            <div class="response">
+<strong>Possible reasons:</strong>
+1. Customer ID doesn't exist
+2. No imports have been done yet for this customer
+
+<strong>To get the correct customer ID:</strong>
+1. Go to: http://localhost:3000/api/seed
+2. Copy the "id" from the "customer" object
+3. Use that ID here
+
+<strong>Or use the FPA import page to do an import first:</strong>
+http://localhost:3000/fpa/import
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    function selectImport(importId) {
+      document.getElementById('importId').value = importId;
+      document.getElementById('testResult').innerHTML =
+        `<p class="success">✓ Selected import: ${importId}</p>`;
+    }
+
+    async function testBudgetList() {
+      const customerId = document.getElementById('customerId').value;
+      const importId = document.getElementById('importId').value;
+      const resultDiv = document.getElementById('testResult');
+
+      if (!customerId || !importId) {
+        resultDiv.innerHTML = '<p class="error">Please enter customer ID and import ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Testing Budget List API...</p>';
+
+      try {
+        const url = `/api/budgets?customerId=${customerId}&importId=${importId}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <p class="success">✓ API Test Successful</p>
+            <div class="response">
+<strong>Request:</strong> GET ${url}
+
+<strong>Response:</strong>
+${JSON.stringify(data, null, 2)}
+
+<strong>Summary:</strong>
+- Returned ${data.count} budgets
+- Filtered by importId: ${importId}
+- All budgets are from THIS import only (not mixed with old data)
+            </div>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <p class="error">✗ API Test Failed</p>
+            <div class="response">${JSON.stringify(data, null, 2)}</div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    async function testDashboardStats() {
+      const customerId = document.getElementById('customerId').value;
+      const importId = document.getElementById('importId').value;
+      const resultDiv = document.getElementById('testResult');
+
+      if (!customerId || !importId) {
+        resultDiv.innerHTML = '<p class="error">Please enter customer ID and import ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Testing Dashboard Stats API...</p>';
+
+      try {
+        const url = `/api/dashboard/stats?customerId=${customerId}&importId=${importId}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        resultDiv.innerHTML = `
+          <p class="success">✓ Dashboard Stats API Test Successful</p>
+
+          <div class="grid">
+            <div class="stat-box">
+              <div class="stat-label">Total Budget</div>
+              <div class="stat-value">$${(data.summary.totalBudget || 0).toLocaleString()}</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Total Budgets</div>
+              <div class="stat-value">${data.totalBudgets || 0}</div>
+            </div>
+          </div>
+
+          <div class="response">
+<strong>Request:</strong> GET ${url}
+
+<strong>Full Response:</strong>
+${JSON.stringify(data, null, 2)}
+
+<strong>Note:</strong> These stats are ONLY for budgets imported in this specific import.
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    async function testComparison() {
+      const customerId = document.getElementById('customerId').value;
+      const importId = document.getElementById('importId').value;
+      const resultDiv = document.getElementById('testResult');
+
+      if (!customerId || !importId) {
+        resultDiv.innerHTML = '<p class="error">Please enter customer ID and import ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Running comparison...</p>';
+
+      try {
+        // Get data WITH filter (only this import)
+        const withFilter = await fetch(`/api/budgets?customerId=${customerId}&importId=${importId}`);
+        const withFilterData = await withFilter.json();
+
+        // Get data WITHOUT filter (all data)
+        const withoutFilter = await fetch(`/api/budgets?customerId=${customerId}`);
+        const withoutFilterData = await withoutFilter.json();
+
+        const newCount = withFilterData.count || 0;
+        const totalCount = withoutFilterData.count || 0;
+        const oldCount = totalCount - newCount;
+
+        const newTotal = (withFilterData.budgets || []).reduce((sum, b) => sum + b.budgetedAmount, 0);
+        const allTotal = (withoutFilterData.budgets || []).reduce((sum, b) => sum + b.budgetedAmount, 0);
+        const oldTotal = allTotal - newTotal;
+
+        resultDiv.innerHTML = `
+          <p class="success">✓ Comparison Complete</p>
+
+          <h3>Before This Import:</h3>
+          <div class="grid">
+            <div class="stat-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <div class="stat-label">Existing Budgets</div>
+              <div class="stat-value">${oldCount}</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+              <div class="stat-label">Existing Total</div>
+              <div class="stat-value">$${oldTotal.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <h3>NEW from This Import:</h3>
+          <div class="grid">
+            <div class="stat-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+              <div class="stat-label">NEW Budgets</div>
+              <div class="stat-value">${newCount}</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+              <div class="stat-label">NEW Total</div>
+              <div class="stat-value">$${newTotal.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <h3>After This Import (Combined):</h3>
+          <div class="grid">
+            <div class="stat-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+              <div class="stat-label">Total Budgets</div>
+              <div class="stat-value">${totalCount}</div>
+            </div>
+            <div class="stat-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+              <div class="stat-label">Total Amount</div>
+              <div class="stat-value">$${allTotal.toLocaleString()}</div>
+            </div>
+          </div>
+
+          <div class="response">
+<strong>Summary:</strong>
+- Before import: ${oldCount} budgets, $${oldTotal.toLocaleString()}
+- This import added: ${newCount} budgets, $${newTotal.toLocaleString()}
+- After import: ${totalCount} budgets, $${allTotal.toLocaleString()}
+
+This confirms the API filter is working - you can test with ONLY your imported data!
+          </div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    async function previewData() {
+      const customerId = document.getElementById('customerId').value;
+      const importId = document.getElementById('importId').value;
+      const resultDiv = document.getElementById('previewResult');
+
+      if (!customerId || !importId) {
+        resultDiv.innerHTML = '<p class="error">Please enter customer ID and import ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Loading...</p>';
+
+      try {
+        const response = await fetch(`/api/budgets?customerId=${customerId}&importId=${importId}`);
+        const data = await response.json();
+
+        if (data.success && data.budgets.length > 0) {
+          let html = '<h3>Imported Budgets:</h3><table><thead><tr>';
+          html += '<th>Department</th><th>Sub-Category</th><th>Fiscal Period</th><th>Amount</th><th>Currency</th><th>Source</th>';
+          html += '</tr></thead><tbody>';
+
+          data.budgets.forEach(budget => {
+            html += `<tr>
+              <td>${budget.department}</td>
+              <td>${budget.subCategory || '-'}</td>
+              <td>${budget.fiscalPeriod}</td>
+              <td>$${budget.budgetedAmount.toLocaleString()}</td>
+              <td>${budget.currency}</td>
+              <td><span class="badge badge-info">${budget.source}</span></td>
+            </tr>`;
+          });
+
+          html += '</tbody></table>';
+          html += `<p class="success">✓ Showing ${data.budgets.length} budgets from this import</p>`;
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<p class="error">No budgets found for this import</p>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

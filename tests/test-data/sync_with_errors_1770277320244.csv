@@ -1,0 +1,5 @@
+Department,Fiscal Period,Budget Amount
+ValidDept,FY 2025,100000
+,FY 2025,50000
+InvalidDept,,75000
+,,0

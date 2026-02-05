@@ -1,0 +1,17 @@
+Department,Sub Category,Fiscal Period,Budget Amount,Currency
+Engineering,Software,Q1 2025,125000,USD
+Engineering,Software,Q2 2025,125000,USD
+Engineering,Software,Q3 2025,125000,USD
+Engineering,Software,Q4 2025,125000,USD
+Engineering,Hardware,Q1 2025,25000,USD
+Engineering,Hardware,Q2 2025,25000,USD
+Engineering,Hardware,Q3 2025,25000,USD
+Engineering,Hardware,Q4 2025,25000,USD
+Sales,Travel,Q1 2025,20000,USD
+Sales,Travel,Q2 2025,20000,USD
+Sales,Travel,Q3 2025,15000,USD
+Sales,Travel,Q4 2025,20000,USD
+Marketing,Advertising,Q1 2025,50000,USD
+Marketing,Advertising,Q2 2025,50000,USD
+Marketing,Advertising,Q3 2025,50000,USD
+Marketing,Advertising,Q4 2025,50000,USD

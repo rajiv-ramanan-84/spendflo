@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Check API Testing</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1400px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; margin-bottom: 10px; }
+    .subtitle { color: #666; margin-bottom: 30px; }
+    .section {
+      background: white;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .input-group {
+      margin: 15px 0;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover { background: #0056b3; }
+    button.secondary {
+      background: #6c757d;
+    }
+    button.secondary:hover {
+      background: #545b62;
+    }
+    button.success {
+      background: #28a745;
+    }
+    button.success:hover {
+      background: #218838;
+    }
+    button.danger {
+      background: #dc3545;
+    }
+    button.danger:hover {
+      background: #c82333;
+    }
+    .success { color: #28a745; font-weight: 600; }
+    .error { color: #dc3545; font-weight: 600; }
+    .warning { color: #ffc107; font-weight: 600; }
+    .response {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .stat-box {
+      padding: 20px;
+      color: white;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-box.available {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    .stat-box.unavailable {
+      background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+    }
+    .stat-box.pending {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    .stat-box.info {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .stat-value {
+      font-size: 36px;
+      font-weight: bold;
+      margin: 10px 0;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-danger { background: #f8d7da; color: #721c24; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+    .scenario-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .help-text {
+      font-size: 13px;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Budget Check API Testing</h1>
+  <p class="subtitle">Test budget availability check with various scenarios (exact match, multiple budgets, insufficient funds, etc.)</p>
+
+  <!-- Setup Section -->
+  <div class="section">
+    <h2>Step 1: Get Customer ID</h2>
+    <button onclick="getCustomerId()">Get Customer ID from Seed</button>
+    <div id="customerIdResult"></div>
+  </div>
+
+  <!-- Budget Check Form -->
+  <div class="section">
+    <h2>Step 2: Check Budget Availability</h2>
+
+    <div class="input-group">
+      <label>Customer ID</label>
+      <input type="text" id="customerId" placeholder="e.g., cml680l8r00003hfxe5j1woyt" />
+      <span class="help-text">Leave blank to use first customer from database</span>
+    </div>
+
+    <div class="input-group">
+      <label>Department</label>
+      <select id="department">
+        <option value="Engineering">Engineering</option>
+        <option value="Sales">Sales</option>
+        <option value="Marketing">Marketing</option>
+        <option value="Finance">Finance</option>
+        <option value="HR">HR</option>
+      </select>
+      <span class="help-text">Auto-approval thresholds: Engineering=$10k, Sales=$5k, Marketing=$7.5k, Finance=$3k, HR=$5k</span>
+    </div>
+
+    <div class="input-group">
+      <label>Sub-Category (Optional)</label>
+      <input type="text" id="subCategory" placeholder="e.g., Software, Hardware, Tools" />
+      <span class="help-text">Leave blank to match any sub-category</span>
+    </div>
+
+    <div class="input-group">
+      <label>Fiscal Period</label>
+      <input type="text" id="fiscalPeriod" value="FY2025" />
+      <span class="help-text">e.g., FY2025, Q1-2025, 2025-01</span>
+    </div>
+
+    <div class="input-group">
+      <label>Amount</label>
+      <input type="number" id="amount" placeholder="5000" />
+    </div>
+
+    <div class="input-group">
+      <label>Currency</label>
+      <select id="currency">
+        <option value="USD">USD</option>
+        <option value="GBP">GBP</option>
+        <option value="EUR">EUR</option>
+      </select>
+      <span class="help-text">USD ↔ GBP conversion is supported</span>
+    </div>
+
+    <button onclick="checkBudget()">Check Budget</button>
+    <button class="secondary" onclick="clearResults()">Clear Results</button>
+
+    <div id="checkResult"></div>
+  </div>
+
+  <!-- Test Scenarios -->
+  <div class="section">
+    <h2>Step 3: Quick Test Scenarios</h2>
+    <p>Test common scenarios with pre-filled data from your imports:</p>
+
+    <div class="scenario-buttons">
+      <button class="success" onclick="testScenario('small')">Small Request ($2,000)</button>
+      <button class="warning" onclick="testScenario('large')">Large Request ($15,000)</button>
+      <button class="danger" onclick="testScenario('excessive')">Excessive Request ($500,000)</button>
+      <button class="secondary" onclick="testScenario('currency')">Currency Conversion (GBP)</button>
+    </div>
+
+    <div id="scenarioResult"></div>
+  </div>
+
+  <!-- Available Budgets -->
+  <div class="section">
+    <h2>Step 4: View Available Budgets</h2>
+    <button onclick="loadAvailableBudgets()">Load All Budgets</button>
+    <div id="budgetsResult"></div>
+  </div>
+
+  <script>
+    async function getCustomerId() {
+      const resultDiv = document.getElementById('customerIdResult');
+      resultDiv.innerHTML = '<p>Loading...</p>';
+
+      try {
+        const response = await fetch('/api/seed');
+        const data = await response.json();
+
+        if (data.customer) {
+          const customerId = data.customer.id;
+          document.getElementById('customerId').value = customerId;
+          resultDiv.innerHTML = `
+            <p class="success">✓ Customer ID: <code>${customerId}</code></p>
+            <p>Customer: ${data.customer.name}</p>
+          `;
+        } else {
+          resultDiv.innerHTML = '<p class="error">No customer found. Run seed first.</p>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    async function checkBudget() {
+      const customerId = document.getElementById('customerId').value || undefined;
+      const department = document.getElementById('department').value;
+      const subCategory = document.getElementById('subCategory').value || undefined;
+      const fiscalPeriod = document.getElementById('fiscalPeriod').value;
+      const amount = parseFloat(document.getElementById('amount').value);
+      const currency = document.getElementById('currency').value;
+      const resultDiv = document.getElementById('checkResult');
+
+      if (!department || !fiscalPeriod || !amount) {
+        resultDiv.innerHTML = '<p class="error">Please fill in required fields: department, fiscalPeriod, amount</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Checking budget availability...</p>';
+
+      try {
+        const response = await fetch('/api/budget/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId,
+            department,
+            subCategory,
+            fiscalPeriod,
+            amount,
+            currency,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const statusClass = data.available ? 'available' : 'unavailable';
+          const statusText = data.available ? 'AVAILABLE' : 'NOT AVAILABLE';
+
+          let html = `<h3>Budget Check Result:</h3>`;
+
+          // Status cards
+          html += `<div class="grid">`;
+          html += `
+            <div class="stat-box ${statusClass}">
+              <div class="stat-label">Budget Status</div>
+              <div class="stat-value">${statusText}</div>
+            </div>
+          `;
+
+          if (data.canAutoApprove !== undefined) {
+            const approvalClass = data.canAutoApprove ? 'available' : 'pending';
+            const approvalText = data.canAutoApprove ? 'AUTO-APPROVE' : 'MANUAL REVIEW';
+            html += `
+              <div class="stat-box ${approvalClass}">
+                <div class="stat-label">Approval Status</div>
+                <div class="stat-value">${approvalText}</div>
+              </div>
+            `;
+          }
+          html += `</div>`;
+
+          // Budget details
+          if (data.budget) {
+            html += `<h3>Budget Details:</h3>`;
+            html += `<div class="grid">`;
+            html += `
+              <div class="stat-box info">
+                <div class="stat-label">Available Amount</div>
+                <div class="stat-value">$${data.budget.available.toLocaleString()}</div>
+              </div>
+              <div class="stat-box info">
+                <div class="stat-label">Utilization</div>
+                <div class="stat-value">${data.utilizationPercent.toFixed(1)}%</div>
+              </div>
+            `;
+            html += `</div>`;
+          }
+
+          // Detailed breakdown
+          html += `<div class="response">`;
+          html += `<strong>Request:</strong>\n`;
+          html += `POST /api/budget/check\n`;
+          html += JSON.stringify({ customerId, department, subCategory, fiscalPeriod, amount, currency }, null, 2);
+          html += `\n\n<strong>Response:</strong>\n`;
+          html += JSON.stringify(data, null, 2);
+          html += `\n\n<strong>Explanation:</strong>\n`;
+          html += `${data.reason}\n\n`;
+
+          if (data.budget) {
+            html += `<strong>Budget Breakdown:</strong>\n`;
+            html += `- Budgeted Amount: $${data.budget.budgetedAmount.toLocaleString()}\n`;
+            html += `- Committed: $${data.budget.committed.toLocaleString()}\n`;
+            html += `- Reserved: $${data.budget.reserved.toLocaleString()}\n`;
+            html += `- Available: $${data.budget.available.toLocaleString()}\n`;
+            html += `- Requested: $${data.requestedAmount.toLocaleString()}\n`;
+
+            if (data.pendingRequests > 0) {
+              html += `\n<strong>Pending Requests (last 48h):</strong>\n`;
+              html += `- Count: ${data.pendingRequests}\n`;
+              html += `- Amount: $${data.pendingAmount.toLocaleString()}\n`;
+            }
+
+            if (data.autoApprovalThreshold) {
+              html += `\n<strong>Auto-Approval:</strong>\n`;
+              html += `- Threshold: $${data.autoApprovalThreshold.toLocaleString()}\n`;
+              html += `- Request: $${data.requestedAmount.toLocaleString()}\n`;
+              html += `- Can Auto-Approve: ${data.canAutoApprove ? 'YES' : 'NO'}\n`;
+            }
+          }
+
+          html += `</div>`;
+
+          resultDiv.innerHTML = html;
+        } else {
+          // Not available or error
+          let html = `<p class="error">✗ ${data.reason || 'Budget check failed'}</p>`;
+
+          if (data.details?.availableBudgets?.length > 0) {
+            html += `<h3>Available Budgets for ${department}:</h3>`;
+            html += `<div class="response">`;
+            data.details.availableBudgets.forEach(b => {
+              html += `\nBudget: ${b.department}`;
+              if (b.subCategory) html += ` > ${b.subCategory}`;
+              html += `\nFiscal Period: ${b.fiscalPeriod}`;
+              html += `\nAmount: $${b.budgetedAmount.toLocaleString()}\n`;
+            });
+            html += `</div>`;
+          }
+
+          html += `<div class="response">${JSON.stringify(data, null, 2)}</div>`;
+          resultDiv.innerHTML = html;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    async function testScenario(scenario) {
+      const resultDiv = document.getElementById('scenarioResult');
+
+      // Get customer ID first
+      let customerId = document.getElementById('customerId').value;
+      if (!customerId) {
+        try {
+          const response = await fetch('/api/seed');
+          const data = await response.json();
+          if (data.customer) {
+            customerId = data.customer.id;
+            document.getElementById('customerId').value = customerId;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = '<p class="error">Please get customer ID first</p>';
+          return;
+        }
+      }
+
+      // Get available budgets to use realistic values
+      const budgetsResponse = await fetch(`/api/budgets?customerId=${customerId}`);
+      const budgetsData = await budgetsResponse.json();
+
+      if (!budgetsData.budgets || budgetsData.budgets.length === 0) {
+        resultDiv.innerHTML = '<p class="error">No budgets found. Please import some budgets first.</p>';
+        return;
+      }
+
+      // Use first budget's details
+      const sampleBudget = budgetsData.budgets[0];
+
+      let testData = {
+        customerId,
+        department: sampleBudget.department,
+        subCategory: sampleBudget.subCategory,
+        fiscalPeriod: sampleBudget.fiscalPeriod,
+        currency: sampleBudget.currency,
+      };
+
+      switch (scenario) {
+        case 'small':
+          testData.amount = 2000;
+          break;
+        case 'large':
+          testData.amount = 15000;
+          break;
+        case 'excessive':
+          testData.amount = 500000;
+          break;
+        case 'currency':
+          testData.amount = 2000;
+          testData.currency = testData.currency === 'USD' ? 'GBP' : 'USD';
+          break;
+      }
+
+      resultDiv.innerHTML = `<p>Testing scenario: ${scenario}...</p>`;
+
+      try {
+        const response = await fetch('/api/budget/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testData),
+        });
+
+        const data = await response.json();
+
+        let html = `<h3>Scenario: ${scenario.toUpperCase()}</h3>`;
+        html += `<div class="response">`;
+        html += `<strong>Test Request:</strong>\n`;
+        html += JSON.stringify(testData, null, 2);
+        html += `\n\n<strong>Result:</strong>\n`;
+        html += `Available: ${data.available ? 'YES' : 'NO'}\n`;
+        html += `Can Auto-Approve: ${data.canAutoApprove ? 'YES' : 'NO'}\n`;
+        html += `Reason: ${data.reason}\n`;
+        html += `\n<strong>Full Response:</strong>\n`;
+        html += JSON.stringify(data, null, 2);
+        html += `</div>`;
+
+        resultDiv.innerHTML = html;
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    async function loadAvailableBudgets() {
+      const resultDiv = document.getElementById('budgetsResult');
+      let customerId = document.getElementById('customerId').value;
+
+      if (!customerId) {
+        try {
+          const response = await fetch('/api/seed');
+          const data = await response.json();
+          if (data.customer) {
+            customerId = data.customer.id;
+            document.getElementById('customerId').value = customerId;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = '<p class="error">Please get customer ID first</p>';
+          return;
+        }
+      }
+
+      resultDiv.innerHTML = '<p>Loading budgets...</p>';
+
+      try {
+        const response = await fetch(`/api/budgets?customerId=${customerId}`);
+        const data = await response.json();
+
+        if (data.success && data.budgets.length > 0) {
+          let html = `<h3>Available Budgets (${data.budgets.length}):</h3>`;
+          html += `<div class="response">`;
+
+          data.budgets.forEach(b => {
+            html += `\n─────────────────────────────\n`;
+            html += `Department: ${b.department}`;
+            if (b.subCategory) html += ` > ${b.subCategory}`;
+            html += `\nFiscal Period: ${b.fiscalPeriod}`;
+            html += `\nBudgeted: $${b.budgetedAmount.toLocaleString()} ${b.currency}`;
+            html += `\nSource: ${b.source}`;
+            html += `\nCreated: ${new Date(b.createdAt).toLocaleString()}`;
+          });
+
+          html += `\n─────────────────────────────\n`;
+          html += `\n<strong>Tip:</strong> Copy department, subCategory, and fiscalPeriod from above to test budget check with real data.`;
+          html += `</div>`;
+
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<p class="error">No budgets found. Import some budgets first.</p>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+      }
+    }
+
+    function clearResults() {
+      document.getElementById('checkResult').innerHTML = '';
+      document.getElementById('scenarioResult').innerHTML = '';
+    }
+  </script>
+</body>
+</html>

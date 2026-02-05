@@ -1,0 +1,10 @@
+Organization,Account,Period,Budget_Amount,Currency_Code
+ENG - Engineering,Software,FY 2025,500000,USD
+ENG - Engineering,Hardware,FY 2025,100000,USD
+SAL - Sales,Travel,FY 2025,75000,USD
+SAL - Sales,Events,FY 2025,125000,USD
+MKT - Marketing,Advertising,FY 2025,200000,USD
+MKT - Marketing,Content,FY 2025,80000,USD
+HR - Human Resources,Recruiting,FY 2025,50000,USD
+OPS - Operations,Facilities,FY 2025,120000,USD
+FIN - Finance,Software,FY 2025,40000,USD

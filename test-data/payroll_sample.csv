@@ -1,0 +1,6 @@
+Employee ID,Employee Name,Department,Salary,Gross Pay,Net Pay,Deductions,Tax,Social Security,Payroll Period
+EMP001,John Smith,Engineering,120000,10000,7500,2500,1800,700,2025-01
+EMP002,Jane Doe,Sales,95000,7916,6200,1716,1200,516,2025-01
+EMP003,Bob Johnson,Marketing,85000,7083,5500,1583,1100,483,2025-01
+EMP004,Alice Williams,Finance,105000,8750,6800,1950,1400,550,2025-01
+EMP005,Charlie Brown,HR,75000,6250,4900,1350,950,400,2025-01

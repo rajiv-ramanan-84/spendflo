@@ -5,8 +5,34 @@ export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
     const customerId = searchParams.get('customerId');
+    const importId = searchParams.get('importId');
+    const source = searchParams.get('source');
 
-    const whereClause = customerId ? { customerId } : {};
+    const whereClause: any = customerId ? { customerId } : {};
+
+    // If importId specified, filter by import time window
+    if (importId) {
+      const importHistory = await prisma.importHistory.findUnique({
+        where: { id: importId }
+      });
+
+      if (importHistory) {
+        const importStartTime = importHistory.createdAt;
+        const importEndTime = importHistory.completedAt || new Date();
+
+        whereClause.createdAt = {
+          gte: importStartTime,
+          lte: importEndTime
+        };
+
+        whereClause.source = importHistory.sourceType;
+      }
+    }
+
+    // If source specified, filter by source
+    if (source) {
+      whereClause.source = source;
+    }
 
     const budgets = await prisma.budget.findMany({
       where: whereClause,

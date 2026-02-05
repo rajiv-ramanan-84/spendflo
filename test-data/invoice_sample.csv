@@ -1,0 +1,6 @@
+Invoice Number,Invoice Date,Supplier,Vendor,PO Number,Purchase Order,Line Item,Quantity,Unit Price,Total Due,Amount Due,Due Date,Payment Terms
+INV-2025-001,2025-01-15,AWS Inc,Amazon Web Services,PO-12345,PO-12345,Cloud Services,1,5000,5000,5000,2025-02-15,Net 30
+INV-2025-002,2025-01-16,Microsoft Corp,Microsoft,PO-12346,PO-12346,Office Licenses,100,25,2500,2500,2025-02-16,Net 30
+INV-2025-003,2025-01-17,Google LLC,Google,PO-12347,PO-12347,G Suite,50,12,600,600,2025-02-17,Net 30
+INV-2025-004,2025-01-18,Salesforce,Salesforce Inc,PO-12348,PO-12348,CRM Platform,1,15000,15000,15000,2025-02-18,Net 30
+INV-2025-005,2025-01-19,Adobe Systems,Adobe,PO-12349,PO-12349,Creative Cloud,20,60,1200,1200,2025-02-19,Net 30

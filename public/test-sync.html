@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget Sync API Tester</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; }
+    .section {
+      background: white;
+      padding: 25px;
+      margin: 20px 0;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .input-group {
+      margin: 15px 0;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    input[type="text"],
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-right: 10px;
+    }
+    button:hover { background: #0056b3; }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .success { color: #28a745; font-weight: 600; }
+    .error { color: #dc3545; font-weight: 600; }
+    .response {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .step {
+      background: #e7f3ff;
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #007bff;
+      border-radius: 4px;
+    }
+    .curl {
+      background: #2d2d2d;
+      color: #f8f8f2;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Budget Sync API Tester</h1>
+  <p>Simple interface to test the budget sync APIs without the full UI</p>
+
+  <!-- Step 1: Upload File -->
+  <div class="section">
+    <h2>Step 1: Upload Budget File</h2>
+    <div class="input-group">
+      <label>Customer ID</label>
+      <input type="text" id="customerId" value="test_customer_123" />
+    </div>
+    <div class="input-group">
+      <label>Select File (CSV or Excel)</label>
+      <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+    </div>
+    <button onclick="uploadFile()">Upload File</button>
+    <div id="uploadResult"></div>
+  </div>
+
+  <!-- Step 2: Trigger Sync -->
+  <div class="section">
+    <h2>Step 2: Trigger Direct Sync</h2>
+    <p>After uploading, click this to sync the file to the database</p>
+    <button onclick="triggerSync()">Trigger Sync</button>
+    <div id="syncResult"></div>
+  </div>
+
+  <!-- Step 3: View Results -->
+  <div class="section">
+    <h2>Step 3: View Imported Budgets</h2>
+    <button onclick="viewBudgets()">View Budgets</button>
+    <div id="budgetsResult"></div>
+  </div>
+
+  <!-- Debug Info -->
+  <div class="section">
+    <h2>Debug Info</h2>
+    <button onclick="debugInfo()">Get Debug Info</button>
+    <div id="debugResult"></div>
+  </div>
+
+  <!-- Curl Examples -->
+  <div class="section">
+    <h2>Curl Command Examples</h2>
+    <div class="step">
+      <strong>1. Upload File</strong>
+      <div class="curl">curl -X POST http://localhost:3000/api/sync/upload \
+  -F "file=@/path/to/your/file.xlsx" \
+  -F "customerId=test_customer_123"</div>
+    </div>
+    <div class="step">
+      <strong>2. Trigger Sync</strong>
+      <div class="curl">curl -X POST http://localhost:3000/api/sync/direct \
+  -H "Content-Type: application/json" \
+  -d '{"customerId": "test_customer_123"}'</div>
+    </div>
+    <div class="step">
+      <strong>3. Check Files in Upload Directory</strong>
+      <div class="curl">curl http://localhost:3000/api/sync/debug?customerId=test_customer_123</div>
+    </div>
+  </div>
+
+  <script>
+    let uploadedFileName = null;
+
+    async function uploadFile() {
+      const customerId = document.getElementById('customerId').value;
+      const fileInput = document.getElementById('fileInput');
+      const resultDiv = document.getElementById('uploadResult');
+
+      if (!customerId) {
+        resultDiv.innerHTML = '<p class="error">Please enter a customer ID</p>';
+        return;
+      }
+
+      if (!fileInput.files[0]) {
+        resultDiv.innerHTML = '<p class="error">Please select a file</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Uploading...</p>';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('customerId', customerId);
+
+        const response = await fetch('/api/sync/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          uploadedFileName = data.fileName;
+          resultDiv.innerHTML = `
+            <p class="success">✅ Upload Success!</p>
+            <div class="response">
+              <strong>File Name:</strong> ${data.fileName}
+              <strong>File Size:</strong> ${(data.fileSize / 1024).toFixed(2)} KB
+              <strong>File Path:</strong> ${data.filePath}
+            </div>
+            <p>Now click "Trigger Sync" in Step 2</p>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <p class="error">❌ Upload Failed</p>
+            <div class="response">${JSON.stringify(data, null, 2)}</div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <p class="error">❌ Error: ${error.message}</p>
+        `;
+      }
+    }
+
+    async function triggerSync() {
+      const customerId = document.getElementById('customerId').value;
+      const resultDiv = document.getElementById('syncResult');
+
+      if (!customerId) {
+        resultDiv.innerHTML = '<p class="error">Please enter a customer ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Syncing...</p>';
+
+      try {
+        const response = await fetch('/api/sync/direct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerId,
+            fileName: uploadedFileName
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <p class="success">✅ Sync Success!</p>
+            <div class="response">
+              <strong>Status:</strong> ${data.status}
+              <strong>Duration:</strong> ${data.duration}
+              <strong>Total Rows:</strong> ${data.stats.totalRows}
+              <strong>Created:</strong> ${data.stats.created}
+              <strong>Updated:</strong> ${data.stats.updated}
+              <strong>Errors:</strong> ${data.stats.errors}
+
+              <strong>File:</strong> ${data.file.name} (${(data.file.size / 1024).toFixed(2)} KB)
+            </div>
+            <p>Now click "View Budgets" in Step 3 to see the imported data</p>
+          `;
+        } else {
+          resultDiv.innerHTML = `
+            <p class="error">❌ Sync Failed</p>
+            <div class="response">${JSON.stringify(data, null, 2)}</div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <p class="error">❌ Error: ${error.message}</p>
+        `;
+      }
+    }
+
+    async function viewBudgets() {
+      const customerId = document.getElementById('customerId').value;
+      const resultDiv = document.getElementById('budgetsResult');
+
+      if (!customerId) {
+        resultDiv.innerHTML = '<p class="error">Please enter a customer ID</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Loading...</p>';
+
+      try {
+        const response = await fetch(`/api/budgets?customerId=${customerId}`);
+        const data = await response.json();
+
+        if (data.success) {
+          let budgetsHtml = `<p class="success">✅ Found ${data.count} budgets</p>`;
+
+          if (data.budgets.length > 0) {
+            budgetsHtml += '<div class="response">';
+            data.budgets.forEach((budget, i) => {
+              budgetsHtml += `
+<strong>${i + 1}. ${budget.department} - ${budget.subCategory || 'N/A'}</strong>
+   Period: ${budget.fiscalPeriod}
+   Amount: ${budget.currency} ${budget.budgetedAmount.toLocaleString()}
+   Source: ${budget.source}
+   Created: ${new Date(budget.createdAt).toLocaleString()}
+
+`;
+            });
+            budgetsHtml += '</div>';
+          }
+
+          resultDiv.innerHTML = budgetsHtml;
+        } else {
+          resultDiv.innerHTML = `
+            <p class="error">❌ Failed to load budgets</p>
+            <div class="response">${JSON.stringify(data, null, 2)}</div>
+          `;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <p class="error">❌ Error: ${error.message}</p>
+        `;
+      }
+    }
+
+    async function debugInfo() {
+      const customerId = document.getElementById('customerId').value;
+      const resultDiv = document.getElementById('debugResult');
+
+      resultDiv.innerHTML = '<p>Loading debug info...</p>';
+
+      try {
+        const response = await fetch(`/api/sync/debug?customerId=${customerId}`);
+        const data = await response.json();
+
+        resultDiv.innerHTML = `
+          <p class="success">✅ Debug Info Retrieved</p>
+          <div class="response">${JSON.stringify(data, null, 2)}</div>
+        `;
+      } catch (error) {
+        resultDiv.innerHTML = `
+          <p class="error">❌ Error: ${error.message}</p>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
