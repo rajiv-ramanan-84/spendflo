@@ -341,7 +341,7 @@ export default function BusinessRequestV2Page() {
           budgetId: budgetCheck.budget?.id,
           amount: parseFloat(amount),
           requestId: `req-${Date.now()}`,
-          userId: 'business-user',
+          // userId removed - extracted server-side from session
           reason: `${vendor} - ${purpose} (${contractTerm})`,
         }),
       });

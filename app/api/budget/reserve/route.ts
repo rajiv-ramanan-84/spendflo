@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getUserFromRequest } from '@/lib/auth/getUserFromRequest';
 
 export async function POST(req: NextRequest) {
   try {
+    // SECURITY: Extract user from session server-side, not from request body
+    const user = await getUserFromRequest(req);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
-    const { budgetId, amount, requestId, userId, reason } = body;
+    const { budgetId, amount, requestId, reason } = body;
 
     if (!budgetId || !amount) {
       return NextResponse.json(
@@ -52,15 +62,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create audit log
+    // Create audit log with authenticated user info
     await prisma.auditLog.create({
       data: {
         budgetId,
         action: 'RESERVE',
         oldValue: reserved.toString(),
         newValue: (reserved + amount).toString(),
-        changedBy: userId || 'system',
-        reason: reason || `Reserved ${amount} for request ${requestId || 'unknown'}`,
+        changedBy: `${user.name} (${user.email})`, // Use authenticated user
+        reason: reason || `Reserved $${amount} for request ${requestId || 'unknown'}`,
       },
     });
 
