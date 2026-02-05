@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
       ],
       select: {
         id: true,
+        customerId: true,
         department: true,
         subCategory: true,
         fiscalPeriod: true,
