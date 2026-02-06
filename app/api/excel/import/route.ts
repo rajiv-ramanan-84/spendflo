@@ -3,12 +3,6 @@ import * as XLSX from 'xlsx';
 import { validateMappedData, transformMappedData, ColumnMapping } from '@/lib/ai/mapping-engine';
 import { prisma } from '@/lib/prisma';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 /**
  * Import budget data from Excel file
  * POST /api/excel/import

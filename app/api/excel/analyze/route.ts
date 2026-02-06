@@ -4,12 +4,6 @@ import { suggestMappings } from '@/lib/ai/mapping-engine';
 import formidable from 'formidable';
 import fs from 'fs';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 /**
  * Analyze Excel file and return headers, samples, and AI mappings
  * POST /api/excel/analyze
