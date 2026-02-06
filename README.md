@@ -314,3 +314,4 @@ MIT
 ## Acknowledgments
 
 Built with Claude Code for SpendFlo budget management.
+
