@@ -15,6 +15,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { GoogleSheetsBudgetConnector } from '@/lib/connectors/google-sheets-connector';
 
+// Route segment config for Vercel Cron
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes max
+
 export async function GET(req: NextRequest) {
   try {
     // SECURITY: Verify cron secret
