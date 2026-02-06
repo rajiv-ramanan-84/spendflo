@@ -113,7 +113,9 @@ async function syncGoogleSheetForConfig(
   try {
     // Create Google Sheets connector
     const connector = new GoogleSheetsBudgetConnector({
-      sourceType: 'google_sheets',
+      type: 'google_sheets',
+      customerId: config.customerId,
+      enabled: true,
       credentials: config.credentials,
       sourceConfig: config.sourceConfig,
       columnMappings: config.columnMappings,
@@ -226,7 +228,7 @@ async function syncGoogleSheetForConfig(
         unchangedCount,
         softDeletedCount,
         errorCount: errors.length,
-        errors: errors.length > 0 ? errors : null,
+        errors: errors.length > 0 ? errors : undefined,
         sourceType: 'google_sheets',
         triggeredBy: 'cron',
       },
