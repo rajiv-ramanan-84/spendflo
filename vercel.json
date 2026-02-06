@@ -7,7 +7,7 @@
   "crons": [
     {
       "path": "/api/cron/sync-google-sheets",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
