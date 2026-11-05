@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Spendflo design tokens. White surfaces, pink accent, soft depth. */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-brand-50: #fdf0f7;
+  --color-brand-100: #fce1ef;
+  --color-brand-200: #f9c0de;
+  --color-brand-300: #f48fc3;
+  --color-brand-500: #e91e8c;
+  --color-brand-600: #d0157b;
+  --color-brand-700: #ad1266;
+
+  --color-ink-900: #16161d;
+  --color-ink-700: #3a3a46;
+  --color-ink-500: #6b6b78;
+  --color-ink-400: #9a9aa6;
+  --color-line: #ececf1;
+  --color-canvas: #fafafc;
+
+  /* One engagement scale, used everywhere (cockpit, lists, Slack). */
+  --color-eng-not-contacted: #c9c9d2;
+  --color-eng-contacted: #f9c0de;
+  --color-eng-connected: #e91e8c;
+  --color-eng-replied: #22a06b;
+  --color-eng-meeting: #0f6b45;
+  --color-eng-stopped: #6b6b78;
+
+  --color-success: #22a06b;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
+  --radius-card: 16px;
+  --shadow-soft: 0 1px 2px rgb(22 22 29 / 0.04), 0 4px 16px rgb(22 22 29 / 0.05);
+  --shadow-lift: 0 2px 4px rgb(22 22 29 / 0.05), 0 12px 32px rgb(22 22 29 / 0.08);
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink-900);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
