@@ -25,4 +25,6 @@ done
 "${PSQL[@]}" -f "$ROOT/supabase/seed.sql"   # seed must be idempotent
 "${PSQL[@]}" -f "$ROOT/supabase/seed_holidays.sql"
 "${PSQL[@]}" -f "$ROOT/supabase/seed_holidays.sql"
+"${PSQL[@]}" -f "$ROOT/supabase/seed_skill.sql"
+"${PSQL[@]}" -f "$ROOT/supabase/seed_skill.sql"
 "${PSQL[@]}" -f "$ROOT/supabase/tests/verify.sql"

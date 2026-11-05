@@ -31,6 +31,7 @@ begin
   assert n = 4, 'seed: US federal holidays incl. observed days';
   select count(*) into n from holidays where calendar = 'US' and extract(year from date) = 2026; assert n = 12, 'seed: 12 US holidays in 2026';
   select count(*) into n from holidays where calendar = 'IN_TEAM'; assert n = 6, 'seed: India national holidays';
+  select count(*) into n from skill_versions where version_no = 1 and body like '%name: flo-campaign-engine%'; assert n = 1, 'seed: skill v1 once';
 
   -- One open campaign per account
   begin
