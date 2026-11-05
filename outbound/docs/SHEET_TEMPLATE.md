@@ -1,57 +1,63 @@
 # Account book sheet: the contract with the app
 
-Template: https://docs.google.com/spreadsheets/d/15vXYiMRAyaeTeJ8IJXqVvl8BJt6W81iHC5UlPRTx5OY/edit
+Master sheet: Coupa_Account_Book (owner: Mouli). Tabs read: `Master`, `Contacts (Wiza + Evaboot)`.
+A clean reference template also exists: https://docs.google.com/spreadsheets/d/15vXYiMRAyaeTeJ8IJXqVvl8BJt6W81iHC5UlPRTx5OY/edit
 
-The sync (milestone 4) reads columns by **header name**, not position, so columns can be reordered. Header names must match exactly.
+The sync reads columns by **header name**, so columns can move. Headers below are the real ones in the master sheet.
 
-## Master (one row per account)
+## IDs: the app owns them
 
-| Header | Required | App field | Notes |
+Nobody types an ID. On every hourly sync the app:
+
+1. Gives every new account an `ACC-###` and every new contact a `CON-####`, written into the sheet.
+2. Links each contact to an account: work email domain first, then company name, then the enrichment domain (only when the company name agrees). The result goes in the contact's `Account ID` cell.
+3. Never renumbers, reuses or moves an ID. A deleted row retires its ID.
+
+A person can override any link by typing the right `ACC-###` in the contact's `Account ID` cell. A typed ID always wins.
+
+## Duplicates: what the app writes and what you do
+
+| Situation | Sheet shows | Imported? | What to do |
 | --- | --- | --- | --- |
-| Account ID | Yes | accounts.sheet_account_id | Permanent join key, e.g. ACC-001 |
-| Account Name | Yes | name | |
-| Domain | Yes | domain | Used to match replies from unknown senders and to check contact emails |
-| Segment | | segment | |
-| Tier | Yes | tier | A, B, C, D. A and B auto-draft a campaign |
-| ICP Verdict | Yes | icp_verdict | FIT, MAYBE import active; NO-FIT imports archived |
-| Owner | | owner_id | Rajiv, Sid, Mouli, Shweta. First import only, then the app owns it |
-| Do Not Contact | | do_not_contact | Yes / No |
-| HQ | | hq | |
-| Revenue | | revenue | |
-| Employees | | employees | |
-| Ownership | | ownership | |
-| Coupa Evidence | | coupa_evidence | |
-| Trigger | | trigger | |
-| Trigger Date | | trigger_date | YYYY-MM-DD. Undated triggers are weak signals |
-| Signals | | signals | |
-| Disqualifier Flags | | disqualifier_flags | |
-| Outreach Angle | | outreach_angle | |
-| Target Contact Notes | | target_contact_notes | |
-| Status | App writes | | Write-back |
-| Last Touch | App writes | | Write-back |
-| Next Step Date | App writes | | Write-back |
-| Contacts Engaged | App writes | | Write-back, e.g. "2 of 6" |
+| Same account twice (same domain or same name) | `DUPLICATE of ACC-003` | No | Delete the row, or merge any extra research into the kept row |
+| Same person twice (same LinkedIn URL or same email, same name) | `DUPLICATE of CON-0119` | No | Delete the row |
+| Same name at the same account, different profiles | `POSSIBLE DUPLICATE of CON-0119` | No | Delete it if it is the same person. If it is a different person, type `KEEP` in the ID cell; the next sync gives it an ID and never asks again |
+| Two different people given the same email by enrichment | Both get IDs | Yes, email flagged for review | Fix the wrong email |
+| One person under two accounts | Both get IDs | Held in the review queue | Keep the person under one account |
+| Contact matches no account | `CHECK: no matching account` in Account ID | No | Type the right `ACC-###`, or delete the contact |
+| Contact could belong to two accounts | `CHECK: could be ACC-028 or ACC-082` | No | Type the right `ACC-###` |
 
-Any other column is kept in accounts.custom_fields.
+The kept row is the one that already has an ID; otherwise the one with a name; otherwise the earliest row.
 
-## Contacts (one row per person)
+## Master columns
 
-| Header | Required | App field | Notes |
-| --- | --- | --- | --- |
-| Account ID | Yes | account_id | Must match a Master row |
-| Contact ID | Yes | contacts.sheet_contact_key | Permanent, unique across the sheet, e.g. CON-0001 |
-| Full Name | Yes | full_name | |
-| Title | | title | A change mid-campaign pauses the track |
-| Persona | | persona | Economic buyer, Procurement leader, Coupa or system owner, Contract manager or legal ops, Legal or GC, Finance or AP, Champion, Other |
-| Seniority | | seniority | C-level, VP, Director, Manager, Individual contributor |
-| Email | One of email or LinkedIn | email | Domain should match the account |
-| Email Status | | email_status | Valid, Risky, Invalid, Unknown |
-| Phone | | phone | Never sent to Claude |
-| LinkedIn URL | One of email or LinkedIn | linkedin_url | |
-| Country | | country | ISO code, default US. Drives the prospect holiday calendar |
-| Exclude | | exclude | Yes / No |
-| Notes | | notes | |
+| Header in sheet | App field | Notes |
+| --- | --- | --- |
+| Account ID | sheet_account_id | Written by the app |
+| Company | name | |
+| Owner | owner_id | Rajiv, Sid, Mouli, Shweta. First import only |
+| Tier | tier | A and B auto-draft a campaign |
+| Status | status | Written by the app (write-back) |
+| ICP Verdict | icp_verdict | FIT, MAYBE active; NO-FIT archived |
+| Domain | domain | "(est.)" is stripped; "unverified" means unknown |
+| HQ, Revenue (~), Employees, Ownership | hq, revenue, employees, ownership | |
+| Coupa Evidence | coupa_evidence | |
+| Trigger / Why Now | trigger | |
+| Disqualifier Flags | disqualifier_flags | |
+| Why (Fit), Signal Evidence, Agent 1/2/3 Signals, Target Title, Named Procurement Lead, Sales Nav fields, Notes | custom_fields | Passed to Claude as account context |
+| Target contacts notes, Outreach angle notes | target_contact_notes, outreach_angle | To be moved into Master from the per-owner tabs |
+| Last Touch, Next Step Date, Contacts Engaged | | To be added; written by the app |
 
-## Rows that go to the data quality queue instead of importing
+## Contacts columns
 
-Missing Account ID or Contact ID, Contact with an Account ID not on Master, duplicate Contact ID, duplicate LinkedIn URL, same person under two accounts, email domain not matching the account domain, title containing "Retired", no email and no LinkedIn.
+| Header in sheet | App field | Notes |
+| --- | --- | --- |
+| Contact ID | sheet_contact_key | Written by the app |
+| Account ID | account_id | Written by the app; a typed ID wins |
+| Full Name, Title, Company | full_name, title | Company is used only for linking |
+| LinkedIn URL | linkedin_url | |
+| Best Email, Best Email Status | email, email_status | |
+| Best Phone (Wiza) | phone | Never sent to Claude |
+| Location | country | Parsed to a country code for the holiday calendar |
+| Evaboot signals (new position, recently hired or promoted, recent posts, mutual connections, months in position) | linkedin_signals | Passed to Claude |
+| Persona, Exclude | persona, exclude | To be added |
