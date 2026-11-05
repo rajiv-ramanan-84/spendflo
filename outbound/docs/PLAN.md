@@ -156,7 +156,7 @@ These are flagged with the default I will use. Anything marked **Need from you**
 13. **Gmail scope "limited to known contacts".** Google cannot narrow `gmail.readonly`. Default: the app only queries threads it created and `from:` known contact addresses or LinkedIn senders. That is a code guarantee, not a scope guarantee. Worth saying plainly to the team.
 14. **Manager and Settings.** Mouli cannot edit admin settings but uses the Data queue inside Settings. Default: Settings shows the Data tab to managers, everything else admin only.
 15. **Google refresh token.** Supabase returns it only at sign-in. Default: request offline access with consent each login, capture it in the callback, encrypt and store it (from milestone 2, once the table exists). Gmail scopes are requested from day one so nobody has to re-consent later.
-16. **Need from you: emails for Sid, Mouli and Shweta.** I have rajiv@spendflo.com. Default in `.env.example`: sid@, mouli@, shweta@spendflo.com.
+16. **Team emails (confirmed):** rajiv@, siddharth@, chandramouli@, mahasweta@spendflo.com.
 17. **Need from you: India company holiday list** for 2026 and 2027 (milestone 3).
 18. **Need from you: sheet shared with the service account** and Mouli's cleanup (Account ID, Persona) done before milestone 4's real dry run.
 19. **Need from you: Anthropic key and the approved proof points** before milestone 5. Defaults: Sonnet for all tiers, Opus for Tier A.

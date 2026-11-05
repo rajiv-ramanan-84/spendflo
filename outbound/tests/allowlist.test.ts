@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { accessConfigFromEnv, checkAccess, parseEmailList } from "@/lib/auth/allowlist";
 
 const config = {
-  allowedEmails: ["rajiv@spendflo.com", "sid@spendflo.com", "mouli@spendflo.com", "shweta@spendflo.com"],
+  allowedEmails: ["rajiv@spendflo.com", "siddharth@spendflo.com", "chandramouli@spendflo.com", "mahasweta@spendflo.com"],
   allowedDomain: "spendflo.com",
 };
 
