@@ -2,6 +2,8 @@ import { isIsoDate, type IsoDate } from "@/lib/calendar/dates";
 import { addWorkingDays, rollForward, INVALID_REASON_COPY, type CalendarContext } from "@/lib/calendar/working-calendar";
 import { scheduleTouches, MOVE_REASON_COPY, type Caps, type Touch } from "@/lib/caps/schedule";
 import type { CampaignOutput, Channel } from "./schemas";
+import { copyIssues } from "./copy-checks";
+export { copyIssues, wordCount } from "./copy-checks";
 
 /**
  * Turns Claude's campaign into something the app can store, or explains why
@@ -56,6 +58,8 @@ export type DraftStep = {
 
 type WorkingStep = DraftStep & { moveReasons: string[] };
 
+const MIN_GAP_WORKING_DAYS = 2;
+
 export type DraftTrack = {
   contactId: string;
   persona: string;
@@ -80,30 +84,6 @@ export type ValidatedCampaign = {
   notes: Finding[];
   skipped: Array<{ contactRef: string; reason: string }>;
 };
-
-const TOKEN_RE = /\{[a-z_ ]+\}|\[(first name|name|company|title)\]/i;
-const MIN_GAP_WORKING_DAYS = 2;
-
-export function wordCount(s: string): number {
-  return s.trim() ? s.trim().split(/\s+/).length : 0;
-}
-
-export function copyIssues(channel: Channel, subject: string | null, body: string | null, limits: { emailWords: number; connectChars: number }): string[] {
-  const issues: string[] = [];
-  const text = `${subject ?? ""}\n${body ?? ""}`;
-  if (TOKEN_RE.test(text)) issues.push("has an unresolved placeholder like {first_name}");
-  if (text.includes("—")) issues.push("contains an em dash");
-  if (channel === "linkedin_connect" && (body ?? "").length > limits.connectChars) {
-    issues.push(`connect note is ${(body ?? "").length} characters (max ${limits.connectChars})`);
-  }
-  if (channel === "email") {
-    const w = wordCount(body ?? "");
-    if (w > limits.emailWords) issues.push(`email is ${w} words (flag above ${limits.emailWords})`);
-    if (!subject?.trim()) issues.push("email has no subject");
-  }
-  if (channel !== "call" && !body?.trim()) issues.push("has no copy");
-  return issues;
-}
 
 export function validateCampaign(out: CampaignOutput, input: ValidationInput): ValidatedCampaign {
   const blocking: Finding[] = [];

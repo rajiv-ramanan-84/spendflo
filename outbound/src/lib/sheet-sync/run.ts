@@ -214,6 +214,31 @@ async function writebackData(db: SupabaseClient): Promise<Map<string, AccountWri
   }]));
 }
 
+/**
+ * Plan and apply a sync from sheet values already in hand. Returns the cells
+ * to write back (already checked against the write guards). Used by the
+ * hourly sync and by local loading from exported tabs.
+ */
+export async function syncFromValues(db: SupabaseClient, master: string[][], contacts: string[][], opts: { dryRun?: boolean } = {}) {
+  const { snapshot, personaByKey } = await loadSnapshot(db);
+  const plan = planSync(master, contacts, snapshot);
+  let autoDraftQueued = 0;
+  let writebackCells = 0;
+  let missingWritebackColumns: string[] = planWriteback(master, new Map()).missingColumns;
+  let writes: SyncPlan["sheetWrites"] = [];
+
+  if (plan.ok && !opts.dryRun) {
+    autoDraftQueued = await applyPlan(db, plan, personaByKey);
+    const wb = planWriteback(master, await writebackData(db));
+    missingWritebackColumns = wb.missingColumns;
+    writes = [...plan.sheetWrites, ...wb.writes];
+    assertMasterWritesAllowed(master, writes);
+    assertContactWritesAllowed(contacts, writes);
+    writebackCells = wb.writes.length;
+  }
+  return { plan, writes, autoDraftQueued, writebackCells, missingWritebackColumns };
+}
+
 /** One full sync: read, plan, apply, write IDs and status back. A dry run reads and plans only. */
 export async function runSheetSync(opts: SyncOptions = {}): Promise<SyncResult> {
   const db = supabaseAdmin();
@@ -227,35 +252,18 @@ export async function runSheetSync(opts: SyncOptions = {}): Promise<SyncResult> 
     const sheetId = await sheetIdFor(db);
     const t = tabs();
     const [master, contacts] = await Promise.all([readTab(sheetId, t.master), readTab(sheetId, t.contacts)]);
-    const { snapshot, personaByKey } = await loadSnapshot(db);
-    const plan = planSync(master, contacts, snapshot);
+    const r = await syncFromValues(db, master, contacts, { dryRun });
+    if (r.writes.length) await writeCells(sheetId, t, r.writes);
 
-    let autoDraftQueued = 0;
-    let writebackCells = 0;
-    let missingWritebackColumns: string[] = [];
-
-    if (plan.ok && !dryRun) {
-      autoDraftQueued = await applyPlan(db, plan, personaByKey);
-      const wb = planWriteback(master, await writebackData(db));
-      missingWritebackColumns = wb.missingColumns;
-      const writes = [...plan.sheetWrites, ...wb.writes];
-      assertMasterWritesAllowed(master, writes);
-      assertContactWritesAllowed(contacts, writes);
-      await writeCells(sheetId, t, writes);
-      writebackCells = wb.writes.length;
-    } else if (plan.ok) {
-      missingWritebackColumns = planWriteback(master, new Map()).missingColumns;
-    }
-
-    const counts = { ...plan.counts, dqOpen: plan.dq.length, writebackCells, autoDraftQueued };
+    const counts = { ...r.plan.counts, dqOpen: r.plan.dq.length, writebackCells: r.writebackCells, autoDraftQueued: r.autoDraftQueued };
     await db.from("sync_runs").update({
-      status: plan.ok ? "ok" : "failed",
+      status: r.plan.ok ? "ok" : "failed",
       finished_at: new Date().toISOString(),
       counts,
-      error: plan.ok ? null : plan.fatal.join("; "),
+      error: r.plan.ok ? null : r.plan.fatal.join("; "),
     }).eq("id", runId);
 
-    return { ok: plan.ok, dryRun, runId, counts, fatal: plan.fatal, missingWritebackColumns };
+    return { ok: r.plan.ok, dryRun, runId, counts, fatal: r.plan.fatal, missingWritebackColumns: r.missingWritebackColumns };
   } catch (e) {
     const message = (e as Error).message;
     await db.from("sync_runs").update({ status: "failed", finished_at: new Date().toISOString(), error: message }).eq("id", runId);

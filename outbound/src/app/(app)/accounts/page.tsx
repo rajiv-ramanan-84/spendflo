@@ -1,14 +1,24 @@
-import { Building2 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { EmptyState, PageHeader } from "@/components/ui/page-header";
+import { requireUser } from "@/lib/auth/session";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { listAccounts, listUsers } from "@/lib/data/queries";
+import { PageHeader } from "@/components/ui/page-header";
+import { AccountsTable } from "@/components/accounts/accounts-table";
 
-export default function AccountsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AccountsPage() {
+  const user = await requireUser();
+  const db = await createSupabaseServerClient();
+  const [accounts, users] = await Promise.all([listAccounts(db, { includeArchived: true }), listUsers(db)]);
+  const active = accounts.filter((a) => !a.archived);
+
   return (
     <>
-      <PageHeader title="Accounts" subtitle="The whole book: tier, owner, personas engaged and next step." />
-      <Card>
-        <EmptyState icon={<Building2 size={20} />} title="The account book isn't synced yet" body="Once the Coupa account book is connected in Settings, all 118 accounts show up here, ready to assign." />
-      </Card>
+      <PageHeader
+        title="Accounts"
+        subtitle={`${active.length} active accounts, ${accounts.length - active.length} archived for reference. Synced from the Coupa account book.`}
+      />
+      <AccountsTable accounts={accounts} users={users.filter((u) => u.active)} me={user.id} canAssign={user.role !== "member"} />
     </>
   );
 }
