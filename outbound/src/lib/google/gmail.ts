@@ -2,6 +2,7 @@ import "server-only";
 import { OAuth2Client } from "google-auth-library";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptToken, parseKey } from "@/lib/crypto/tokens";
+import type { MessagePart } from "@/lib/responses/parse";
 
 /**
  * Gmail on behalf of one user, with that user's own stored refresh token.
@@ -66,7 +67,7 @@ export type GmailMessage = {
   labelIds?: string[];
   internalDate?: string;
   snippet?: string;
-  payload?: { headers?: Array<{ name: string; value: string }>; mimeType?: string; body?: { data?: string }; parts?: GmailMessage["payload"][] };
+  payload?: MessagePart;
 };
 
 export async function getMessage(token: string, id: string): Promise<GmailMessage | null> {

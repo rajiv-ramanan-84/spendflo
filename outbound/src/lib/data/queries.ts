@@ -123,3 +123,21 @@ export async function getCockpit(db: SupabaseClient, accountId: string) {
   }
   return { account, contacts, campaign: open, tracks, users };
 }
+
+export type CockpitResponse = {
+  id: string; state: string; source: string; channel: string; classification: string | null; confidence: number | null; needs_review: boolean;
+  summary: string | null; raw_text: string | null; received_at: string; contact_id: string | null; from_address: string | null;
+  return_date: string | null; referred_to: string | null; suggested_next_step: string | null; owner_next_step: string | null; campaign_id: string | null;
+};
+export type CockpitReplan = { id: string; state: string; scope: string; response_id: string | null; created_at: string; claude_output: { output?: { change_summary?: string | null }; diff?: import("@/lib/responses/diff").DiffRow[]; validated?: { blocking?: Array<{ text: string }>; notes?: Array<{ text: string }> } } | null };
+
+/** Responses on an account that still need a person, and the latest re-plan. */
+export async function getAccountResponses(db: SupabaseClient, accountId: string, campaignId: string | null) {
+  const { data: rows } = await db.from("responses")
+    .select("id, state, source, channel, classification, confidence, needs_review, summary, raw_text, received_at, contact_id, from_address, return_date, referred_to, suggested_next_step, owner_next_step, campaign_id")
+    .eq("account_id", accountId).neq("state", "dismissed").order("received_at", { ascending: false }).limit(20);
+  const { data: draft } = campaignId
+    ? await db.from("replan_drafts").select("id, state, scope, response_id, created_at, claude_output").eq("campaign_id", campaignId).in("state", ["open", "stale"]).order("created_at", { ascending: false }).limit(1).maybeSingle()
+    : { data: null };
+  return { responses: (rows ?? []) as CockpitResponse[], replan: (draft ?? null) as CockpitReplan | null };
+}

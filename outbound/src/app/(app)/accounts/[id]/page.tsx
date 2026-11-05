@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getCockpit } from "@/lib/data/queries";
+import { getAccountResponses, getCockpit } from "@/lib/data/queries";
 import { todayIn } from "@/lib/calendar/dates";
 import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
@@ -11,6 +11,7 @@ import { CAMPAIGN_STATUS_LABEL, firstName } from "@/lib/format";
 import { GenerateCard } from "@/components/cockpit/generate-card";
 import { ReviewPanel } from "@/components/cockpit/review-panel";
 import { ContactRows } from "@/components/cockpit/contact-rows";
+import { ResponsePanel } from "@/components/cockpit/response-panel";
 import type { ReviewFlag } from "@/lib/campaigns/launch";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +26,10 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
   );
 }
 
-export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AccountPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ reply?: string }> }) {
   const user = await requireUser();
   const { id } = await params;
+  const { reply } = await searchParams;
   const db = await createSupabaseServerClient();
   const data = await getCockpit(db, id).catch(() => null);
   if (!data) notFound();
@@ -41,6 +43,8 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   const review = (campaign?.review ?? {}) as { flags?: ReviewFlag[]; notes?: Array<{ text: string }>; likely_reply?: string; main_weakness?: string; skipped?: Array<{ contactRef: string; reason: string }> };
   const cleared = (campaign?.review_flags_cleared as string[] | undefined) ?? [];
   const datedSteps = tracks.flatMap((t) => t.steps).filter((s) => s.due_date).length;
+  const live = campaign && !["draft", "closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? campaign : null;
+  const inbox = await getAccountResponses(db, a.id, live?.id ?? null);
 
   return (
     <>
@@ -102,6 +106,18 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             accountId={a.id}
           />
         ) : null}
+
+        {(live || inbox.responses.some((r) => r.state === "pending")) && (
+          <ResponsePanel
+            responses={inbox.responses}
+            replan={inbox.replan}
+            contacts={usable.map((c) => ({ id: c.id, full_name: c.full_name, title: c.title }))}
+            campaignId={live?.id ?? null}
+            campaignStatus={(live?.status as string) ?? null}
+            focusId={reply ?? null}
+            canEdit={canEdit}
+          />
+        )}
 
         <ContactRows
           today={todayIn()}
