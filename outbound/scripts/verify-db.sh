@@ -23,4 +23,6 @@ for f in "$ROOT"/supabase/migrations/*.sql; do
 done
 "${PSQL[@]}" -f "$ROOT/supabase/seed.sql"
 "${PSQL[@]}" -f "$ROOT/supabase/seed.sql"   # seed must be idempotent
+"${PSQL[@]}" -f "$ROOT/supabase/seed_holidays.sql"
+"${PSQL[@]}" -f "$ROOT/supabase/seed_holidays.sql"
 "${PSQL[@]}" -f "$ROOT/supabase/tests/verify.sql"

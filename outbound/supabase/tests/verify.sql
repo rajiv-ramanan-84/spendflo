@@ -27,6 +27,10 @@ begin
   select count(*) into n from users; assert n = 4, 'seed: 4 users';
   select count(*) into n from users where role = 'admin'; assert n = 2, 'seed: 2 admins';
   select count(*) into n from app_settings; assert n = 1, 'seed: settings singleton';
+  select count(*) into n from holidays where calendar = 'US' and date in ('2026-11-11', '2026-11-26', '2026-07-03', '2027-12-24');
+  assert n = 4, 'seed: US federal holidays incl. observed days';
+  select count(*) into n from holidays where calendar = 'US' and extract(year from date) = 2026; assert n = 12, 'seed: 12 US holidays in 2026';
+  select count(*) into n from holidays where calendar = 'IN_TEAM'; assert n = 6, 'seed: India national holidays';
 
   -- One open campaign per account
   begin
