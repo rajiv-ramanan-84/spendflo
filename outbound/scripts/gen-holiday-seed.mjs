@@ -1,5 +1,6 @@
-// Regenerates supabase/seed_holidays.sql: US federal (prospect calendar) and
-// India national holidays (team calendar) for the current and next year.
+// Regenerates supabase/seed_holidays.sql: US federal holidays (observed dates)
+// for the given years. Prospects and the Spendflo team both follow this
+// calendar; extra company days are added in Settings as TEAM.
 // Run: node scripts/gen-holiday-seed.mjs 2026 2027
 import Holidays from "date-holidays";
 import { writeFileSync } from "node:fs";
@@ -17,11 +18,6 @@ for (const y of years) {
     seen.add(date);
     rows.push(["US", date, h.name]);
   }
-  // India national holidays every company observes. The full Spendflo list
-  // (Diwali, Holi and so on) is added by an admin in Settings.
-  rows.push(["IN_TEAM", `${y}-01-26`, "Republic Day"]);
-  rows.push(["IN_TEAM", `${y}-08-15`, "Independence Day (India)"]);
-  rows.push(["IN_TEAM", `${y}-10-02`, "Gandhi Jayanti"]);
 }
 
 const esc = (s) => s.replace(/'/g, "''");

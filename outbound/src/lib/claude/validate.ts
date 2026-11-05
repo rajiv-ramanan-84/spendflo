@@ -1,5 +1,5 @@
 import { isIsoDate, type IsoDate } from "@/lib/calendar/dates";
-import { addWorkingDays, rollForward, INVALID_REASON_COPY, type CalendarContext } from "@/lib/calendar/working-calendar";
+import { addWorkingDays, rollForward, reasonCopy, type CalendarContext } from "@/lib/calendar/working-calendar";
 import { scheduleTouches, MOVE_REASON_COPY, type Caps, type Touch } from "@/lib/caps/schedule";
 import type { CampaignOutput, Channel } from "./schemas";
 import { copyIssues } from "./copy-checks";
@@ -178,7 +178,7 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
           if (date < earliest) date = earliest;
         }
         if (proposed < input.campaignStartDate) step.moveReasons.push("before the start date");
-        step.moveReasons.push(...rolled.reasons.map((r) => INVALID_REASON_COPY[r]));
+        step.moveReasons.push(...reasonCopy(rolled.reasons));
         if (date !== rolled.date) step.moveReasons.push("too close to the previous touch");
         step.date = date;
         prevDate = date;

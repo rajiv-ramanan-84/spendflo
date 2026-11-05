@@ -15,7 +15,7 @@ export type QuietPeriod = DateRange & { name?: string; enabled: boolean };
 export type CalendarContext = {
   /** Holiday dates for a prospect country (ISO code). Unknown country falls back to weekends only. */
   prospectHolidays: (country: string) => ReadonlySet<IsoDate>;
-  /** Spendflo company holidays (India). */
+  /** Days the Spendflo team is off: US federal holidays plus any extra company days. */
   teamHolidays: ReadonlySet<IsoDate>;
   /** Out-of-office ranges per user id, inclusive. */
   outOfOffice: ReadonlyMap<string, readonly DateRange[]>;
@@ -149,10 +149,18 @@ export function snooze(date: IsoDate, days: 1 | 2 | 3, scope: DateScope, ctx: Ca
 }
 
 /** Small helper so the UI and Slack can say why a date moved. */
+/** Plain words for why a date moved. A US holiday blocks prospect and team at once: say it once. */
+export function reasonCopy(reasons: readonly InvalidReason[]): string[] {
+  if (reasons.includes("prospect_holiday") && reasons.includes("team_holiday")) {
+    return ["US holiday", ...reasons.filter((r) => r !== "prospect_holiday" && r !== "team_holiday").map((r) => INVALID_REASON_COPY[r])];
+  }
+  return reasons.map((r) => INVALID_REASON_COPY[r]);
+}
+
 export const INVALID_REASON_COPY: Record<InvalidReason, string> = {
   weekend: "weekend",
   prospect_holiday: "prospect holiday",
-  team_holiday: "team holiday",
+  team_holiday: "company day off",
   quiet_period: "quiet period",
   assignee_out_of_office: "sender out of office",
 };

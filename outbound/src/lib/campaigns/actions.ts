@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isIsoDate } from "@/lib/calendar/dates";
-import { rollForward, INVALID_REASON_COPY } from "@/lib/calendar/working-calendar";
+import { rollForward, reasonCopy } from "@/lib/calendar/working-calendar";
 import { loadCalendarContext } from "@/lib/calendar/context";
 import { todayIn } from "@/lib/calendar/dates";
 import { logActivity } from "@/lib/activity/log";
@@ -89,7 +89,7 @@ export async function updateStep(db: SupabaseClient, user: SessionUser, stepId: 
     update.scheduled_date = r.date;
     update.due_date = r.date;
     update.moved_from_date = r.movedFrom;
-    update.moved_reason = r.movedFrom ? `Moved from ${r.movedFrom} (${r.reasons.map((x) => INVALID_REASON_COPY[x]).join(", ")})` : null;
+    update.moved_reason = r.movedFrom ? `Moved from ${r.movedFrom} (${reasonCopy(r.reasons).join(", ")})` : null;
     movedNote = update.moved_reason as string | null;
   }
   if (!Object.keys(update).length) return { step, movedNote };

@@ -2,9 +2,9 @@ import type { IsoDate } from "@/lib/calendar/dates";
 import { invalidReasons, type CalendarContext } from "@/lib/calendar/working-calendar";
 
 /**
- * Whether the team's morning post goes out today. US prospect holidays do not
- * stop the team's day (steps already moved off them); weekends, India team
- * holidays and quiet periods do.
+ * Whether the team's morning post goes out today. The team follows the US
+ * federal calendar, so weekends, US holidays (and any extra company days) and
+ * quiet periods skip it. A holiday in another prospect country does not.
  */
 export function teamDayOff(today: IsoDate, ctx: CalendarContext) {
   return invalidReasons(today, {}, ctx).filter((r) => r !== "prospect_holiday");

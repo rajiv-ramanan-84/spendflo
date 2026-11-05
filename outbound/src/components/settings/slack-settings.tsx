@@ -60,7 +60,7 @@ export function SlackSettings(p: Props) {
         <label className="grid gap-1.5 text-sm">
           <span className="font-medium">Morning plan (IST)</span>
           <input type="time" className={input} value={morningTime} disabled={!p.canEdit} onChange={(e) => setMorningTime(e.target.value)} />
-          <span className="text-xs text-ink-400">Working days only. Skips team holidays.</span>
+          <span className="text-xs text-ink-400">Working days only. Skips US holidays.</span>
         </label>
         <div className="grid gap-2 text-sm">
           <span className="font-medium">Posts</span>

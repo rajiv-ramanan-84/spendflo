@@ -28,8 +28,10 @@ export async function loadCalendarContext(db: SupabaseClient, years: number[]): 
     byCalendar.set(h.calendar, list);
   }
 
-  const fallback = prospectHolidayLookup(years, Object.fromEntries([...byCalendar].filter(([c]) => c !== "US" && c !== "IN_TEAM")));
+  const fallback = prospectHolidayLookup(years, Object.fromEntries([...byCalendar].filter(([c]) => c !== "US" && c !== "TEAM")));
   const us = new Set(byCalendar.get("US") ?? []);
+  // The team works the US federal calendar, plus any extra company days admins add as TEAM.
+  const team = new Set([...us, ...(byCalendar.get("TEAM") ?? [])]);
   const prospectHolidays = (country: string) => (country.toUpperCase() === "US" ? us : fallback(country));
 
   const outOfOffice = new Map<string, DateRange[]>();
@@ -41,7 +43,7 @@ export async function loadCalendarContext(db: SupabaseClient, years: number[]): 
 
   return {
     prospectHolidays,
-    teamHolidays: new Set(byCalendar.get("IN_TEAM") ?? []),
+    teamHolidays: team,
     outOfOffice,
     quietPeriods: (settings.data?.quiet_periods ?? []) as QuietPeriod[],
   };

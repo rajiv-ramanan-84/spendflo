@@ -8,6 +8,7 @@ import {
   isValidDate,
   listValidDates,
   nextValidDate,
+  reasonCopy,
   rollForward,
   shiftForResume,
   snooze,
@@ -16,9 +17,9 @@ import {
   type QuietPeriod,
 } from "@/lib/calendar/working-calendar";
 
-// Test fixture for the Spendflo India team calendar. 12 Nov 2026 is a made-up
-// team holiday so it lands mid-week next to Veterans Day.
-const TEAM = new Set(["2026-01-26", "2026-08-15", "2026-10-02", "2026-11-12"]);
+// The team follows the US federal calendar. 12 Nov 2026 is a made-up extra
+// company day so it lands mid-week next to Veterans Day.
+const TEAM = new Set([...prospectHolidayLookup([2026, 2027])("US"), "2026-11-12"]);
 
 function ctx(overrides: Partial<CalendarContext> = {}): CalendarContext {
   return {
@@ -41,12 +42,12 @@ describe("US federal holidays", () => {
   });
 
   it("blocks Veterans Day, Wed 11 Nov 2026", () => {
-    expect(invalidReasons("2026-11-11", US, ctx())).toEqual(["prospect_holiday"]);
+    expect(invalidReasons("2026-11-11", US, ctx())).toEqual(["prospect_holiday", "team_holiday"]);
     expect(isValidDate("2026-11-10", US, ctx())).toBe(true);
   });
 
   it("blocks Thanksgiving, Thu 26 Nov 2026, but not the Friday after", () => {
-    expect(invalidReasons("2026-11-26", US, ctx())).toEqual(["prospect_holiday"]);
+    expect(invalidReasons("2026-11-26", US, ctx())).toEqual(["prospect_holiday", "team_holiday"]);
     expect(isValidDate("2026-11-27", US, ctx())).toBe(true);
   });
 
@@ -67,10 +68,18 @@ describe("weekends", () => {
   });
 });
 
-describe("India team holidays", () => {
-  it("block a date even when the prospect is working", () => {
-    expect(invalidReasons("2026-01-26", US, ctx())).toEqual(["team_holiday"]);
+describe("team holidays (US federal plus company days)", () => {
+  it("an extra company day blocks a date even when the prospect is working", () => {
     expect(invalidReasons("2026-11-12", US, ctx())).toEqual(["team_holiday"]);
+  });
+
+  it("US holidays are team days off too, for any prospect country", () => {
+    expect(invalidReasons("2026-11-26", US, ctx())).toEqual(["prospect_holiday", "team_holiday"]);
+    expect(invalidReasons("2026-11-26", { country: "GB" }, ctx())).toEqual(["team_holiday"]);
+  });
+
+  it("India holidays are ordinary working days", () => {
+    for (const d of ["2026-01-26", "2026-10-02"]) expect(isValidDate(d, US, ctx())).toBe(true);
   });
 
   it("stack with prospect holidays: Tue 10 Nov + 1 working day skips 11 and 12 Nov", () => {
@@ -113,8 +122,14 @@ describe("rollForward (validating Claude's dates)", () => {
     expect(rollForward("2026-11-11", US, ctx())).toEqual({
       date: "2026-11-13",
       movedFrom: "2026-11-11",
-      reasons: ["prospect_holiday"],
+      reasons: ["prospect_holiday", "team_holiday"],
     });
+  });
+
+  it("names a US holiday once in the moved note", () => {
+    expect(reasonCopy(["prospect_holiday", "team_holiday"])).toEqual(["US holiday"]);
+    expect(reasonCopy(["team_holiday"])).toEqual(["company day off"]);
+    expect(reasonCopy(["prospect_holiday"])).toEqual(["prospect holiday"]);
   });
 
   it("moves a Saturday to Monday", () => {
@@ -201,12 +216,12 @@ describe("pause, resume and snooze", () => {
 
 describe("non-US contacts", () => {
   it("use their own country's holidays instead of the US list", () => {
-    expect(isValidDate("2026-11-26", { country: "GB" }, ctx())).toBe(true); // not a UK holiday
+    expect(isValidDate("2026-11-25", { country: "GB" }, ctx())).toBe(true);
     expect(isValidDate("2026-12-28", { country: "GB" }, ctx())).toBe(false); // Boxing Day observed
   });
 
   it("fall back to weekends only for an unknown country, still honouring team holidays", () => {
-    expect(isValidDate("2026-11-26", { country: "XX" }, ctx())).toBe(true);
+    expect(isValidDate("2026-11-25", { country: "XX" }, ctx())).toBe(true);
     expect(isValidDate("2026-11-12", { country: "XX" }, ctx())).toBe(false);
   });
 });

@@ -7,7 +7,7 @@ import { isPastPostTime, teamDayOff } from "@/lib/slack/schedule";
 const APP = "https://occ.example";
 const ctx = (over: Partial<CalendarContext> = {}): CalendarContext => ({
   prospectHolidays: prospectHolidayLookup([2026]),
-  teamHolidays: new Set(["2026-11-12"]),
+  teamHolidays: new Set([...prospectHolidayLookup([2026])("US"), "2026-11-12"]),
   outOfOffice: new Map(),
   quietPeriods: [],
   ...over,
@@ -18,13 +18,16 @@ describe("morning post calendar", () => {
   it("posts on a normal working day", () => {
     expect(teamDayOff("2026-11-10", ctx())).toEqual([]);
   });
-  it("skips weekends and India team holidays", () => {
+  it("skips weekends and extra company days", () => {
     expect(teamDayOff("2026-11-07", ctx())).toContain("weekend");
     expect(teamDayOff("2026-11-12", ctx())).toEqual(["team_holiday"]);
   });
-  it("still posts on a US holiday (Veterans Day, Thanksgiving): the team works", () => {
-    expect(teamDayOff("2026-11-11", ctx())).toEqual([]);
-    expect(teamDayOff("2026-11-26", ctx())).toEqual([]);
+  it("skips US holidays (Veterans Day, Thanksgiving): the team is off", () => {
+    expect(teamDayOff("2026-11-11", ctx())).toEqual(["team_holiday"]);
+    expect(teamDayOff("2026-11-26", ctx())).toEqual(["team_holiday"]);
+  });
+  it("posts on India holidays: ordinary working days", () => {
+    expect(teamDayOff("2026-10-02", ctx())).toEqual([]);
   });
   it("skips an enabled quiet period only", () => {
     expect(teamDayOff("2026-12-28", ctx({ quietPeriods: [{ start: "2026-12-24", end: "2027-01-01", enabled: true }] }))).toEqual(["quiet_period"]);

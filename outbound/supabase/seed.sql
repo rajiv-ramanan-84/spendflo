@@ -1,5 +1,5 @@
 -- Seed: the four launch users and default settings. Safe to re-run.
--- Holidays are loaded in milestone 3 from date-holidays (US) plus the India list.
+-- Holidays are loaded from date-holidays (US federal); the team follows that calendar.
 
 insert into users (email, name, role) values
   ('rajiv@spendflo.com',        'Rajiv',  'admin'),

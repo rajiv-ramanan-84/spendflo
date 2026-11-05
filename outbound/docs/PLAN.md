@@ -45,7 +45,7 @@ All ids are `uuid default gen_random_uuid()`. Every table has `created_at` and `
 | `app_settings` | singleton row: sheet_id, caps jsonb, priority_weights jsonb, default_model, tier_a_model, slack_channel_id, slack_post_times jsonb, slack_posts_enabled jsonb, quiet_periods jsonb | Admin-only write |
 | `skill_versions` | version_no, body, edited_by | Current skill = highest version |
 | `proof_points` | label, customer_name, text, approved | Only approved rows reach Claude |
-| `holidays` | calendar (`US` / `IN_TEAM` / ISO country), date, name, source (preloaded / manual) | US preloaded from date-holidays for 2026 and 2027 |
+| `holidays` | calendar (`US` federal for prospects and team / `TEAM` extra company days / ISO country), date, name, source (preloaded / manual) | US preloaded from date-holidays for 2026 and 2027 |
 | `data_quality_issues` | sheet_tab, sheet_row, sheet_key, issue_type, details, status (open / resolved / ignored) | The review queue |
 | `sync_runs` | started_at, finished_at, status, counts jsonb, error | Header shows the latest |
 | `claude_calls` | call_type, account_id, campaign_id, model, skill_version_id, status (queued / running / ok / invalid / failed), attempts, input_tokens, output_tokens, cost_usd, error, raw_output | Retry, bulk queue and monthly spend |
@@ -126,7 +126,7 @@ Each milestone ends with a commit and its check run for real.
 | --- | --- | --- | --- |
 | 1 | Scaffold and login | Next.js 16, Tailwind 4, Spendflo tokens, app shell (Today, Accounts, Team, Settings), Supabase Google login, allowlist plus domain gate in callback and on every request | Allowlist unit tests pass; non-allowlisted session is signed out and refused; build passes. Live Google test once Supabase keys are in |
 | 2 | Schema | All tables above, enums, indexes, RLS, seed. Allowlist moves from env to `users` | `supabase db reset` on a fresh database applies cleanly |
-| 3 | Working calendar | `isValidDate`, `addWorkingDays`, `nextValidDate`, `listValidDates(30)`, pause and resume shifts | Unit tests: Veterans Day 11 Nov 2026, Thanksgiving 26 Nov 2026, India team holidays, OOO, quiet periods |
+| 3 | Working calendar | `isValidDate`, `addWorkingDays`, `nextValidDate`, `listValidDates(30)`, pause and resume shifts | Unit tests: Veterans Day 11 Nov 2026, Thanksgiving 26 Nov 2026, company days off, OOO, quiet periods |
 | 4 | Sheet sync | Read Master and Contacts by Account ID, FIT and MAYBE active, NO-FIT archived, data quality queue, DNC protection, four-column write-back, dry-run mode | Dry run counts match the sheet; write-back diff shows only four columns |
 | 5 | Claude calls | `generate_campaign`, `replan_campaign`, `classify_reply` with zod validation, one auto-retry, date re-check, caps check, prompt caching, auto-draft Tier A and B | One real account drafts with every date valid and caps holding |
 | 6 | Cockpit and draft review | Contact rows with tracks, review flags, inline edit, Launch gated on flags | Launching creates dated steps |
@@ -152,12 +152,12 @@ These are flagged with the default I will use. Anything marked **Need from you**
 9. **Sheet access.** M1 says admin's Google login; brief and Section 11 say service account. Default: service account.
 10. **"Today" time zone.** Steps are dated for the prospect but worked from India. Default: Due and Overdue are computed on the assignee's time zone (default IST), the send window shows prospect local time.
 11. **Week for caps.** Default: Monday to Sunday calendar week in the prospect's calendar.
-12. **valid_working_dates per call.** Validity depends on contact country and assignee OOO, but the skill takes one list. Default: send dates valid on US prospect plus India team calendars, plus each user's OOO dates in `team`; the app re-validates per step on import and rolls forward with a "moved from" note.
+12. **valid_working_dates per call.** Validity depends on contact country and assignee OOO, but the skill takes one list. Default: send dates valid on the US federal calendar (prospects and team), plus each user's OOO dates in `team`; the app re-validates per step on import and rolls forward with a "moved from" note.
 13. **Gmail scope "limited to known contacts".** Google cannot narrow `gmail.readonly`. Default: the app only queries threads it created and `from:` known contact addresses or LinkedIn senders. That is a code guarantee, not a scope guarantee. Worth saying plainly to the team.
 14. **Manager and Settings.** Mouli cannot edit admin settings but uses the Data queue inside Settings. Default: Settings shows the Data tab to managers, everything else admin only.
 15. **Google refresh token.** Supabase returns it only at sign-in. Default: request offline access with consent each login, capture it in the callback, encrypt and store it (from milestone 2, once the table exists). Gmail scopes are requested from day one so nobody has to re-consent later.
 16. **Team emails (confirmed):** rajiv@, siddharth@, chandramouli@, mahasweta@spendflo.com.
-17. **Need from you: India company holiday list** for 2026 and 2027 (milestone 3).
+17. ~~India company holiday list~~ Resolved: the team follows the US federal calendar (updated 5 Nov 2026).
 18. **Need from you: sheet shared with the service account** and Mouli's cleanup (Account ID, Persona) done before milestone 4's real dry run.
 19. **Need from you: Anthropic key and the approved proof points** before milestone 5. Defaults: Sonnet for all tiers, Opus for Tier A.
 20. **Penetration definition** stays as written (reply or meeting, not a LinkedIn accept) until you say otherwise.

@@ -13,9 +13,6 @@ insert into holidays (calendar, date, name, source) values
   ('US', '2026-11-11', 'Veterans Day', 'preloaded'),
   ('US', '2026-11-26', 'Thanksgiving Day', 'preloaded'),
   ('US', '2026-12-25', 'Christmas Day', 'preloaded'),
-  ('IN_TEAM', '2026-01-26', 'Republic Day', 'preloaded'),
-  ('IN_TEAM', '2026-08-15', 'Independence Day (India)', 'preloaded'),
-  ('IN_TEAM', '2026-10-02', 'Gandhi Jayanti', 'preloaded'),
   ('US', '2027-01-01', 'New Year''s Day', 'preloaded'),
   ('US', '2027-01-18', 'Martin Luther King Jr. Day', 'preloaded'),
   ('US', '2027-02-15', 'Washington''s Birthday', 'preloaded'),
@@ -30,8 +27,5 @@ insert into holidays (calendar, date, name, source) values
   ('US', '2027-11-25', 'Thanksgiving Day', 'preloaded'),
   ('US', '2027-12-24', 'Christmas Day (substitute day)', 'preloaded'),
   ('US', '2027-12-25', 'Christmas Day', 'preloaded'),
-  ('US', '2027-12-31', 'New Year''s Day (substitute day)', 'preloaded'),
-  ('IN_TEAM', '2027-01-26', 'Republic Day', 'preloaded'),
-  ('IN_TEAM', '2027-08-15', 'Independence Day (India)', 'preloaded'),
-  ('IN_TEAM', '2027-10-02', 'Gandhi Jayanti', 'preloaded')
+  ('US', '2027-12-31', 'New Year''s Day (substitute day)', 'preloaded')
 on conflict (calendar, date) do nothing;

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { title: "Users", body: "Add or deactivate teammates, set roles and out-of-office." },
-  { title: "Calendars and holidays", body: "US federal, India team holidays, quiet periods." },
+  { title: "Calendars and holidays", body: "US federal holidays, extra company days, quiet periods." },
   { title: "Data", body: "Sheet connection, last sync and the data quality queue." },
   { title: "Claude", body: "Skill text, model, approved proof points and monthly spend." },
   { title: "Caps and priority", body: "Touch caps, daily load and Focus Today weights." },

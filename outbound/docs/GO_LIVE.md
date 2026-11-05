@@ -5,7 +5,7 @@ All 10 milestones are built and tested locally against the real account book. Th
 ## 1. Supabase (15 min)
 
 1. Create a project (region: Mumbai or Singapore).
-2. SQL editor: run every file in `supabase/migrations` in order, then `supabase/seed.sql`, `seed_holidays.sql`, `seed_skill.sql`.
+2. SQL editor: run every file in `supabase/migrations` in order, then `supabase/seed.sql`, `seed_holidays.sql` (US federal, which the team follows) and `seed_skill.sql` (the campaign skill plus the outbound reference docs).
 3. Copy the URL, anon key and service role key into Vercel.
 
 ## 2. Google (25 min)
@@ -46,6 +46,6 @@ Open `supabase/schedule.sql`, replace `<APP_URL>` and `<CRON_SECRET>`, and run i
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| India team holiday list for 2026 and 2027 | Rajiv | Stops steps and the morning post on team holidays |
+| Any extra company days off beyond US federal holidays | Rajiv | Loaded as TEAM days so steps and the morning post skip them (one SQL insert until the holidays screen is built) |
 | Approved proof points | Rajiv, Sid | Claude only cites what is on this list |
 | Clean up 12 duplicate and 15 CHECK rows, and confirm personas | Mouli | Cleaner sync and better track choices |
