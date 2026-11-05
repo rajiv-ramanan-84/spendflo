@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { accessConfigFromEnv, checkAccess, parseEmailList } from "@/lib/auth/allowlist";
+import { accessConfigFromEnv, checkAccess, checkDomain, parseEmailList } from "@/lib/auth/allowlist";
 
 const config = {
   allowedEmails: ["rajiv@spendflo.com", "siddharth@spendflo.com", "chandramouli@spendflo.com", "mahasweta@spendflo.com"],
@@ -58,5 +58,31 @@ describe("env parsing", () => {
   it("builds config from env", () => {
     const cfg = accessConfigFromEnv({ ALLOWED_EMAILS: "rajiv@spendflo.com", ALLOWED_DOMAIN: " SpendFlo.com " } as unknown as NodeJS.ProcessEnv);
     expect(cfg).toEqual({ allowedEmails: ["rajiv@spendflo.com"], allowedDomain: "spendflo.com" });
+  });
+});
+
+describe("checkAccess with the users table", () => {
+  it("lets an active team member in, even if not in the env list", () => {
+    const empty = { ...config, allowedEmails: [] };
+    expect(checkAccess("newbdr@spendflo.com", empty, { active: true })).toEqual({ allowed: true, email: "newbdr@spendflo.com" });
+  });
+
+  it("refuses a deactivated user even if they are in the env list", () => {
+    expect(checkAccess("rajiv@spendflo.com", config, { active: false })).toEqual({ allowed: false, reason: "deactivated" });
+  });
+
+  it("refuses someone with no users row once the database is connected", () => {
+    expect(checkAccess("rajiv@spendflo.com", config, null)).toEqual({ allowed: false, reason: "not_on_allowlist" });
+  });
+
+  it("still enforces the domain for an active row", () => {
+    expect(checkAccess("rajiv@gmail.com", config, { active: true })).toEqual({ allowed: false, reason: "wrong_domain" });
+  });
+});
+
+describe("checkDomain", () => {
+  it("passes any company address and refuses others", () => {
+    expect(checkDomain("anyone@spendflo.com", config).allowed).toBe(true);
+    expect(checkDomain("anyone@other.com", config).allowed).toBe(false);
   });
 });

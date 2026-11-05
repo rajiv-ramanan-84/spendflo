@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { accessConfigFromEnv, checkAccess } from "@/lib/auth/allowlist";
+import { accessConfigFromEnv, checkDomain } from "@/lib/auth/allowlist";
 
 const PUBLIC_PATHS = ["/login", "/auth/callback", "/auth/signout"];
 
@@ -10,7 +10,8 @@ function isPublic(pathname: string) {
 
 /**
  * Runs on every request: refreshes the Supabase session cookie, sends signed-out
- * users to /login, and signs out anyone who is no longer on the allowlist.
+ * users to /login, and signs out anyone outside the company domain. The full
+ * team check (users table, active flag) runs in requireUser on every page.
  */
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,7 +39,7 @@ export async function proxy(request: NextRequest) {
   const user = data.user;
 
   if (isPublic(pathname)) {
-    if (user && pathname === "/login" && checkAccess(user.email, accessConfigFromEnv()).allowed) {
+    if (user && pathname === "/login" && checkDomain(user.email, accessConfigFromEnv()).allowed) {
       return NextResponse.redirect(new URL("/today", request.url));
     }
     return response;
@@ -50,7 +51,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  const decision = checkAccess(user.email, accessConfigFromEnv());
+  const decision = checkDomain(user.email, accessConfigFromEnv());
   if (!decision.allowed) {
     await supabase.auth.signOut();
     const refused = NextResponse.redirect(new URL(`/login?error=${decision.reason}`, request.url));
