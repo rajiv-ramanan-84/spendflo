@@ -80,6 +80,22 @@ begin
   assert n = 1, 'updated_at trigger';
 end $$;
 
+-- account_rollup view
+do $$
+declare r record;
+begin
+  update steps set status = 'done', completed_at = '2026-11-06 10:00+00' where gmail_draft_id = 'draft-1';
+  insert into steps (campaign_id, track_id, version_no, sequence_no, contact_id, channel, scheduled_date, due_date)
+    values ('bbbbbbbb-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', 1, 4, 'cccccccc-0000-0000-0000-000000000001', 'call', '2026-11-10', '2026-11-10');
+  update contacts set engagement_status = 'replied' where id = 'cccccccc-0000-0000-0000-000000000001';
+  select * into r from account_rollup where sheet_account_id = 'ACC-001';
+  assert r.campaign_status = 'draft', 'rollup picks the open campaign over the closed one';
+  assert r.last_touch = '2026-11-06', 'rollup last touch';
+  assert r.next_step_date = '2026-11-10', 'rollup next step';
+  assert r.contacts_engaged = 1 and r.contacts_total = 1, 'rollup contacts engaged';
+end $$;
+\echo 'ROLLUP CHECKS PASSED'
+
 -- RLS: active user reads everything
 set role authenticated;
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
@@ -88,7 +104,7 @@ declare n int;
 begin
   select count(*) into n from accounts; assert n = 1, 'active user reads accounts';
   select count(*) into n from users; assert n = 4, 'active user reads team';
-  select count(*) into n from steps; assert n = 1, 'active user reads steps';
+  select count(*) into n from steps; assert n = 2, 'active user reads steps';
   begin
     insert into accounts (sheet_account_id, name) values ('ACC-X', 'x');
     raise exception 'FAIL: browser write allowed';
