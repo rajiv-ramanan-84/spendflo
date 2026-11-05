@@ -32,8 +32,9 @@ async function main() {
   console.log("plan ok:", r.plan.ok, "counts:", r.plan.counts);
   console.log("auto-drafts queued:", r.autoDraftQueued, "| cells that would be written:", r.writes.length, "| missing columns:", r.missingWritebackColumns);
 
-  const count = async (t: string, f?: (q: any) => any) => {
-    let q = db.from(t).select("*", { count: "exact", head: true });
+  type CountQuery = ReturnType<ReturnType<typeof db.from>["select"]>;
+  const count = async (t: string, f?: (q: CountQuery) => CountQuery) => {
+    let q: CountQuery = db.from(t).select("*", { count: "exact", head: true });
     if (f) q = f(q);
     return (await q).count;
   };
