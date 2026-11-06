@@ -3,9 +3,21 @@ import { requireUser } from "@/lib/auth/session";
 import { Logo } from "@/components/ui/logo";
 import { BottomNav, TopNav } from "@/components/shell/nav";
 import { UserMenu } from "@/components/shell/user-menu";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { lastSheetSync } from "@/lib/data/data-quality";
+
+function ago(iso: string) {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h} h ago` : `${Math.round(h / 24)} d ago`;
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  const db = supabaseAdmin();
+  const sync = db ? await lastSheetSync(db).catch(() => null) : null;
 
   return (
     <div className="min-h-dvh pb-20 md:pb-0">
@@ -18,9 +30,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <TopNav />
           </div>
           <div className="flex items-center gap-5">
-            <span className="hidden text-xs text-ink-400 lg:inline" title="Sheet sync arrives in milestone 4">
-              Sheet sync: not connected
-            </span>
+            <Link href="/settings#data" className={`hidden text-xs lg:inline ${sync && !sync.ok ? "text-rose-600" : "text-ink-400"} hover:text-ink-700`}>
+              {sync ? (sync.ok ? `Sheet synced ${ago(sync.at)}` : `Sheet sync failed ${ago(sync.at)}`) : "Sheet not synced yet"}
+            </Link>
             <UserMenu user={user} />
           </div>
         </div>

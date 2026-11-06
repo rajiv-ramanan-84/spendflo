@@ -25,8 +25,8 @@ export function SyncButton() {
       `${c.accountsActive ?? 0} active accounts`,
       `${c.contactsImported ?? 0} contacts`,
       c.accountsNew ? `${c.accountsNew} new` : null,
-      c.autoDraftQueued ? `${c.autoDraftQueued} queued for overnight drafts` : null,
-      c.dqOpen ? `${c.dqOpen} rows to check in the sheet` : null,
+      c.autoDraftQueued ? `${c.autoDraftQueued} queued for drafts` : null,
+      c.dqOpen ? `${c.dqOpen} rows to check (Settings > Data)` : null,
     ].filter(Boolean);
     setMsg({ ok: true, text: `Synced: ${parts.join(", ")}.` });
     router.refresh();
