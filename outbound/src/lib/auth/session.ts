@@ -1,0 +1,54 @@
+import "server-only";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { supabaseEnv } from "@/lib/supabase/config";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { accessConfigFromEnv, checkAccess } from "./allowlist";
+import { findTeamUser, type Role } from "./team";
+
+export type SessionUser = {
+  authUserId: string;
+  /** users.id; null only in bootstrap mode before the database is connected. */
+  id: string | null;
+  email: string;
+  name: string;
+  role: Role;
+  avatarUrl: string | null;
+};
+
+/** Use in every signed-in page, route handler and server action. Never trust the proxy alone. */
+export async function requireUser(): Promise<SessionUser> {
+  await cookies(); // per-request rendering, even before Supabase is configured
+  if (!supabaseEnv()) redirect("/login?error=not_configured");
+
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
+  if (!user) redirect("/login");
+
+  const team = user.email ? await findTeamUser(user.email) : null;
+  const decision = checkAccess(user.email, accessConfigFromEnv(), team);
+  if (!decision.allowed) {
+    await supabase.auth.signOut();
+    redirect(`/login?error=${decision.reason}`);
+  }
+
+  const meta = user.user_metadata ?? {};
+  const googleName = (meta.full_name as string) || (meta.name as string) || decision.email.split("@")[0];
+  return {
+    authUserId: user.id,
+    id: team?.id ?? null,
+    email: decision.email,
+    name: team?.name || googleName,
+    role: team?.role ?? "member",
+    avatarUrl: team?.avatar_url || (meta.avatar_url as string) || null,
+  };
+}
+
+export function canEditAdminSettings(user: SessionUser) {
+  return user.role === "admin";
+}
+
+export function canAssignAccounts(user: SessionUser) {
+  return user.role === "admin" || user.role === "manager";
+}
