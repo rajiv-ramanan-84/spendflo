@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic, costUsd, requestParams } from "@/lib/claude/client";
 import { CampaignSchema } from "@/lib/claude/schemas";
 import { finishGenerate, prepareGenerate } from "./generate";
+import { assertBudget, draftsAffordable, monthSpend } from "@/lib/claude/budget";
 
 /**
  * Every draft goes through the Message Batches API: half price, and no
@@ -18,6 +19,7 @@ const MAX_ATTEMPTS = 2;
 
 /** Generate button: queue this account and send it now. One draft in flight per account. */
 export async function queueDraft(db: SupabaseClient, d: { accountId: string; requestedBy: string | null; ownerNotes?: string | null }) {
+  await assertBudget(db, "draft");
   const { data: inFlight } = await db.from("claude_calls").select("id, status, batch_id").eq("call_type", "generate_campaign").eq("account_id", d.accountId).in("status", ["queued", "running"]).limit(1).maybeSingle();
   if (inFlight) {
     // Queued by the sheet sync but not sent yet: a click means now, so send it.
@@ -54,8 +56,12 @@ export async function submitDraftBatch(db: SupabaseClient, opts: { onlyIds?: str
     .order("created_at", { ascending: true })
     .limit(MAX_PER_BATCH);
   if (opts.onlyIds?.length) q = q.in("id", opts.onlyIds);
-  const { data: queued } = await q;
-  if (!queued?.length) return { submitted: 0, skipped: 0, batchId: null };
+  const { data: allQueued } = await q;
+  if (!allQueued?.length) return { submitted: 0, skipped: 0, batchId: null };
+  // Never send more than this month's budget allows; the rest wait, still queued.
+  const affordable = draftsAffordable(await monthSpend(db));
+  const queued = allQueued.slice(0, affordable);
+  if (!queued.length) return { submitted: 0, skipped: 0, batchId: null, held: allQueued.length };
 
   const format = zodOutputFormat(CampaignSchema);
   const requests: Array<{ custom_id: string; params: ReturnType<typeof requestParams> }> = [];

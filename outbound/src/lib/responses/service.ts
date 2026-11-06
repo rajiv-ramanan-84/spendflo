@@ -8,6 +8,7 @@ import { validateCampaign } from "@/lib/claude/validate";
 import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload } from "@/lib/campaigns/context";
 import { accountForPayload, insertTracks } from "@/lib/campaigns/generate";
 import { ActionError, canEdit } from "@/lib/campaigns/actions";
+import { assertBudget } from "@/lib/claude/budget";
 import { startWaitingTracks } from "@/lib/steps/execute";
 import { logActivity } from "@/lib/activity/log";
 import { normalizeLinkedIn } from "@/lib/sheet-sync/identity";
@@ -226,6 +227,7 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   const { data: c } = await db.from("campaigns").select("*").eq("id", d.campaignId).single();
   if (!c) throw new ActionError("Campaign not found", 404);
   if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can re-plan", 403);
+  await assertBudget(db, "re-plan");
   const p = await loadPlanningContext(db);
   if (!p.skill.text) throw new ActionError("No campaign skill is set. Paste it in Settings > Claude.");
   if (!process.env.ANTHROPIC_API_KEY) throw new ActionError("Claude is not connected yet (ANTHROPIC_API_KEY). Edit the steps by hand for now.");

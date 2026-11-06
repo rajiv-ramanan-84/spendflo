@@ -707,6 +707,17 @@ alter table claude_calls add column if not exists batch_context jsonb;
 create index if not exists claude_calls_batch_id_idx on claude_calls (batch_id) where batch_id is not null;
 
 -- ============================================================
+-- supabase/migrations/20261106000007_claude_spend_controls.sql
+-- ============================================================
+-- Claude spend controls.
+-- auto_draft: which new accounts a sheet sync drafts on its own.
+--   'off' = only when someone clicks Generate (default), 'a' = Tier A, 'ab' = Tier A and B.
+-- claude_monthly_budget_usd: drafts and re-plans pause once this month's
+--   Claude spend reaches it. Reply sorting keeps running.
+alter table app_settings add column if not exists auto_draft text not null default 'off' check (auto_draft in ('off', 'a', 'ab'));
+alter table app_settings add column if not exists claude_monthly_budget_usd numeric(10, 2) not null default 50 check (claude_monthly_budget_usd >= 0);
+
+-- ============================================================
 -- supabase/seed.sql (team and default settings)
 -- ============================================================
 -- Seed: the four launch users and default settings. Safe to re-run.
