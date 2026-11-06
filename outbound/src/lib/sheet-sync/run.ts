@@ -187,12 +187,17 @@ async function syncDataQuality(db: SupabaseClient, issues: DqIssue[]) {
   const open = await all<{ id: string; sheet_tab: string; sheet_key: string | null; issue_type: string }>(
     db.from("data_quality_issues").select("id, sheet_tab, sheet_key, issue_type").eq("status", "open"),
   );
+  // Rows someone chose to ignore stay ignored until the issue itself changes.
+  const ignored = await all<{ sheet_tab: string; sheet_key: string | null; issue_type: string }>(
+    db.from("data_quality_issues").select("sheet_tab, sheet_key, issue_type").eq("status", "ignored"),
+  );
   const keyOf = (tab: string, key: string | null, type: string) => `${tab}|${key ?? ""}|${type}`;
   const current = new Map(issues.map((i) => [keyOf(i.tab, i.key, i.type), i]));
   const openByKey = new Map(open.map((o) => [keyOf(o.sheet_tab, o.sheet_key, o.issue_type), o]));
   const now = new Date().toISOString();
 
-  const toInsert = [...current.entries()].filter(([k]) => !openByKey.has(k)).map(([, i]) => ({
+  const ignoredKeys = new Set(ignored.map((o) => keyOf(o.sheet_tab, o.sheet_key, o.issue_type)));
+  const toInsert = [...current.entries()].filter(([k]) => !openByKey.has(k) && !ignoredKeys.has(k)).map(([, i]) => ({
     sheet_tab: i.tab, sheet_row: i.row, sheet_key: i.key, issue_type: i.type, details: i.details,
   }));
   const stillOpen = open.filter((o) => current.has(keyOf(o.sheet_tab, o.sheet_key, o.issue_type))).map((o) => o.id);
@@ -255,7 +260,9 @@ export async function runSheetSync(opts: SyncOptions = {}): Promise<SyncResult> 
     const r = await syncFromValues(db, master, contacts, { dryRun });
     if (r.writes.length) await writeCells(sheetId, t, r.writes);
 
-    const counts = { ...r.plan.counts, dqOpen: r.plan.dq.length, writebackCells: r.writebackCells, autoDraftQueued: r.autoDraftQueued };
+    // Rows to check, not counting the ones someone chose to ignore.
+    const { count: openDq } = dryRun ? { count: null } : await db.from("data_quality_issues").select("id", { count: "exact", head: true }).eq("status", "open");
+    const counts = { ...r.plan.counts, dqOpen: openDq ?? r.plan.dq.length, writebackCells: r.writebackCells, autoDraftQueued: r.autoDraftQueued };
     await db.from("sync_runs").update({
       status: r.plan.ok ? "ok" : "failed",
       finished_at: new Date().toISOString(),
