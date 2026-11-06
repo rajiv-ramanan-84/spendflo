@@ -174,8 +174,15 @@ async function applyPlan(db: SupabaseClient, plan: SyncPlan, personaByKey: Map<s
 
   await syncDataQuality(db, plan.dq);
 
-  // Auto-draft new Tier A and B accounts (M5 drains the queue). Nothing launches without the owner.
-  const queued = plan.autoDraft.map((sid) => ({ call_type: "generate_campaign", account_id: accountUuid.get(sid), status: "queued" }));
+  // Auto-draft new accounts only if Settings > Claude spend says so (off by
+  // default: Claude writes when someone clicks Generate). Nothing launches without the owner.
+  const { data: settings } = await db.from("app_settings").select("auto_draft").maybeSingle();
+  const mode = (settings?.auto_draft as string | undefined) ?? "off";
+  const tiers = mode === "ab" ? ["A", "B"] : mode === "a" ? ["A"] : [];
+  const tierOf = new Map(plan.accounts.map((a) => [a.sheetAccountId, a.tier]));
+  const queued = plan.autoDraft
+    .filter((sid) => tiers.includes(tierOf.get(sid) ?? ""))
+    .map((sid) => ({ call_type: "generate_campaign", account_id: accountUuid.get(sid), status: "queued" }));
   if (queued.length) {
     const { error } = await db.from("claude_calls").insert(queued);
     if (error) throw new Error(`Queue drafts: ${error.message}`);

@@ -8,25 +8,30 @@ import { loadSkillSettings } from "@/lib/claude/skill-settings";
 import { SkillSettings } from "@/components/settings/skill-settings";
 import { loadDataSettings } from "@/lib/data/data-quality";
 import { DataSettings } from "@/components/settings/data-settings";
+import { monthSpend } from "@/lib/claude/budget";
+import { ClaudeSpend } from "@/components/settings/claude-spend";
 
 export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   { title: "Users", body: "Add or deactivate teammates, set roles and out-of-office." },
   { title: "Calendars and holidays", body: "US federal holidays, extra company days, quiet periods." },
-  { title: "Claude spend and proof points", body: "Monthly spend and the approved proof points Claude may cite." },
+  { title: "Proof points", body: "The approved proof points Claude may cite." },
   { title: "Caps and priority", body: "Touch caps, daily load and Focus Today weights." },
 ];
 
 export default async function SettingsPage() {
   const user = await requireUser();
   const db = supabaseAdmin();
-  const [slack, skill, data] = db ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db)]) : [null, null, null];
+  const [slack, skill, data, spend, auto] = db
+    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft").maybeSingle()])
+    : [null, null, null, null, null];
   return (
     <>
       <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
       <div className="grid gap-5">
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
+        {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} canEdit={canEditAdminSettings(user)} />}
         {skill && <SkillSettings {...skill} canEdit={canEditAdminSettings(user)} />}
         {slack && <SlackSettings {...slack} canEdit={canEditAdminSettings(user)} />}
         {canEditAdminSettings(user) ? (
