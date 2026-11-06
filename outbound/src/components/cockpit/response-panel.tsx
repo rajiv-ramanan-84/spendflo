@@ -150,7 +150,8 @@ function PendingCard({ r, who, focused, busy, canEdit, onConfirm, onDismiss }: {
 
 function ReplanRequest({ r, who, busy, canEdit, hasDraft, onRequest }: { r: CockpitResponse; who: string | null; busy: boolean; canEdit: boolean; hasDraft: boolean; onRequest: (next: string, scope: "track" | "campaign") => void }) {
   const [next, setNext] = useState(r.owner_next_step ?? r.suggested_next_step ?? "");
-  const [scope, setScope] = useState<"track" | "campaign">("campaign");
+  // A positive reply can change the whole account; anything else, just that person.
+  const [scope, setScope] = useState<"track" | "campaign">(r.classification === "positive" ? "campaign" : "track");
   if (hasDraft) return null;
   return (
     <div className="rounded-2xl border border-brand-200 bg-brand-50/40 p-4">
@@ -162,7 +163,7 @@ function ReplanRequest({ r, who, busy, canEdit, hasDraft, onRequest }: { r: Cock
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <select value={scope} onChange={(e) => setScope(e.target.value as "track" | "campaign")} className="rounded-xl border border-line bg-white px-3 py-2 text-sm">
               <option value="campaign">Whole campaign</option>
-              <option value="track">Just this contact</option>
+              <option value="track">Just this contact (faster)</option>
             </select>
             <Button disabled={busy} onClick={() => onRequest(next, scope)} className="ml-auto"><Sparkles size={16} /> {busy ? "Re-planning..." : "Re-plan with Claude"}</Button>
           </div>

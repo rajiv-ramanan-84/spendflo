@@ -61,7 +61,7 @@ export async function recordDetected(db: SupabaseClient, d: DetectedInput) {
       kind: "classify_reply",
       model: p.settings.default_model,
       skillText: p.skill.text,
-      payload: buildClassifyPayload({ message: d.text, fromAddress: d.fromAddress, knownContacts: (known ?? []).map((k) => ({ contact_id: k.id, name: k.full_name, email: k.email, title: k.title })), threadContext: d.threadContext }),
+      payload: buildClassifyPayload({ today: todayIn(), message: d.text, fromAddress: d.fromAddress, knownContacts: (known ?? []).map((k) => ({ contact_id: k.id, name: k.full_name, email: k.email, title: k.title })), threadContext: d.threadContext }),
       schema: ClassifySchema,
     });
     await db.from("claude_calls").insert({ call_type: "classify_reply", account_id: d.accountId, model: res.model, status: res.ok ? "ok" : "failed", attempts: res.attempts, input_tokens: res.usage?.input ?? null, output_tokens: res.usage?.output ?? null, cost_usd: res.usage?.costUsd ?? null, error: res.ok ? null : res.message });
@@ -261,6 +261,11 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
     users: p.users.map((u) => ({ id: u.id, key: u.key, active: u.active })),
     campaignStartDate: win.start, caps: p.caps, existingTouches: touches, ctx: p.ctx,
   });
+  // Track scope: only the person who replied changes. Anything else Claude
+  // returned is ignored, and the diff compares that one person's steps.
+  const only = d.scope === "track" && resp?.contact_id ? resp.contact_id : null;
+  if (only) validated.tracks = validated.tracks.filter((t) => t.contactId === only);
+  const oldOpen = only ? current.open.filter((s) => s.contactId === only) : current.open;
   const next: PlanStep[] = validated.tracks.flatMap((t) => t.steps.map((s) => ({ contactId: t.contactId, sequenceNo: s.sequenceNo, channel: s.channel, date: s.date, offset: s.offsetWorkingDays, subject: s.subject, body: s.body })));
 
   const names = new Map((contacts ?? []).map((x) => [x.id, x.full_name as string]));
@@ -273,7 +278,7 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   await db.from("replan_drafts").update({ state: "discarded" }).eq("campaign_id", c.id).eq("state", "open");
   const { data: draft } = await db.from("replan_drafts").insert({
     campaign_id: c.id, scope: d.scope, response_id: d.responseId, created_by: user.id, state: "open",
-    claude_output: { output: res.data, validated, diff: diffPlans(current.open, next), model: res.model, payload },
+    claude_output: { output: res.data, validated, diff: diffPlans(oldOpen, next), model: res.model, payload },
   }).select("id").single();
   await logActivity(db, { entityType: "campaign", entityId: c.id, action: "replan_requested", actorId: user.id, after: { draftId: draft?.id } });
   return { draftId: draft!.id as string };

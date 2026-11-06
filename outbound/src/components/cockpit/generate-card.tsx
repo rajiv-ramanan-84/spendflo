@@ -46,7 +46,7 @@ export function GenerateCard({ accountId, canGenerate, usableContacts }: { accou
             />
           </label>
           <Button onClick={generate} disabled={busy || usableContacts === 0}>
-            <Wand2 size={16} />{busy ? "Planning… (up to a minute)" : "Generate campaign"}
+            <Wand2 size={16} />{busy ? "Writing the campaign… about 3 minutes" : "Generate campaign"}
           </Button>
         </div>
       ) : null}

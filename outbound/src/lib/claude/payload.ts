@@ -126,9 +126,10 @@ export function buildReplanPayload(i: ReplanInput) {
   };
 }
 
-export function buildClassifyPayload(i: { message: string; fromAddress: string; knownContacts: Array<{ contact_id: string; name: string; email: string | null; title: string | null }>; threadContext: string | null }) {
+export function buildClassifyPayload(i: { today?: string; message: string; fromAddress: string; knownContacts: Array<{ contact_id: string; name: string; email: string | null; title: string | null }>; threadContext: string | null }) {
   return {
     call: "classify_reply" as const,
+    today: i.today ?? null,
     message: quoteData(i.message),
     from_address: i.fromAddress,
     known_contacts: i.knownContacts,

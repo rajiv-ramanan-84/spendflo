@@ -29,31 +29,45 @@ async function loadAccount(db: SupabaseClient, accountId: string) {
   return { account, contacts: (contacts ?? []).filter((c) => !c.sheet_deleted_at) };
 }
 
-export async function generateCampaign(
+type Prepared = {
+  p: PlanningContext;
+  account: Record<string, unknown> & { id: string; tier: string | null; owner_id: string | null };
+  contacts: Awaited<ReturnType<typeof loadAccount>>["contacts"];
+  drafts: string[];
+  owner: PlanningContext["users"][number];
+  win: ReturnType<typeof planningWindow>;
+  touches: Awaited<ReturnType<typeof loadScheduledTouches>>;
+  model: string;
+  refs: ReturnType<typeof contactRefs>;
+  payload: ReturnType<typeof buildGeneratePayload>;
+};
+
+/** Everything up to the Claude call: checks, planning window, payload. Shared by live and overnight drafts. */
+export async function prepareGenerate(
   db: SupabaseClient,
-  opts: { accountId: string; requestedBy: string | null; ownerNotes?: string | null; callId?: string },
-): Promise<GenerateResult> {
+  opts: { accountId: string; ownerNotes?: string | null; refIds?: string[] },
+): Promise<{ ok: true; prep: Prepared } | { ok: false; error: string; retryable: false }> {
   const p = await loadPlanningContext(db);
-  if (!p.skill.text) return { ok: false, error: "No campaign skill is set. Paste it in Settings > Claude.", callId: null, retryable: false };
+  if (!p.skill.text) return { ok: false, error: "No campaign skill is set. Upload it in Settings > Claude.", retryable: false };
 
   const { account, contacts } = await loadAccount(db, opts.accountId);
-  if (account.archived || account.do_not_contact) return { ok: false, error: "This account is archived or marked do not contact.", callId: null, retryable: false };
+  if (account.archived || account.do_not_contact) return { ok: false, error: "This account is archived or marked do not contact.", retryable: false };
 
   const { data: open } = await db.from("campaigns").select("id, status").eq("account_id", account.id).is("deleted_at", null).in("status", OPEN_STATUSES);
-  const live = (open ?? []).find((c) => c.status !== "draft");
-  if (live) return { ok: false, error: "This account already has a live campaign. Use Re-plan instead.", callId: null, retryable: false };
+  if ((open ?? []).some((c) => c.status !== "draft")) return { ok: false, error: "This account already has a live campaign. Use Re-plan instead.", retryable: false };
 
   const owner = p.users.find((u) => u.id === account.owner_id);
-  if (!owner) return { ok: false, error: "Assign an owner before generating a campaign.", callId: null, retryable: false };
+  if (!owner) return { ok: false, error: "Assign an owner before generating a campaign.", retryable: false };
 
   const usable = contacts.filter((c) => !c.exclude && !c.do_not_contact && (c.email || c.linkedin_url));
-  if (!usable.length) return { ok: false, error: "No usable contacts (each needs an email or LinkedIn URL and must not be excluded).", callId: null, retryable: false };
+  if (!usable.length) return { ok: false, error: "No usable contacts (each needs an email or LinkedIn URL and must not be excluded).", retryable: false };
 
   const win = planningWindow(p);
   const touches = await loadScheduledTouches(db, p.today);
   const model = account.tier === "A" ? p.settings.tier_a_model : p.settings.default_model;
 
-  const refs = contactRefs(contacts.map((c) => c.id));
+  // Overnight drafts reuse the refs Claude saw when the batch was sent.
+  const refs = contactRefs(opts.refIds ?? contacts.map((c) => c.id));
   const payload = buildGeneratePayload({
     today: p.today,
     campaignStartDate: win.start,
@@ -81,14 +95,13 @@ export async function generateCampaign(
     approvedProofPoints: p.proofPoints,
     ownerNotes: opts.ownerNotes ?? null,
   });
+  return { ok: true, prep: { p, account, contacts, drafts: (open ?? []).filter((c) => c.status === "draft").map((c) => c.id), owner, win, touches, model, refs, payload } };
+}
 
-  const callId = await startCall(db, opts.callId, { account_id: account.id, model, skill_version_id: p.skill.id, requested_by: opts.requestedBy });
-  const started = Date.now();
-  const res = await callClaude({ kind: "generate_campaign", model, skillText: p.skill.text, payload, schema: CampaignSchema });
-  await finishCall(db, callId, res, Date.now() - started);
-  if (!res.ok) return { ok: false, error: res.message, callId, retryable: res.reason !== "refusal" };
-
-  const validated = validateCampaign(res.data, {
+/** Validates Claude's plan against the calendar and caps, then saves it as a Draft. */
+export async function finishGenerate(db: SupabaseClient, prep: Prepared, data: CampaignOutput, meta: { model: string; callId: string; requestedBy: string | null }) {
+  const { p, account, contacts, owner, win, touches, refs, payload } = prep;
+  const validated = validateCampaign(data, {
     accountId: account.id,
     ownerId: owner.id,
     contacts: contacts.map((c) => ({
@@ -111,18 +124,34 @@ export async function generateCampaign(
   });
 
   // Regenerating replaces an earlier draft; history stays (soft delete).
-  for (const d of (open ?? []).filter((c) => c.status === "draft")) {
-    await db.from("campaigns").update({ deleted_at: new Date().toISOString() }).eq("id", d.id);
-  }
+  for (const id of prep.drafts) await db.from("campaigns").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   // Notes for people read better with names than with c1-style refs.
   const names = new Map(contacts.map((c) => [c.id, c.full_name as string]));
   const nm = <T extends string | null>(t: T) => namesForRefs(t, refs.toId, names) as T;
-  const output = { ...res.data, rationale: nm(res.data.rationale), review: { ...res.data.review, likely_reply: nm(res.data.review.likely_reply), main_weakness: nm(res.data.review.main_weakness) } };
+  const output = { ...data, rationale: nm(data.rationale), review: { ...data.review, likely_reply: nm(data.review.likely_reply), main_weakness: nm(data.review.main_weakness) } };
   const readable = { ...validated, blocking: validated.blocking.map((b) => ({ ...b, text: nm(b.text) })), notes: validated.notes.map((n) => ({ ...n, text: nm(n.text) })), tracks: validated.tracks.map((t) => ({ ...t, rationale: nm(t.rationale), goal: nm(t.goal) })) };
-  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: res.model, p, createdBy: opts.requestedBy });
-  await db.from("claude_calls").update({ campaign_id: campaignId }).eq("id", callId);
-  await logActivity(db, { entityType: "campaign", entityId: campaignId, action: "draft_generated", actorId: opts.requestedBy, after: { model: res.model, blocking: validated.blocking.length } });
-  return { ok: true, campaignId, blocking: validated.blocking.length, notes: validated.notes.length, callId };
+  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: meta.model, p, createdBy: meta.requestedBy });
+  await db.from("claude_calls").update({ campaign_id: campaignId }).eq("id", meta.callId);
+  await logActivity(db, { entityType: "campaign", entityId: campaignId, action: "draft_generated", actorId: meta.requestedBy, after: { model: meta.model, blocking: validated.blocking.length } });
+  return { campaignId, blocking: validated.blocking.length, notes: validated.notes.length };
+}
+
+export async function generateCampaign(
+  db: SupabaseClient,
+  opts: { accountId: string; requestedBy: string | null; ownerNotes?: string | null; callId?: string },
+): Promise<GenerateResult> {
+  const ready = await prepareGenerate(db, opts);
+  if (!ready.ok) return { ok: false, error: ready.error, callId: null, retryable: false };
+  const { prep } = ready;
+
+  const callId = await startCall(db, opts.callId, { account_id: prep.account.id, model: prep.model, skill_version_id: prep.p.skill.id, requested_by: opts.requestedBy });
+  const started = Date.now();
+  const res = await callClaude({ kind: "generate_campaign", model: prep.model, skillText: prep.p.skill.text, payload: prep.payload, schema: CampaignSchema });
+  await finishCall(db, callId, res, Date.now() - started);
+  if (!res.ok) return { ok: false, error: res.message, callId, retryable: res.reason !== "refusal" };
+
+  const done = await finishGenerate(db, prep, res.data, { model: res.model, callId, requestedBy: opts.requestedBy });
+  return { ok: true, callId, ...done };
 }
 
 export function accountForPayload(a: Record<string, unknown>): PayloadAccount {
