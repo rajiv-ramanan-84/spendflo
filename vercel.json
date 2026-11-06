@@ -4,6 +4,13 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)outbound'",
+  "git": {
+    "deploymentEnabled": {
+      "outbound-command-center": false,
+      "claude/*": false
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/sync-google-sheets",

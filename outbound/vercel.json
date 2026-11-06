@@ -5,5 +5,6 @@
       "outbound-command-center": false,
       "claude/*": false
     }
-  }
+  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ."
 }
