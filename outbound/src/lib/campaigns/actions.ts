@@ -156,7 +156,7 @@ export async function removeStep(db: SupabaseClient, user: SessionUser, stepId: 
   await logActivity(db, { entityType: "step", entityId: stepId, action: campaign.status === "draft" ? "deleted" : "skipped", actorId: user.id, before: step });
 }
 
-export async function launchCampaign(db: SupabaseClient, user: SessionUser, campaignId: string) {
+export async function launchCampaign(db: SupabaseClient, user: SessionUser, campaignId: string, opts: { acknowledgeFlags?: boolean } = {}) {
   const c = await campaignFor(db, campaignId);
   if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can launch", 403);
   if (c.status !== "draft") throw new ActionError("Only a draft can be launched");
@@ -170,6 +170,8 @@ export async function launchCampaign(db: SupabaseClient, user: SessionUser, camp
   const dated = (steps ?? []).filter((s) => s.due_date);
   const gate = canLaunch((c.review?.flags ?? []) as ReviewFlag[], c.review_flags_cleared ?? [], dated.length);
   if (!gate.ok) throw new ActionError(`Can't launch yet: ${gate.reason}`);
+  if (gate.warnings.length && !opts.acknowledgeFlags) throw new ActionError(`${gate.reason}. Confirm to launch anyway.`, 409);
+  if (gate.warnings.length) await logActivity(db, { entityType: "campaign", entityId: c.id, action: "launched_with_open_flags", actorId: user.id, after: { open: gate.warnings.map((f) => f.text) } });
 
   const today = todayIn();
   const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);

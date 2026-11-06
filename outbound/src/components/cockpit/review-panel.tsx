@@ -6,6 +6,10 @@ import { AlertTriangle, CheckCircle2, Info, Rocket } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { canLaunch, openFlags, type ReviewFlag } from "@/lib/campaigns/launch";
+import { openContactFinder } from "./contact-finder";
+
+/** Flags about people missing from the contact list get a one-click web search. */
+const MISSING_CONTACT = /\b(add (that|this|the|a|one)?\s*(person|contact)|add contact|not (in|among) the contacts|no (coupa admin|economic buyer|system owner|contract manager|cpo|procurement lead)|is not in the contacts|missing contact)/i;
 
 type Props = {
   campaignId: string;
@@ -50,10 +54,15 @@ export function ReviewPanel(p: Props) {
     setCleared(p.flags.map((f) => f.id));
   }
 
-  async function launch() {
+  const [confirming, setConfirming] = useState(false);
+
+  async function launch(acknowledgeFlags = false) {
+    // Open flags never block: show them once and let the owner decide.
+    if (open.length && !acknowledgeFlags) return setConfirming(true);
+    setConfirming(false);
     setBusy("launch");
     setError(null);
-    const res = await fetch(`/api/campaigns/${p.campaignId}/launch`, { method: "POST" });
+    const res = await fetch(`/api/campaigns/${p.campaignId}/launch`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ acknowledgeFlags }) });
     const data = await res.json();
     setBusy(null);
     if (!data.ok) return setError(data.error);
@@ -85,16 +94,31 @@ export function ReviewPanel(p: Props) {
         </div>
         {p.canEdit ? (
           <div className="flex flex-col items-end gap-2">
-            <Button onClick={launch} disabled={!gate.ok || busy !== null}>
+            <Button onClick={() => launch()} disabled={!gate.ok || busy !== null}>
               <Rocket size={16} />{busy === "launch" ? "Launching…" : "Launch"}
             </Button>
-            <span className="text-xs text-ink-400">{gate.ok ? "Every step keeps its working-day date" : gate.reason}</span>
+            <span className="text-xs text-ink-400">{!gate.ok ? gate.reason : open.length ? `${open.length} flag${open.length > 1 ? "s" : ""} not reviewed (you can still launch)` : "Every step keeps its working-day date"}</span>
             <button onClick={regenerate} disabled={busy !== null} className="text-xs text-ink-500 underline hover:text-ink-900">
               {busy === "regen" ? "Sending to Claude..." : "Regenerate draft"}
             </button>
           </div>
         ) : null}
       </div>
+
+      {confirming ? (
+        <div role="alertdialog" aria-label="Launch with open flags" className="mx-5 mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 md:mx-6">
+          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900"><AlertTriangle size={16} /> {open.length} flag{open.length > 1 ? "s" : ""} not reviewed</div>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900">
+            {open.slice(0, 5).map((f) => <li key={f.id}>{f.text}</li>)}
+            {open.length > 5 ? <li>and {open.length - 5} more</li> : null}
+          </ul>
+          <p className="mt-2 text-xs text-amber-800">Launching schedules the steps. Nothing is sent: you still review and send every touch.</p>
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" onClick={() => setConfirming(false)}>Review first</Button>
+            <Button onClick={() => launch(true)} disabled={busy !== null}><Rocket size={16} /> {busy === "launch" ? "Launching..." : "Launch anyway"}</Button>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <div role="alert" className="mx-5 mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700 md:mx-6">{error}</div> : null}
 
@@ -119,6 +143,7 @@ export function ReviewPanel(p: Props) {
                   <span>{f.text}</span>
                   {!done && p.canEdit ? (
                     <span className="flex gap-2">
+                      {MISSING_CONTACT.test(f.text) ? <button onClick={() => openContactFinder(f.text)} className="rounded-lg bg-brand-500 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-brand-600">Find on the web</button> : null}
                       <button onClick={() => clear(f.id, "resolved")} disabled={busy === f.id} className="rounded-lg bg-white px-2.5 py-1 text-xs font-medium text-ink-900 shadow-sm hover:bg-canvas">Resolved</button>
                       <button onClick={() => clear(f.id, "dismissed")} disabled={busy === f.id} className="rounded-lg px-2.5 py-1 text-xs font-medium text-ink-500 hover:bg-white">Dismiss</button>
                     </span>

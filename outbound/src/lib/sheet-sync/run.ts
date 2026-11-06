@@ -19,14 +19,14 @@ export type SyncResult = {
   error?: string;
 };
 
-function tabs() {
+export function tabs() {
   return {
     master: process.env.SHEET_MASTER_TAB || "Master",
     contacts: process.env.SHEET_CONTACTS_TAB || "Contacts (Wiza + Evaboot)",
   };
 }
 
-async function sheetIdFor(db: SupabaseClient): Promise<string> {
+export async function sheetIdFor(db: SupabaseClient): Promise<string> {
   const { data } = await db.from("app_settings").select("sheet_id").maybeSingle();
   const id = data?.sheet_id || process.env.GOOGLE_SHEET_ID;
   if (!id) throw new Error("No sheet connected. Set it in Settings > Data or GOOGLE_SHEET_ID.");

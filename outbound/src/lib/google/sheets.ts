@@ -60,3 +60,14 @@ export async function writeCells(sheetId: string, tabs: { master: string; contac
   }
   return { updatedCells: updated };
 }
+
+/** Adds rows under the last row of a tab. Used only to add contacts someone chose to add. */
+export async function appendRows(sheetId: string, tab: string, rows: readonly string[][]) {
+  if (!rows.length) return { updatedRows: 0 };
+  const range = encodeURIComponent(`${quoteTab(tab)}!A1`);
+  const res = await call<{ updates?: { updatedRows?: number } }>(`${API}/${sheetId}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+    method: "POST",
+    body: JSON.stringify({ values: rows }),
+  });
+  return { updatedRows: res.updates?.updatedRows ?? 0 };
+}

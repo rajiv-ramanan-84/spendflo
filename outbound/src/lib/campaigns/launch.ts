@@ -16,11 +16,14 @@ export function openFlags(flags: readonly ReviewFlag[], cleared: readonly string
   return flags.filter((f) => !done.has(f.id));
 }
 
-export function canLaunch(flags: readonly ReviewFlag[], cleared: readonly string[], datedSteps: number): { ok: boolean; reason: string | null } {
+/**
+ * Launch is blocked only when nothing could go out (no dated step). Open
+ * review flags are a warning: the owner confirms once and launches anyway.
+ */
+export function canLaunch(flags: readonly ReviewFlag[], cleared: readonly string[], datedSteps: number): { ok: boolean; reason: string | null; warnings: ReviewFlag[] } {
   const open = openFlags(flags, cleared);
-  if (open.length) return { ok: false, reason: `${open.length} review flag${open.length > 1 ? "s" : ""} to resolve or dismiss` };
-  if (datedSteps === 0) return { ok: false, reason: "No dated steps yet. Add a step or a fixed start to at least one track" };
-  return { ok: true, reason: null };
+  if (datedSteps === 0) return { ok: false, reason: "No dated steps yet. Add a step or a fixed start to at least one track", warnings: open };
+  return { ok: true, reason: open.length ? `${open.length} flag${open.length > 1 ? "s" : ""} not reviewed` : null, warnings: open };
 }
 
 export type RebaseStep = { id: string; date: IsoDate };

@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { CAMPAIGN_STATUS_LABEL, firstName } from "@/lib/format";
 import { GenerateCard } from "@/components/cockpit/generate-card";
 import { DraftPending } from "@/components/cockpit/draft-pending";
+import { ContactFinder } from "@/components/cockpit/contact-finder";
 import { ReviewPanel } from "@/components/cockpit/review-panel";
 import { ContactRows } from "@/components/cockpit/contact-rows";
 import { ResponsePanel } from "@/components/cockpit/response-panel";
@@ -124,6 +125,8 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             canEdit={canEdit}
           />
         )}
+
+        {canEdit && !a.archived ? <ContactFinder accountId={a.id} accountName={a.name} /> : null}
 
         <ContactRows
           today={todayIn()}

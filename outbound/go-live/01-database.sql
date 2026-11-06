@@ -718,6 +718,13 @@ alter table app_settings add column if not exists auto_draft text not null defau
 alter table app_settings add column if not exists claude_monthly_budget_usd numeric(10, 2) not null default 50 check (claude_monthly_budget_usd >= 0);
 
 -- ============================================================
+-- supabase/migrations/20261106000008_find_contacts.sql
+-- ============================================================
+-- Claude web search for missing contacts is recorded like any other call,
+-- so it shows in Claude spend and counts against the monthly budget.
+alter type claude_call_type add value if not exists 'find_contacts';
+
+-- ============================================================
 -- supabase/seed.sql (team and default settings)
 -- ============================================================
 -- Seed: the four launch users and default settings. Safe to re-run.
