@@ -18,8 +18,18 @@ const MAX_ATTEMPTS = 2;
 
 /** Generate button: queue this account and send it now. One draft in flight per account. */
 export async function queueDraft(db: SupabaseClient, d: { accountId: string; requestedBy: string | null; ownerNotes?: string | null }) {
-  const { data: inFlight } = await db.from("claude_calls").select("id").eq("call_type", "generate_campaign").eq("account_id", d.accountId).in("status", ["queued", "running"]).limit(1).maybeSingle();
-  if (inFlight) return { callId: inFlight.id as string, already: true };
+  const { data: inFlight } = await db.from("claude_calls").select("id, status, batch_id").eq("call_type", "generate_campaign").eq("account_id", d.accountId).in("status", ["queued", "running"]).limit(1).maybeSingle();
+  if (inFlight) {
+    // Queued by the sheet sync but not sent yet: a click means now, so send it.
+    if (inFlight.status === "queued" && !inFlight.batch_id) {
+      try {
+        await submitDraftBatch(db, { onlyIds: [inFlight.id as string] });
+      } catch (e) {
+        console.error("Immediate batch send failed:", e);
+      }
+    }
+    return { callId: inFlight.id as string, already: true };
+  }
   const { data: row, error } = await db.from("claude_calls").insert({
     call_type: "generate_campaign", account_id: d.accountId, status: "queued", requested_by: d.requestedBy,
     batch_context: d.ownerNotes ? { ownerNotes: d.ownerNotes } : null,
