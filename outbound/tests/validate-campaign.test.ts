@@ -194,3 +194,28 @@ describe("validateCampaign", () => {
     expect(wordCount("")).toBe(0);
   });
 });
+
+describe("short contact refs and invented claims", () => {
+  it("resolves c1-style refs back to contact ids", async () => {
+    const { contactRefs } = await import("@/lib/claude/payload");
+    const r = contactRefs(["uuid-a", "uuid-b"]);
+    expect([r.ref("uuid-b"), r.id("c1"), r.id(" c2 "), r.id("c9")]).toEqual(["c2", "uuid-a", "uuid-b", null]);
+  });
+  it("blocks copy that claims a relationship the data does not show", async () => {
+    const { copyIssues } = await import("@/lib/claude/copy-checks");
+    const lim = { emailWords: 150, connectChars: 300 };
+    expect(copyIssues("linkedin_connect", null, "Hi Michael, we share a few connections and I'd like to connect.", lim)).toContain("claims a connection or past conversation the data does not show");
+    expect(copyIssues("email", "Re: our call", "Following up on our conversation last week.", lim).some((x) => x.startsWith("claims"))).toBe(true);
+    expect(copyIssues("linkedin_connect", null, "Hi Michael, I'm the founder of Spendflo. Happy to connect.", lim)).toEqual([]);
+  });
+});
+
+describe("names in Claude's notes", () => {
+  it("swaps c1-style refs for names and leaves other text alone", async () => {
+    const { namesForRefs } = await import("@/lib/claude/payload");
+    const toId = new Map([["c1", "u1"], ["c4", "u4"]]);
+    const names = new Map([["u1", "Aaron B"], ["u4", "Josh Floyd"]]);
+    expect(namesForRefs("c1 email is off-domain; c4 and c9 are riskier. Use c1c2 rules.", toId, names)).toBe("Aaron B email is off-domain; Josh Floyd and c9 are riskier. Use c1c2 rules.");
+    expect(namesForRefs(null, toId, names)).toBeNull();
+  });
+});

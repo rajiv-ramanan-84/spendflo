@@ -41,6 +41,15 @@ export function ReviewPanel(p: Props) {
     setCleared((c) => [...c, flagId]);
   }
 
+  async function clearAll() {
+    setBusy("all");
+    const res = await fetch(`/api/campaigns/${p.campaignId}/flags`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ all: true }) });
+    const data = await res.json();
+    setBusy(null);
+    if (!data.ok) return setError(data.error);
+    setCleared(p.flags.map((f) => f.id));
+  }
+
   async function launch() {
     setBusy("launch");
     setError(null);
@@ -91,9 +100,16 @@ export function ReviewPanel(p: Props) {
 
       {p.flags.length ? (
         <div className="border-t border-line px-5 py-4 md:px-6">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            {open.length ? <AlertTriangle size={16} className="text-warning" /> : <CheckCircle2 size={16} className="text-success" />}
-            {open.length ? `${open.length} of ${p.flags.length} flags to clear before launch` : "All flags cleared"}
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              {open.length ? <AlertTriangle size={16} className="text-warning" /> : <CheckCircle2 size={16} className="text-success" />}
+              {open.length ? `${open.length} of ${p.flags.length} flags to review before launch` : "All flags reviewed"}
+            </div>
+            {open.length > 1 && p.canEdit ? (
+              <button onClick={clearAll} disabled={busy !== null} className="rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink-900 shadow-sm hover:bg-canvas">
+                {busy === "all" ? "Saving..." : `I've read all ${open.length}`}
+              </button>
+            ) : null}
           </div>
           <ul className="grid gap-2">
             {p.flags.map((f) => {

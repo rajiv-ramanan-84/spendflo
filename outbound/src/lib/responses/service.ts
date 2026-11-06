@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { todayIn } from "@/lib/calendar/dates";
 import { callClaude } from "@/lib/claude/client";
-import { buildClassifyPayload, buildReplanPayload } from "@/lib/claude/payload";
+import { buildClassifyPayload, buildReplanPayload, contactRefs, namesForRefs } from "@/lib/claude/payload";
 import { CampaignSchema, ClassifySchema, type Classification } from "@/lib/claude/schemas";
 import { validateCampaign } from "@/lib/claude/validate";
 import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload } from "@/lib/campaigns/context";
@@ -231,20 +231,23 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   if (!process.env.ANTHROPIC_API_KEY) throw new ActionError("Claude is not connected yet (ANTHROPIC_API_KEY). Edit the steps by hand for now.");
 
   const { data: account } = await db.from("accounts").select("*").eq("id", c.account_id).single();
-  const { data: contacts } = await db.from("contacts").select("id, full_name, title, persona, email, email_status, linkedin_url, country, notes, linkedin_signals, exclude, do_not_contact, bounced").eq("account_id", c.account_id).is("deleted_at", null);
+  const { data: contacts } = await db.from("contacts").select("id, full_name, title, persona, email, email_status, linkedin_url, phone, country, notes, linkedin_signals, exclude, do_not_contact, bounced").eq("account_id", c.account_id).is("deleted_at", null);
   const { data: resp } = d.responseId ? await db.from("responses").select("*").eq("id", d.responseId).single() : { data: null };
   const owner = p.users.find((u) => u.id === c.owner_id)!;
   const win = planningWindow(p);
   const touches = (await loadScheduledTouches(db, p.today)).filter((t) => t.accountId !== c.account_id);
   const current = await planStepsFor(db, c.id);
+  const refs = contactRefs((contacts ?? []).map((x) => x.id));
+  const refTracks = (current.tracks as Array<Record<string, unknown>>).map((t) => ({ ...t, id: undefined, assignee_id: undefined, contact_id: refs.ref(t.contact_id as string), trigger_from_contact_id: refs.ref(t.trigger_from_contact_id as string | null) }));
+  const refDone = (current.done as Array<Record<string, unknown>>).map((d) => ({ ...d, contact_ref: refs.ref(d.contact_ref as string) }));
 
   const payload = buildReplanPayload({
     today: p.today, campaignStartDate: win.start, validWorkingDates: win.validWorkingDates,
-    account: accountForPayload(account), contacts: (contacts ?? []).map((x) => ({ contact_id: x.id, name: x.full_name, title: x.title, persona: x.persona, email: x.bounced ? null : x.email, email_status: x.email_status, linkedin_url: x.linkedin_url, country: x.country, notes: x.notes, linkedin_signals: x.linkedin_signals ?? {}, exclude: x.exclude, do_not_contact: x.do_not_contact })),
+    account: accountForPayload(account), contacts: (contacts ?? []).map((x) => ({ contact_id: refs.ref(x.id)!, name: x.full_name, title: x.title, persona: x.persona, email: x.bounced ? null : x.email, email_status: x.email_status, linkedin_url: x.linkedin_url, has_phone: !!x.phone, country: x.country, notes: x.notes, linkedin_signals: x.linkedin_signals ?? {}, exclude: x.exclude, do_not_contact: x.do_not_contact })),
     owner: owner.key, team: teamPayload(p, win.start, win.end), teamLoad: teamLoadPayload(p, touches), caps: p.caps, approvedProofPoints: p.proofPoints, ownerNotes: null,
-    currentCampaign: { name: c.name, objective: c.objective, angle: c.angle, job: c.job, tracks: current.tracks },
-    completedSteps: current.done,
-    response: { contact: resp?.contact_id ?? "", channel: resp?.channel ?? "email", classification: resp?.classification ?? null, summary: resp?.summary ?? null, raw_text: resp?.raw_text ?? null },
+    currentCampaign: { name: c.name, objective: c.objective, angle: c.angle, job: c.job, tracks: refTracks },
+    completedSteps: refDone,
+    response: { contact: refs.ref(resp?.contact_id) ?? "", channel: resp?.channel ?? "email", classification: resp?.classification ?? null, summary: resp?.summary ?? null, raw_text: resp?.raw_text ?? null },
     ownerNextStep: d.ownerNextStep, scope: d.scope,
   });
   const model = account.tier === "A" ? p.settings.tier_a_model : p.settings.default_model;
@@ -253,12 +256,19 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   if (!res.ok) throw new ActionError(res.message, 502);
 
   const validated = validateCampaign(res.data, {
-    accountId: c.account_id, ownerId: c.owner_id,
+    accountId: c.account_id, ownerId: c.owner_id, refs: refs.toId,
     contacts: (contacts ?? []).map((x) => ({ id: x.id, email: x.email, hasEmail: !!x.email && !x.bounced, hasLinkedIn: !!x.linkedin_url, country: x.country, excluded: x.exclude, doNotContact: x.do_not_contact })),
     users: p.users.map((u) => ({ id: u.id, key: u.key, active: u.active })),
     campaignStartDate: win.start, caps: p.caps, existingTouches: touches, ctx: p.ctx,
   });
   const next: PlanStep[] = validated.tracks.flatMap((t) => t.steps.map((s) => ({ contactId: t.contactId, sequenceNo: s.sequenceNo, channel: s.channel, date: s.date, offset: s.offsetWorkingDays, subject: s.subject, body: s.body })));
+
+  const names = new Map((contacts ?? []).map((x) => [x.id, x.full_name as string]));
+  const nm = <T extends string | null>(t: T) => namesForRefs(t, refs.toId, names) as T;
+  res.data.change_summary = nm(res.data.change_summary);
+  validated.blocking = validated.blocking.map((b) => ({ ...b, text: nm(b.text) }));
+  validated.notes = validated.notes.map((n) => ({ ...n, text: nm(n.text) }));
+  validated.tracks = validated.tracks.map((t) => ({ ...t, rationale: nm(t.rationale), goal: nm(t.goal) }));
 
   await db.from("replan_drafts").update({ state: "discarded" }).eq("campaign_id", c.id).eq("state", "open");
   const { data: draft } = await db.from("replan_drafts").insert({

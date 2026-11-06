@@ -28,8 +28,10 @@ describe("generate payload", () => {
   const p = buildGeneratePayload(base);
   const json = JSON.stringify(p);
 
-  it("never contains a phone number field", () => {
-    expect(json).not.toMatch(/phone/i);
+  it("never contains a phone number, only whether one exists", () => {
+    expect(json).not.toMatch(/"phone"\s*:/i);
+    expect(json.replace(/\d{4}-\d{2}-\d{2}/g, "")).not.toMatch(/\+?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
+    expect(Object.keys(p.contacts[0]).filter((k) => /phone/i.test(k))).toEqual(["has_phone"]);
   });
 
   it("marks do-not-contact people as excluded for Claude", () => {

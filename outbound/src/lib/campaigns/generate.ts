@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { callClaude } from "@/lib/claude/client";
-import { buildGeneratePayload, type PayloadAccount } from "@/lib/claude/payload";
+import { buildGeneratePayload, type PayloadAccount, contactRefs, namesForRefs } from "@/lib/claude/payload";
 import { CampaignSchema, type CampaignOutput } from "@/lib/claude/schemas";
 import { validateCampaign, type ValidatedCampaign } from "@/lib/claude/validate";
 import { logActivity } from "@/lib/activity/log";
@@ -23,7 +23,7 @@ async function loadAccount(db: SupabaseClient, accountId: string) {
   if (error || !account) throw new Error("Account not found");
   const { data: contacts } = await db
     .from("contacts")
-    .select("id, full_name, title, persona, email, email_status, linkedin_url, country, notes, linkedin_signals, exclude, do_not_contact, bounced, sheet_deleted_at")
+    .select("id, full_name, title, persona, email, email_status, linkedin_url, phone, country, notes, linkedin_signals, exclude, do_not_contact, bounced, sheet_deleted_at")
     .eq("account_id", accountId)
     .is("deleted_at", null);
   return { account, contacts: (contacts ?? []).filter((c) => !c.sheet_deleted_at) };
@@ -53,19 +53,21 @@ export async function generateCampaign(
   const touches = await loadScheduledTouches(db, p.today);
   const model = account.tier === "A" ? p.settings.tier_a_model : p.settings.default_model;
 
+  const refs = contactRefs(contacts.map((c) => c.id));
   const payload = buildGeneratePayload({
     today: p.today,
     campaignStartDate: win.start,
     validWorkingDates: win.validWorkingDates,
     account: accountForPayload(account),
     contacts: contacts.map((c) => ({
-      contact_id: c.id,
+      contact_id: refs.ref(c.id)!,
       name: c.full_name,
       title: c.title,
       persona: c.persona,
       email: c.bounced ? null : c.email,
       email_status: c.email_status,
       linkedin_url: c.linkedin_url,
+      has_phone: !!c.phone,
       country: c.country,
       notes: c.notes,
       linkedin_signals: c.linkedin_signals ?? {},
@@ -98,6 +100,7 @@ export async function generateCampaign(
       excluded: c.exclude,
       doNotContact: c.do_not_contact,
     })),
+    refs: refs.toId,
     users: p.users.map((u) => ({ id: u.id, key: u.key, active: u.active })),
     campaignStartDate: win.start,
     caps: p.caps,
@@ -111,7 +114,12 @@ export async function generateCampaign(
   for (const d of (open ?? []).filter((c) => c.status === "draft")) {
     await db.from("campaigns").update({ deleted_at: new Date().toISOString() }).eq("id", d.id);
   }
-  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output: res.data, validated, payload, model: res.model, p, createdBy: opts.requestedBy });
+  // Notes for people read better with names than with c1-style refs.
+  const names = new Map(contacts.map((c) => [c.id, c.full_name as string]));
+  const nm = <T extends string | null>(t: T) => namesForRefs(t, refs.toId, names) as T;
+  const output = { ...res.data, rationale: nm(res.data.rationale), review: { ...res.data.review, likely_reply: nm(res.data.review.likely_reply), main_weakness: nm(res.data.review.main_weakness) } };
+  const readable = { ...validated, blocking: validated.blocking.map((b) => ({ ...b, text: nm(b.text) })), notes: validated.notes.map((n) => ({ ...n, text: nm(n.text) })), tracks: validated.tracks.map((t) => ({ ...t, rationale: nm(t.rationale), goal: nm(t.goal) })) };
+  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: res.model, p, createdBy: opts.requestedBy });
   await db.from("claude_calls").update({ campaign_id: campaignId }).eq("id", callId);
   await logActivity(db, { entityType: "campaign", entityId: campaignId, action: "draft_generated", actorId: opts.requestedBy, after: { model: res.model, blocking: validated.blocking.length } });
   return { ok: true, campaignId, blocking: validated.blocking.length, notes: validated.notes.length, callId };

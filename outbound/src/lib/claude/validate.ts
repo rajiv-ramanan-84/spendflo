@@ -31,6 +31,8 @@ export type ValidationInput = {
   accountId: string;
   ownerId: string;
   contacts: ValidationContact[];
+  /** Short ref (c1) to contact id, when the payload used refs. */
+  refs?: ReadonlyMap<string, string>;
   users: ValidationUser[];
   campaignStartDate: IsoDate;
   caps: Caps;
@@ -92,7 +94,8 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
 
   const byId = new Map(input.contacts.map((c) => [c.id, c]));
   const byEmail = new Map(input.contacts.filter((c) => c.email).map((c) => [c.email!.toLowerCase(), c]));
-  const resolveContact = (ref: string | null) => (ref ? (byId.get(ref.trim()) ?? byEmail.get(ref.trim().toLowerCase()) ?? null) : null);
+  const byRef = new Map([...(input.refs ?? new Map<string, string>())].map(([ref, id]) => [ref.toLowerCase(), byId.get(id)]));
+  const resolveContact = (ref: string | null) => (ref ? (byRef.get(ref.trim().toLowerCase()) ?? byId.get(ref.trim()) ?? byEmail.get(ref.trim().toLowerCase()) ?? null) : null);
   const userByKey = new Map(input.users.filter((u) => u.active).map((u) => [u.key.toLowerCase(), u]));
 
   for (const f of out.review.flags) blocking.push({ text: f });
@@ -256,6 +259,6 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
     tracks: tracks.map((t) => ({ ...t, steps: t.steps.map(({ moveReasons, ...rest }) => (void moveReasons, rest)) })),
     blocking,
     notes,
-    skipped: out.skipped_contacts.map((s) => ({ contactRef: s.contact_ref, reason: s.reason })),
+    skipped: out.skipped_contacts.map((s) => ({ contactRef: resolveContact(s.contact_ref)?.id ?? s.contact_ref, reason: s.reason })),
   };
 }

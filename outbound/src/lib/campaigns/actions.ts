@@ -51,6 +51,17 @@ export async function clearFlag(db: SupabaseClient, user: SessionUser, campaignI
   return { open: openFlags(flags, cleared).length };
 }
 
+/** "I've read them all": clears every open flag in one action, logged with the count. */
+export async function clearAllFlags(db: SupabaseClient, user: SessionUser, campaignId: string) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can clear flags", 403);
+  const flags = (c.review?.flags ?? []) as ReviewFlag[];
+  const open = openFlags(flags, c.review_flags_cleared ?? []);
+  await db.from("campaigns").update({ review_flags_cleared: flags.map((f) => f.id) }).eq("id", c.id);
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "flags_reviewed_all", actorId: user.id, after: { cleared: open.map((f) => f.id) } });
+  return { open: 0 };
+}
+
 export type StepPatch = {
   subject?: string | null;
   body?: string | null;
