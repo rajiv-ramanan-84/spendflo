@@ -6,29 +6,50 @@ import { CampaignSchema } from "@/lib/claude/schemas";
 import { finishGenerate, prepareGenerate } from "./generate";
 
 /**
- * Overnight drafts. Queued generations (new Tier A and B accounts from the
- * sheet sync, bulk generate) go to Claude as one Message Batch at half price
- * after midnight IST; results are saved as Drafts as they finish, so owners
- * open Today at 8:30 with drafts waiting. Nothing launches on its own.
+ * Every draft goes through the Message Batches API: half price, and no
+ * request ever waits on Claude, so nothing hits the hosting time limit.
+ * A click on Generate sends that one account straight away; drafts queued by
+ * the sheet sync go out on the next 5-minute run. Results are saved as Drafts
+ * as they finish (usually 5 to 10 minutes). Nothing launches on its own.
  */
 
 const MAX_PER_BATCH = 100;
 const MAX_ATTEMPTS = 2;
 
-export async function submitDraftBatch(db: SupabaseClient) {
-  const { data: queued } = await db
+/** Generate button: queue this account and send it now. One draft in flight per account. */
+export async function queueDraft(db: SupabaseClient, d: { accountId: string; requestedBy: string | null; ownerNotes?: string | null }) {
+  const { data: inFlight } = await db.from("claude_calls").select("id").eq("call_type", "generate_campaign").eq("account_id", d.accountId).in("status", ["queued", "running"]).limit(1).maybeSingle();
+  if (inFlight) return { callId: inFlight.id as string, already: true };
+  const { data: row, error } = await db.from("claude_calls").insert({
+    call_type: "generate_campaign", account_id: d.accountId, status: "queued", requested_by: d.requestedBy,
+    batch_context: d.ownerNotes ? { ownerNotes: d.ownerNotes } : null,
+  }).select("id").single();
+  if (error || !row) throw new Error(error?.message ?? "Could not queue the draft");
+  try {
+    await submitDraftBatch(db, { onlyIds: [row.id] });
+  } catch (e) {
+    // Still queued: the 5-minute run picks it up.
+    console.error("Immediate batch send failed:", e);
+  }
+  return { callId: row.id as string, already: false };
+}
+
+export async function submitDraftBatch(db: SupabaseClient, opts: { onlyIds?: string[] } = {}) {
+  let q = db
     .from("claude_calls")
-    .select("id, account_id, requested_by, attempts")
+    .select("id, account_id, requested_by, attempts, batch_context")
     .eq("status", "queued")
     .eq("call_type", "generate_campaign")
     .is("batch_id", null)
     .order("created_at", { ascending: true })
     .limit(MAX_PER_BATCH);
+  if (opts.onlyIds?.length) q = q.in("id", opts.onlyIds);
+  const { data: queued } = await q;
   if (!queued?.length) return { submitted: 0, skipped: 0, batchId: null };
 
   const format = zodOutputFormat(CampaignSchema);
   const requests: Array<{ custom_id: string; params: ReturnType<typeof requestParams> }> = [];
-  const context = new Map<string, { refIds: string[]; model: string; skillVersionId: string | null }>();
+  const context = new Map<string, { refIds: string[]; model: string; skillVersionId: string | null; ownerNotes: string | null }>();
   let skipped = 0;
 
   const seen = new Set<string>();
@@ -40,7 +61,8 @@ export async function submitDraftBatch(db: SupabaseClient) {
       continue;
     }
     seen.add(q.account_id);
-    const ready = await prepareGenerate(db, { accountId: q.account_id });
+    const ownerNotes = (q.batch_context as { ownerNotes?: string } | null)?.ownerNotes ?? null;
+    const ready = await prepareGenerate(db, { accountId: q.account_id, ownerNotes });
     if (!ready.ok) {
       await db.from("claude_calls").update({ status: "failed", error: ready.error }).eq("id", q.id);
       skipped++;
@@ -48,7 +70,7 @@ export async function submitDraftBatch(db: SupabaseClient) {
     }
     const { prep } = ready;
     requests.push({ custom_id: q.id, params: requestParams("generate_campaign", prep.model, prep.p.skill.text, prep.payload, format) });
-    context.set(q.id, { refIds: [...prep.refs.toId.values()], model: prep.model, skillVersionId: prep.p.skill.id });
+    context.set(q.id, { refIds: [...prep.refs.toId.values()], model: prep.model, skillVersionId: prep.p.skill.id, ownerNotes });
   }
   if (!requests.length) return { submitted: 0, skipped, batchId: null };
 
@@ -72,7 +94,7 @@ export async function submitDraftBatch(db: SupabaseClient) {
     const c = context.get(id)!;
     const { error } = await db.from("claude_calls").update({
       batch_id: batch.id, model: c.model, skill_version_id: c.skillVersionId,
-      batch_context: { refIds: c.refIds }, attempts: (queued.find((q) => q.id === id)?.attempts ?? 0) + 1,
+      batch_context: { refIds: c.refIds, ownerNotes: c.ownerNotes }, attempts: (queued.find((q) => q.id === id)?.attempts ?? 0) + 1,
     }).eq("id", id);
     if (error) throw new Error(`Batch ${batch.id} sent but could not be recorded: ${error.message}`);
   }
@@ -138,6 +160,9 @@ export async function collectDraftBatches(db: SupabaseClient) {
       await db.from("claude_calls").update({ ...base, status: "ok", error: null }).eq("id", row.id);
       await finishGenerate(db, ready.prep, parsed.data, { model: msg.model, callId: row.id, requestedBy: row.requested_by });
       summary.drafts++;
+      // Badge for whoever asked, or the owner for drafts queued by the sync.
+      const notify = row.requested_by ?? (ready.prep.account.owner_id as string | null);
+      if (notify) await db.from("notifications").insert({ user_id: notify, type: "draft_ready", entity_type: "account", entity_id: row.account_id, message: `Draft ready: ${ready.prep.account.name as string}` });
     }
     // Anything the batch did not return goes back in the queue.
     for (const row of rowById.values()) {

@@ -90,7 +90,7 @@ export function ReviewPanel(p: Props) {
             </Button>
             <span className="text-xs text-ink-400">{gate.ok ? "Every step keeps its working-day date" : gate.reason}</span>
             <button onClick={regenerate} disabled={busy !== null} className="text-xs text-ink-500 underline hover:text-ink-900">
-              {busy === "regen" ? "Regenerating…" : "Regenerate draft"}
+              {busy === "regen" ? "Sending to Claude..." : "Regenerate draft"}
             </button>
           </div>
         ) : null}

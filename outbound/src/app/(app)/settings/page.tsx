@@ -27,6 +27,17 @@ export default async function SettingsPage() {
       <div className="grid gap-5">
         {skill && <SkillSettings {...skill} canEdit={canEditAdminSettings(user)} />}
         {slack && <SlackSettings {...slack} canEdit={canEditAdminSettings(user)} />}
+        {canEditAdminSettings(user) ? (
+          <Card className="flex flex-wrap items-center justify-between gap-4 p-5 md:p-6">
+            <div className="max-w-2xl">
+              <h2 className="text-lg font-semibold">Backup</h2>
+              <p className="mt-1 text-sm text-ink-500">
+                The free database plan keeps no backups. Download one on the first working day of each month and save it to Google Drive. Accounts and contacts can always be re-synced from the sheet; campaigns, replies and history live only here.
+              </p>
+            </div>
+            <a href="/api/settings/backup" className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink-900 hover:border-brand-200 hover:bg-brand-50">Download backup</a>
+          </Card>
+        ) : null}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {SECTIONS.map((s) => (
             <Card key={s.title} className="p-5">

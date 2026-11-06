@@ -1,6 +1,6 @@
 # Go live: step by step
 
-About 2 hours, start to finish. Do it in order: later steps use values from earlier ones.
+About 2 hours, start to finish. Everything runs on free plans except Claude. Do it in order: later steps use values from earlier ones.
 
 Keep a scratch note open (1Password secure note is ideal). Every time a step says **Save**, paste the value there.
 
@@ -10,7 +10,7 @@ Keep a scratch note open (1Password secure note is ideal). Every time a step say
 | --- | --- | --- |
 | `01-database.sql` | Step 1.4 | Creates the whole database: tables, security, the 4 of you, US holidays, the skill |
 | `vercel-environment-variables.env` | Steps 1 to 6 | Your settings for Vercel. Two secrets are already generated. Private. |
-| `02-schedules-READY.sql` | Step 7 | Turns on the timed jobs (Gmail check, sync, morning post, overnight drafts). Private. |
+| `02-schedules-READY.sql` | Step 7 | Turns on the timed jobs (Gmail check, sync, morning post, drafts). Private. |
 | `slack-app-manifest.yaml` | Step 3.1 | Creates the Slack bot in one paste |
 
 The two private files were sent to you directly and are not in GitHub. Do not post them in Slack or email.
@@ -19,10 +19,19 @@ The two private files were sent to you directly and are not in GitHub. Do not po
 
 | Service | Plan | Cost |
 | --- | --- | --- |
-| Vercel (hosting) | Pro, 1 seat | $20. Required: the free plan is for personal use only and cuts off long drafts. |
-| Supabase (database) | Pro | $25. Daily backups, and the project never pauses. |
-| Claude | Pay as you go, $150 cap | About $40 to $80 |
-| Google Cloud, Slack | Existing | $0 |
+| Vercel (hosting) | Hobby (free) | $0 |
+| Supabase (database) | Free | $0 |
+| Google Cloud (sign-in, Gmail, Sheets) | Free | $0 |
+| Slack | Your current plan, free works | $0 |
+| GitHub | Your current plan | $0 |
+| Claude | Pay as you go, $150 cap | About $15 to $40. Claude has no free API plan. |
+
+### What free means in practice
+
+- **Vercel Hobby** allows each request up to 5 minutes. The app is built to stay well inside that: drafts are written in the background, so no request waits on Claude for long. One thing to know: Vercel's terms say Hobby is for personal, non-commercial use. An internal tool for Spendflo may count as commercial. If Vercel ever asks, moving to Pro ($20/month) is one click and needs no change to the app.
+- **Supabase Free** pauses a project after 7 days with no activity. The app's 15-minute Gmail check keeps it active, so this should not happen. If it ever does, open Supabase and click **Restore project**; no data is lost.
+- **Supabase Free has no backups.** Accounts and contacts can always be re-synced from the sheet. Campaigns, replies and history live only in the database, so download a backup once a month (step 8.8).
+- **Slack free** keeps 90 days of channel history. Old alerts disappear from Slack; everything stays in the app.
 
 ---
 
@@ -37,7 +46,7 @@ The two private files were sent to you directly and are not in GitHub. Do not po
 - Region: **East US (North Virginia)**. This sits next to Vercel's servers, which keeps the app fast.
 - Click **Create new project** and wait about 2 minutes until the dashboard loads.
 
-1.3 Upgrade to Pro: **Organization settings > Billing > Change plan > Pro**.
+1.3 Stay on the **Free** plan. Nothing to change here.
 
 1.4 Create the database.
 - Left menu: **SQL Editor**, then **New query** (the + button).
@@ -140,7 +149,7 @@ Or just tell me "merge it" and I'll do it.
 
 ## Step 6. Vercel, the hosting (15 min)
 
-6.1 Go to **vercel.com** and **Sign up / Log in with GitHub**, using the GitHub account that can see `rajiv-ramanan-84/spendflo`. Upgrade the team to **Pro** (**Settings > Billing**).
+6.1 Go to **vercel.com** and **Sign up / Log in with GitHub**, using the GitHub account that can see `rajiv-ramanan-84/spendflo`. Choose the **Hobby** (free) plan when asked.
 
 6.2 Click **Add New > Project**. Find `spendflo` in the list and click **Import**. If it is not listed, click **Adjust GitHub App Permissions** and give Vercel access to that repository.
 
@@ -164,12 +173,12 @@ Or just tell me "merge it" and I'll do it.
 
 7.1 Supabase: **SQL Editor > New query**. Paste all of `02-schedules-READY.sql` and click **Run**. You should see a small table of results and no errors.
 
-7.2 Check it: left menu **Integrations > Cron** (or **Database > Cron Jobs**). You should see 7 jobs starting with `occ-`.
+7.2 Check it: left menu **Integrations > Cron** (or **Database > Cron Jobs**). You should see 5 jobs starting with `occ-`.
 
 From now on:
 - The Gmail check runs every 15 minutes, around the clock.
 - The sheet syncs every hour.
-- Overnight drafts go out at 00:30 IST and are saved by morning.
+- Drafts are written in the background every 5 minutes. New Tier A and B accounts from the sheet get a draft within about 15 minutes of a sync.
 - The morning plan posts at 8:30 IST on working days. Weekends and US holidays are skipped.
 
 ---
@@ -182,13 +191,15 @@ From now on:
 
 8.3 **Settings > Claude campaign skill**: it shows **Version 1**. This is where you upload your edited skill later.
 
-8.4 **Accounts > Sync now**. Expect about 81 active accounts and 36 archived. New Tier A and B accounts are queued for tonight's drafts.
+8.4 **Accounts > Sync now**. Expect about 81 active accounts and 36 archived. New Tier A and B accounts are queued for drafts, which land over the next 15 minutes or so.
 
-8.5 Try one draft now. Open **Xylem** and click **Generate campaign**. It takes about 3 to 4 minutes. Review the flags and the copy.
+8.5 Try one draft now. Open **Xylem** and click **Generate campaign**. A "Claude is writing this campaign" card appears; the draft lands in 5 to 10 minutes and the page refreshes on its own. Review the flags and the copy.
 
 8.6 **Sid, Mouli and Shweta** each open the app once and sign in with Google. This connects their Gmail for drafts and reply detection. Until they do, the app cannot create drafts in their mailbox.
 
-8.7 Tomorrow at 8:30 IST: the morning plan in Slack, with the overnight drafts waiting in Today.
+8.7 Tomorrow at 8:30 IST: the morning plan in Slack, with new drafts waiting in Today.
+
+8.8 Once a month (put it in your calendar): **Settings > Backup > Download backup**, and save the file to a Google Drive folder.
 
 ---
 

@@ -23,7 +23,7 @@ select cron.schedule('occ-gmail-check', '*/15 * * * *', $$select app_call('/api/
 -- Morning plan: the route waits for the post time in Settings (8:30 IST),
 -- skips weekends and US holidays, and posts once. Runs 8:30 to 10:00 IST to catch up if missed.
 select cron.schedule('occ-morning-post', '0,15,30,45 3-4 * * 1-5', $$select app_call('/api/cron/morning-post')$$);
--- Overnight drafts: send queued drafts as one half-price batch at 00:30 IST...
-select cron.schedule('occ-draft-batch-send', '0 19 * * *', $$select app_call('/api/cron/claude-batch?step=submit')$$);
--- ...and save finished drafts every 30 minutes, so they are ready by 8:30 IST.
-select cron.schedule('occ-draft-batch-save', '*/30 * * * *', $$select app_call('/api/cron/claude-batch?step=collect')$$);
+-- Drafts: every 5 minutes, send queued drafts to Claude as one half-price
+-- batch and save any finished ones. A Generate click sends at once; this
+-- also picks up drafts queued by the sheet sync, so they are ready within ~15 minutes.
+select cron.schedule('occ-drafts', '*/5 * * * *', $$select app_call('/api/cron/claude-batch')$$);

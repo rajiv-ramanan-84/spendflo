@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar } from "@/components/ui/avatar";
 import { CAMPAIGN_STATUS_LABEL, firstName } from "@/lib/format";
 import { GenerateCard } from "@/components/cockpit/generate-card";
+import { DraftPending } from "@/components/cockpit/draft-pending";
 import { ReviewPanel } from "@/components/cockpit/review-panel";
 import { ContactRows } from "@/components/cockpit/contact-rows";
 import { ResponsePanel } from "@/components/cockpit/response-panel";
@@ -45,6 +46,10 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const datedSteps = tracks.flatMap((t) => t.steps).filter((s) => s.due_date).length;
   const live = campaign && !["draft", "closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? campaign : null;
   const inbox = await getAccountResponses(db, a.id, live?.id ?? null);
+  // Drafts are written in the background: show progress, or the last failure.
+  const { data: lastCall } = await db.from("claude_calls").select("status, created_at, error").eq("account_id", a.id).eq("call_type", "generate_campaign").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const pending = lastCall && ["queued", "running"].includes(lastCall.status) ? lastCall : null;
+  const lastError = lastCall && ["failed", "invalid"].includes(lastCall.status) && (!campaign || campaign.created_at < lastCall.created_at) ? (lastCall.error as string | null) : null;
 
   return (
     <>
@@ -87,8 +92,9 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
       </Card>
 
       <div className="mt-5 grid gap-5">
-        {!campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
-          <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} />
+        {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}
+        {pending && campaign?.status !== "draft" ? null : !campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
+          <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} />
         ) : campaign.status === "draft" ? (
           <ReviewPanel
             campaignId={campaign.id}

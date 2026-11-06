@@ -6,11 +6,11 @@ import { Wand2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export function GenerateCard({ accountId, canGenerate, usableContacts }: { accountId: string; canGenerate: boolean; usableContacts: number }) {
+export function GenerateCard({ accountId, canGenerate, usableContacts, lastError }: { accountId: string; canGenerate: boolean; usableContacts: number; lastError?: string | null }) {
   const router = useRouter();
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(lastError ?? null);
 
   async function generate() {
     setBusy(true);
@@ -28,7 +28,7 @@ export function GenerateCard({ accountId, canGenerate, usableContacts }: { accou
         <div className="max-w-xl">
           <h2 className="text-[15px] font-semibold">No campaign yet</h2>
           <p className="mt-1 text-sm text-ink-500">
-            Claude plans one track per contact with real working dates, channels and copy. It lands as a draft for you to review. Nothing goes out until you launch, and you send every touch.
+            Claude plans one track per contact with real working dates, channels and copy. It takes 5 to 10 minutes and lands as a draft for you to review. Nothing goes out until you launch, and you send every touch.
           </p>
         </div>
         <span className="text-xs text-ink-400">{usableContacts} usable contact{usableContacts === 1 ? "" : "s"}</span>
@@ -46,7 +46,7 @@ export function GenerateCard({ accountId, canGenerate, usableContacts }: { accou
             />
           </label>
           <Button onClick={generate} disabled={busy || usableContacts === 0}>
-            <Wand2 size={16} />{busy ? "Writing the campaign… about 3 minutes" : "Generate campaign"}
+            <Wand2 size={16} />{busy ? "Sending to Claude..." : "Generate campaign"}
           </Button>
         </div>
       ) : null}

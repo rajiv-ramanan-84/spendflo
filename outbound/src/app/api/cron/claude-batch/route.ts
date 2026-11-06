@@ -8,16 +8,17 @@ export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
 /**
- * ?step=submit sends queued drafts as one batch (scheduled after midnight IST).
- * ?step=collect saves finished results as Drafts (scheduled every 30 minutes).
+ * Every 5 minutes: send any queued drafts as one batch, then save finished
+ * ones as Drafts. ?step=submit or ?step=collect runs just one half.
  */
 async function handle(req: Request) {
   if (!isCronRequest(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const db = supabaseAdmin();
   if (!db) return NextResponse.json({ error: "Database is not configured" }, { status: 500 });
   const step = new URL(req.url).searchParams.get("step");
-  if (step === "submit") return NextResponse.json(await submitDraftBatch(db));
-  return NextResponse.json(await collectDraftBatches(db));
+  const submitted = step === "collect" ? null : await submitDraftBatch(db);
+  const collected = step === "submit" ? null : await collectDraftBatches(db);
+  return NextResponse.json({ submitted, collected });
 }
 export const GET = handle;
 export const POST = handle;
