@@ -35,6 +35,18 @@ The two private files were sent to you directly and are not in GitHub. Do not po
 
 ---
 
+## Step 0. Make the GitHub repository private (2 min)
+
+`rajiv-ramanan-84/spendflo` is public today, so anyone can read it, including the Datavant implementation notes, the Mattel and Sonoco plans, the PRD and screenshots with prospect names.
+
+0.1 Open **github.com/rajiv-ramanan-84/spendflo > Settings** (top right of the repo).
+
+0.2 Scroll to the bottom, **Danger Zone > Change repository visibility > Change visibility > Make private**, and confirm.
+
+Nothing breaks: your existing apps keep working, and the steps below are written for a private repo.
+
+---
+
 ## Step 1. Supabase, the database (15 min)
 
 1.1 Go to **supabase.com** and sign in (use Google with your spendflo.com account).
@@ -145,7 +157,11 @@ The app is on the branch `outbound-command-center`. Vercel deploys `main`.
 https://github.com/rajiv-ramanan-84/spendflo/compare/main...outbound-command-center
 ```
 
-5.2 Click **Create pull request**, then **Create pull request** again, then **Merge pull request > Confirm merge**. It merges cleanly: nothing on `main` conflicts. The app lives in its own `outbound` folder and does not touch anything else in the repo.
+5.2 Click **Create pull request**, then **Create pull request** again.
+
+5.3 On the green button, click the small arrow and make sure **Create a merge commit** is selected (not Squash, not Rebase). Click **Merge pull request > Confirm merge**.
+
+Why it matters: on Vercel's free plan with a private repo, Vercel only deploys commits made by you. The app's commits are authored by Claude; the merge commit is yours, and that is the one Vercel deploys. Use the same button for every future update I send: I push to the branch, you merge with a merge commit, Vercel deploys.
 
 Or just tell me "merge it" and I'll do it.
 
@@ -153,9 +169,11 @@ Or just tell me "merge it" and I'll do it.
 
 ## Step 6. Vercel, the hosting (15 min)
 
-6.1 Go to **vercel.com** and **Sign up / Log in with GitHub**, using the GitHub account that can see `rajiv-ramanan-84/spendflo`. Choose the **Hobby** (free) plan when asked.
+6.1 Go to **vercel.com** and log in to your existing account. It must be the Vercel account linked to the `rajiv-ramanan-84` GitHub account, because the free plan deploys only that owner's commits. To check: avatar (top right) > **Account Settings > Authentication**: GitHub should show `rajiv-ramanan-84`.
 
-6.2 Click **Add New > Project**. Find `spendflo` in the list and click **Import**. If it is not listed, click **Adjust GitHub App Permissions** and give Vercel access to that repository.
+You may already have a Vercel project for the Budget Sync app in the same repo. Leave it exactly as it is. The Outbound app is a **new, separate project** that only looks at the `outbound` folder.
+
+6.2 Click **Add New > Project**. Find `spendflo` in the list and click **Import** (yes, the same repo again; that is fine). If it is not listed, click **Adjust GitHub App Permissions** and give Vercel access to that repository.
 
 6.3 On the configure screen:
 - **Project Name**: `spendflo-outbound` exactly. The address `spendflo-outbound.vercel.app` comes from this name. (If Vercel says the name is taken, see the note at the end.)
@@ -218,6 +236,7 @@ From now on:
 | Sync now: "permission" or "not found" | 2.7: share the sheet with the service account email as Editor |
 | Slack test post: "The bot is not in that channel" | 3.4: `/invite @Outbound Command Center` in the channel |
 | Vercel build fails | Root Directory must be `outbound` (6.3). Send me the build log if not. |
+| Vercel: "Deployment blocked" or "commit author does not have contributing access" | The latest commit on `main` is not yours. Merge with **Create a merge commit** (5.3), or in Vercel open **Deployments > ⋯ > Redeploy** on your own merge commit. |
 | No morning post | Supabase **Integrations > Cron**: open `occ-morning-post` and check its last run. Weekends and US holidays are skipped on purpose. |
 
 **If `spendflo-outbound` was taken in 6.3:** use the address Vercel gave you everywhere this guide says `spendflo-outbound.vercel.app`. That's 2.5 (origin), 2.9 (both URLs), the `NEXT_PUBLIC_SITE_URL` variable in Vercel, and `02-schedules-READY.sql`. Or send me the address and I'll regenerate the files.
