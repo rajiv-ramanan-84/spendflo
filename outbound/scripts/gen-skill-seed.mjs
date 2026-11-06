@@ -21,6 +21,9 @@ const appNotes = [
   "- Keep review.flags to what the owner must decide or fix before launch. Put softer observations in main_weakness or rationale.",
   "- step_index counts from 1, and the app dates triggered tracks and enforces caps itself. Do not flag how the app counts or schedules; flag only what a person must do.",
   "- For replan_campaign with scope \"track\", return only the replying contact's track. Other tracks stay as they are.",
+  "- Every step on an account is sent by the account owner (the owner field). Set every track's assignee to the owner.",
+  "- Write and sign every email and LinkedIn message as the owner's writes_as person from the team list. It can differ from the owner: a teammate may run a mailbox in a founder's name (Mouli writes as Sid). Sign with that person's first name and title, never the operator's.",
+  "- Calls are made by the owner in their own name. When writes_as differs, the call opener refers to that person's note, e.g. \"Mouli from Spendflo, following Sid's note\".",
 ].join("\n");
 
 if (skill.includes("$skill$")) throw new Error("Skill text contains the dollar-quote tag");

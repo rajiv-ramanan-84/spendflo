@@ -27,7 +27,9 @@ export function StepEditor(props: {
   const [body, setBody] = useState(s?.body ?? "");
   const [script, setScript] = useState(s?.call_script ?? "");
   const [date, setDate] = useState(s?.due_date ?? "");
-  const [assignee, setAssignee] = useState(s?.assignee_id ?? props.track.assignee_id ?? "");
+  // The account owner sends every step; the From is their mailbox (maybe a shared one, written as someone else).
+  const sender = props.users.find((u) => u.id === (s?.assignee_id ?? props.track.assignee_id));
+  const from = sender?.sendsAs ?? (sender ? { name: sender.name, email: sender.email } : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +39,7 @@ export function StepEditor(props: {
   async function save() {
     setBusy(true);
     setError(null);
-    const payload = { channel, subject: channel === "email" ? subject : null, body: channel === "call" ? null : body, call_script: channel === "call" ? script : null, date: date || undefined, assignee_id: assignee || undefined };
+    const payload = { channel, subject: channel === "email" ? subject : null, body: channel === "call" ? null : body, call_script: channel === "call" ? script : null, date: date || undefined };
     const res = s
       ? await fetch(`/api/steps/${s.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
       : await fetch(`/api/tracks/${props.track.id}/steps`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
@@ -80,11 +82,12 @@ export function StepEditor(props: {
             <label className="text-xs font-medium text-ink-500">Date
               <input disabled={!editable || (!!s && !s.due_date && !props.isDraft)} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2.5 py-2 text-sm text-ink-900" />
             </label>
-            <label className="text-xs font-medium text-ink-500">Sent by
-              <select disabled={!editable} value={assignee} onChange={(e) => setAssignee(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2.5 py-2 text-sm text-ink-900">
-                {props.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            </label>
+            <div className="text-xs font-medium text-ink-500">From
+              <div className="mt-1 rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm text-ink-900" title={from?.email}>
+                {channel === "call" ? (sender?.name ?? "Owner") : (from?.name ?? "Owner")}
+                {channel !== "call" && from && sender && from.name !== sender.name ? <span className="text-ink-400"> · sent by {sender.name}</span> : null}
+              </div>
+            </div>
           </div>
 
           {channel === "email" ? (

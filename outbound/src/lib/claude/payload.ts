@@ -43,7 +43,7 @@ export type PayloadContact = {
   do_not_contact: boolean;
 };
 
-export type PayloadTeamMember = { user: string; name: string; role: string; out_of_office_dates: IsoDate[] };
+export type PayloadTeamMember = { user: string; name: string; writes_as?: string; role: string; out_of_office_dates: IsoDate[] };
 export type PayloadLoad = { user: string; date: IsoDate; steps: number };
 
 export type GenerateInput = {

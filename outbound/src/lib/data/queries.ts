@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * row-level security applies: an inactive or unknown user sees nothing.
  */
 
-export type UserLite = { id: string; name: string; email: string; role: string; active: boolean };
+export type UserLite = { id: string; name: string; email: string; role: string; active: boolean; sendsAs?: { name: string; email: string } };
 
 export type AccountRow = {
   id: string;
@@ -34,7 +34,17 @@ async function q<T>(p: PromiseLike<{ data: T | null; error: { message: string } 
 }
 
 export async function listUsers(db: SupabaseClient): Promise<UserLite[]> {
-  return q(db.from("users").select("id, name, email, role, active").order("name"));
+  const [users, { data: mailboxes }] = await Promise.all([
+    q<Array<UserLite & { send_mailbox_id: string | null }>>(db.from("users").select("id, name, email, role, active, send_mailbox_id").order("name")),
+    db.from("mailboxes").select("id, email, writes_as_user_id"),
+  ]);
+  const nameOf = new Map(users.map((u) => [u.id, u.name]));
+  const mb = new Map((mailboxes ?? []).map((m) => [m.id as string, m]));
+  // Who each person's emails are from: a shared mailbox in someone else's name, or themselves.
+  return users.map(({ send_mailbox_id, ...u }) => {
+    const m = send_mailbox_id ? mb.get(send_mailbox_id) : null;
+    return { ...u, sendsAs: m ? { name: nameOf.get(m.writes_as_user_id as string) ?? u.name, email: m.email as string } : { name: u.name, email: u.email } };
+  });
 }
 
 export async function listAccounts(db: SupabaseClient, opts: { includeArchived?: boolean } = {}): Promise<AccountRow[]> {

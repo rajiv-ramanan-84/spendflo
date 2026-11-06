@@ -19,22 +19,62 @@ const API = LOCAL_MOCK ? `${LOCAL_MOCK}/gmail/v1/users/me` : "https://gmail.goog
 
 export class GoogleAuthError extends Error {}
 
-export async function gmailAccessToken(db: SupabaseClient, userId: string): Promise<string> {
-  if (LOCAL_MOCK) return `local-mock-token-${userId}`;
-  const { data: u } = await db.from("users").select("google_refresh_token_enc, google_token_status").eq("id", userId).single();
-  if (!u?.google_refresh_token_enc) throw new GoogleAuthError("Google is not connected for this person. Sign out and back in to reconnect Gmail.");
-  const refreshToken = decryptToken(u.google_refresh_token_enc, parseKey(process.env.TOKEN_ENCRYPTION_KEY));
+async function exchange(refreshEnc: string | null, onExpired: () => PromiseLike<unknown>, onOk: () => PromiseLike<unknown>, missing: string): Promise<string> {
+  if (!refreshEnc) throw new GoogleAuthError(missing);
+  const refreshToken = decryptToken(refreshEnc, parseKey(process.env.TOKEN_ENCRYPTION_KEY));
   const client = new OAuth2Client(process.env.GOOGLE_OAUTH_CLIENT_ID, process.env.GOOGLE_OAUTH_CLIENT_SECRET);
   client.setCredentials({ refresh_token: refreshToken });
   try {
     const { token } = await client.getAccessToken();
     if (!token) throw new Error("no token");
-    if (u.google_token_status !== "ok") await db.from("users").update({ google_token_status: "ok" }).eq("id", userId);
+    await onOk();
     return token;
   } catch {
-    await db.from("users").update({ google_token_status: "expired" }).eq("id", userId);
-    throw new GoogleAuthError("Gmail access expired. Sign out and back in to reconnect; nothing was lost.");
+    await onExpired();
+    throw new GoogleAuthError("Gmail access expired. Reconnect it; nothing was lost.");
   }
+}
+
+export async function gmailAccessToken(db: SupabaseClient, userId: string): Promise<string> {
+  if (LOCAL_MOCK) return `local-mock-token-${userId}`;
+  const { data: u } = await db.from("users").select("google_refresh_token_enc, google_token_status").eq("id", userId).single();
+  return exchange(
+    u?.google_refresh_token_enc ?? null,
+    () => db.from("users").update({ google_token_status: "expired" }).eq("id", userId),
+    async () => { if (u?.google_token_status !== "ok") await db.from("users").update({ google_token_status: "ok" }).eq("id", userId); },
+    "Google is not connected for this person. Sign out and back in to reconnect Gmail.",
+  );
+}
+
+export async function mailboxAccessToken(db: SupabaseClient, mailboxId: string): Promise<string> {
+  if (LOCAL_MOCK) return `local-mock-token-mailbox-${mailboxId}`;
+  const { data: m } = await db.from("mailboxes").select("email, google_refresh_token_enc, google_token_status").eq("id", mailboxId).single();
+  return exchange(
+    m?.google_refresh_token_enc ?? null,
+    () => db.from("mailboxes").update({ google_token_status: "expired" }).eq("id", mailboxId),
+    async () => { if (m?.google_token_status !== "ok") await db.from("mailboxes").update({ google_token_status: "ok" }).eq("id", mailboxId); },
+    `The ${m?.email ?? "shared"} mailbox is not connected. An admin can connect it in Settings > Mailboxes.`,
+  );
+}
+
+/**
+ * Who an email is from when this person sends it. Their own Gmail by
+ * default; a shared mailbox (e.g. sid@ run by Mouli) when Settings says so,
+ * written in that mailbox's person's name.
+ */
+export type Sender = { mailboxId: string | null; email: string; name: string; operatorId: string; token: () => Promise<string> };
+
+export async function senderFor(db: SupabaseClient, userId: string): Promise<Sender> {
+  const { data: u } = await db.from("users").select("id, email, name, send_mailbox_id").eq("id", userId).single();
+  if (!u) throw new GoogleAuthError("Sender not found");
+  if (u.send_mailbox_id) {
+    const { data: m } = await db.from("mailboxes").select("id, email, writes_as_user_id").eq("id", u.send_mailbox_id).single();
+    if (m) {
+      const { data: persona } = await db.from("users").select("name").eq("id", m.writes_as_user_id).single();
+      return { mailboxId: m.id, email: m.email, name: persona?.name ?? u.name, operatorId: u.id, token: () => mailboxAccessToken(db, m.id) };
+    }
+  }
+  return { mailboxId: null, email: u.email, name: u.name, operatorId: u.id, token: () => gmailAccessToken(db, u.id) };
 }
 
 async function gmail<T>(token: string, path: string, init?: RequestInit): Promise<{ status: number; data: T | null }> {

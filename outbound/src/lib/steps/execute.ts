@@ -10,7 +10,7 @@ import { ActionError, canEdit } from "@/lib/campaigns/actions";
 import { logActivity } from "@/lib/activity/log";
 import { hasUnresolvedToken, resolveTokens, tokenContext } from "@/lib/copy-tokens";
 import { buildDraftMime, gmailDraftLink, toBase64Url } from "@/lib/google/mime";
-import { createDraft, gmailAccessToken, GoogleAuthError, updateDraft } from "@/lib/google/gmail";
+import { createDraft, GoogleAuthError, senderFor, updateDraft } from "@/lib/google/gmail";
 import type { SessionUser } from "@/lib/auth/session";
 
 /**
@@ -36,7 +36,9 @@ async function loadStep(db: SupabaseClient, stepId: string) {
 /** The text a person will actually send: edited body with tokens resolved. */
 export async function preparedCopy(db: SupabaseClient, stepId: string) {
   const s = await loadStep(db, stepId);
-  const { data: sender } = await db.from("users").select("id, name, email").eq("id", s.step.assignee_id).single();
+  // The name the copy is signed with: the shared mailbox's person when there is one (Mouli writes as Sid).
+  const from = s.step.assignee_id ? await senderFor(db, s.step.assignee_id).catch(() => null) : null;
+  const sender = from ? { id: from.operatorId, name: from.name, email: from.email, mailboxId: from.mailboxId } : null;
   const ctx = tokenContext(s.contact, s.account.name, sender?.name ?? "");
   const subject = s.step.subject ? resolveTokens(s.step.subject, ctx) : null;
   const body = resolveTokens((s.step.channel === "call" ? s.step.call_script : s.step.body) ?? "", ctx);
@@ -54,13 +56,14 @@ export async function createGmailDraftForStep(db: SupabaseClient, user: SessionU
   if (p.unresolved) throw new ActionError("Fix the placeholder in the copy before creating the draft");
   if (!p.subject?.trim()) throw new ActionError("Add a subject first");
 
+  const from = await senderFor(db, p.step.assignee_id);
   let token: string;
   try {
-    token = await gmailAccessToken(db, user.id!);
+    token = await from.token();
   } catch (e) {
     throw new ActionError((e as GoogleAuthError).message, 409);
   }
-  const raw = toBase64Url(buildDraftMime({ from: user.email, to: p.contact.email, toName: p.contact.full_name, subject: p.subject, body: p.body }));
+  const raw = toBase64Url(buildDraftMime({ from: `${from.name} <${from.email}>`, to: p.contact.email, toName: p.contact.full_name, subject: p.subject, body: p.body }));
 
   // One draft per step, always: update the existing draft rather than make a second.
   let draft = p.step.gmail_draft_id ? await updateDraft(token, p.step.gmail_draft_id, raw, p.step.gmail_thread_id) : null;
@@ -73,7 +76,7 @@ export async function createGmailDraftForStep(db: SupabaseClient, user: SessionU
     sent_body: null,
   }).eq("id", stepId);
   await logActivity(db, { entityType: "step", entityId: stepId, action: "gmail_draft_created", actorId: user.id, after: { draftId: draft.id } });
-  return { draftId: draft.id, link: gmailDraftLink(user.email, draft.message.id) };
+  return { draftId: draft.id, link: gmailDraftLink(from.email, draft.message.id), from: from.email, fromName: from.name };
 }
 
 export async function markDone(db: SupabaseClient, user: SessionUser, stepId: string, opts: { note?: string | null; callOutcome?: "connected" | "voicemail" | "no_answer" | null; sentBody?: string | null } = {}) {

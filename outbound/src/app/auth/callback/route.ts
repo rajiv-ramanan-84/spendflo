@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { accessConfigFromEnv, checkAccess } from "@/lib/auth/allowlist";
 import { findTeamUser, recordLogin } from "@/lib/auth/team";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 function safeNext(next: string | null) {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/today";
@@ -24,7 +25,13 @@ export async function GET(request: NextRequest) {
   if (!decision.allowed) {
     // Refused: kill the session immediately so nothing is left behind.
     await supabase.auth.signOut();
-    return NextResponse.redirect(`${origin}/login?error=${decision.reason}`);
+    // A shared mailbox (e.g. sid@ run by Mouli) is never a login: say so plainly.
+    let reason: string = decision.reason;
+    if (reason === "not_on_allowlist" && user.email) {
+      const { data: mb } = (await supabaseAdmin()?.from("mailboxes").select("id").eq("email", user.email.toLowerCase()).maybeSingle()) ?? { data: null };
+      if (mb) reason = "sending_mailbox";
+    }
+    return NextResponse.redirect(`${origin}/login?error=${reason}`);
   }
 
   if (team) {
