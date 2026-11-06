@@ -139,7 +139,11 @@ Click **Add to table**, then **Update**, then **Save**. The app only ever create
 
 The app is on the branch `outbound-command-center`. Vercel deploys `main`.
 
-5.1 Open: **https://github.com/rajiv-ramanan-84/spendflo/compare/main...outbound-command-center**
+5.1 Open this link (copy it exactly, nothing before or after):
+
+```
+https://github.com/rajiv-ramanan-84/spendflo/compare/main...outbound-command-center
+```
 
 5.2 Click **Create pull request**, then **Create pull request** again, then **Merge pull request > Confirm merge**. It merges cleanly: nothing on `main` conflicts. The app lives in its own `outbound` folder and does not touch anything else in the repo.
 
