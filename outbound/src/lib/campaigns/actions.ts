@@ -277,3 +277,56 @@ export async function pinTrack(db: SupabaseClient, user: SessionUser, trackId: s
   await logActivity(db, { entityType: "track", entityId: t.id, action: "pinned_to_dates", actorId: user.id, after: { startDate: firstDate, moved: scheduled.filter((x) => x.movedFrom).length } });
   return { startDate: firstDate, moved: scheduled.filter((x) => x.movedFrom).length };
 }
+
+/** Pause every running track on the campaign, with a reason everyone can see. */
+export async function pauseAllTracks(db: SupabaseClient, user: SessionUser, campaignId: string, reason: string, opts: { exceptContactId?: string | null } = {}) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can pause tracks", 403);
+  const why = reason.trim().slice(0, 120) || "Paused by the owner";
+  // The person who said yes keeps their track: that is the one booking the meeting.
+  let q = db.from("contact_tracks").update({ status: "paused", pause_reason: why }).eq("campaign_id", c.id).in("status", ["active", "not_started"]);
+  if (opts.exceptContactId) q = q.neq("contact_id", opts.exceptContactId);
+  const { data: paused } = await q.select("id");
+  if (c.status === "active" && !opts.exceptContactId) await db.from("campaigns").update({ status: "paused", paused_at: new Date().toISOString() }).eq("id", c.id);
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "paused_all", actorId: user.id, after: { reason: why, tracks: paused?.length ?? 0 } });
+  const { postAccountNote } = await import("@/lib/slack/posts");
+  await postAccountNote(db, c.account_id, `paused-${c.id}-${new Date().toISOString().slice(0, 16)}`, `${paused?.length ?? 0} track${paused?.length === 1 ? "" : "s"} paused: ${why}.`);
+  return { paused: paused?.length ?? 0 };
+}
+
+/** Resume paused tracks. Steps whose dates passed while paused move to the next working days. */
+export async function resumeTracks(db: SupabaseClient, user: SessionUser, campaignId: string) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can resume tracks", 403);
+  const today = todayIn();
+  const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const { data: tracks } = await db.from("contact_tracks").select("id, contact_id, start_trigger_type, assignee_id").eq("campaign_id", c.id).eq("status", "paused");
+  for (const t of tracks ?? []) {
+    const { data: steps } = await db.from("steps").select("id, due_date").eq("track_id", t.id).in("status", ["upcoming", "due", "overdue"]).not("due_date", "is", null).is("deleted_at", null);
+    const { data: contact } = await db.from("contacts").select("country").eq("id", t.contact_id).single();
+    const moved = rebaseTrack((steps ?? []).map((s) => ({ id: s.id, date: s.due_date! })), today, { country: contact?.country ?? null, assigneeId: t.assignee_id }, ctx);
+    for (const m of moved.filter((x) => x.movedFrom)) {
+      await db.from("steps").update({ due_date: m.date, scheduled_date: m.date, moved_from_date: m.movedFrom, moved_reason: `Moved from ${m.movedFrom} (track was paused)`, status: m.date === today ? "due" : "upcoming" }).eq("id", m.id);
+    }
+    const hasDates = (steps ?? []).length > 0;
+    await db.from("contact_tracks").update({ status: t.start_trigger_type === "fixed" || hasDates ? "active" : "not_started", pause_reason: null }).eq("id", t.id);
+  }
+  if (c.status === "paused") await db.from("campaigns").update({ status: "active", paused_at: null }).eq("id", c.id);
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "resumed", actorId: user.id, after: { tracks: tracks?.length ?? 0 } });
+  return { resumed: tracks?.length ?? 0 };
+}
+
+/** The win: campaign at Meeting booked, and the person who said yes at Meeting. */
+export async function markMeetingBooked(db: SupabaseClient, user: SessionUser, campaignId: string, contactId: string | null) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can mark a meeting", 403);
+  await db.from("campaigns").update({ status: "meeting_booked" }).eq("id", c.id);
+  if (contactId) {
+    await db.from("contacts").update({ engagement_status: "meeting" }).eq("id", contactId);
+    await db.from("contact_tracks").update({ status: "meeting" }).eq("campaign_id", c.id).eq("contact_id", contactId);
+  }
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "meeting_booked", actorId: user.id, after: { contactId } });
+  const { postAccountNote } = await import("@/lib/slack/posts");
+  await postAccountNote(db, c.account_id, `meeting-${c.id}`, ":tada: Meeting booked.");
+  return {};
+}

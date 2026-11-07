@@ -97,7 +97,11 @@ export function ContactRows(props: {
                 {t ? (
                   <>
                     <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-ink-500">
-                      <span className="font-medium text-ink-700">{TRACK_STATUS_LABEL[t.status] ?? t.status}</span>
+                      {t.status === "paused" ? (
+                        <span className="rounded-full bg-canvas px-2 py-0.5 font-medium text-ink-700 ring-1 ring-line">Paused{t.pause_reason ? `: ${t.pause_reason}` : ""}</span>
+                      ) : t.status === "replied" || t.status === "meeting" ? (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800">{TRACK_STATUS_LABEL[t.status]}</span>
+                      ) : <span className="font-medium text-ink-700">{TRACK_STATUS_LABEL[t.status] ?? t.status}</span>}
                       {t.start_trigger_type !== "fixed" ? (
                         <span>
                           · {projOf.get(t.id) ? `Starts ${projOf.get(t.id)!.basis.replace(/^starts |^waits for /, (m) => (m === "waits for " ? "after " : ""))}` : <>Starts {t.delay_working_days ?? 2} working days after{" "}
@@ -112,7 +116,7 @@ export function ContactRows(props: {
                         {props.canEdit ? <button onClick={() => startNow(t.id)} className="ml-auto rounded-md bg-white px-2 py-1 font-medium text-ink-900 shadow-sm hover:bg-canvas">Start now</button> : null}
                       </div>
                     ) : null}
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className={cn("flex flex-wrap items-center gap-2", t.status === "paused" && "opacity-50")}>
                       {t.steps.map((s) => {
                         const st = stepStatusOn(props.today, s);
                         const proj = projOf.get(t.id);
