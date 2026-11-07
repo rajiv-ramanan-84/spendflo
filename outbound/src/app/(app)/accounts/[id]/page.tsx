@@ -11,6 +11,10 @@ import { CAMPAIGN_STATUS_LABEL, firstName } from "@/lib/format";
 import { GenerateCard } from "@/components/cockpit/generate-card";
 import { DraftPending } from "@/components/cockpit/draft-pending";
 import { ContactFinder } from "@/components/cockpit/contact-finder";
+import { AccountTimeline } from "@/components/cockpit/account-timeline";
+import { projectTriggeredTracks } from "@/lib/campaigns/projection";
+import { loadCalendarContext } from "@/lib/calendar/context";
+import { DEFAULT_CAPS } from "@/lib/caps/schedule";
 import { ReviewPanel } from "@/components/cockpit/review-panel";
 import { ContactRows } from "@/components/cockpit/contact-rows";
 import { ResponsePanel } from "@/components/cockpit/response-panel";
@@ -47,6 +51,12 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const datedSteps = tracks.flatMap((t) => t.steps).filter((s) => s.due_date).length;
   const live = campaign && !["draft", "closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? campaign : null;
   const inbox = await getAccountResponses(db, a.id, live?.id ?? null);
+  // Where tracks waiting on a trigger will land, and any that can no longer start.
+  const today = todayIn();
+  const calCtx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const firstNames = new Map(contacts.map((c) => [c.id, firstName(c.full_name)]));
+  const projections = projectTriggeredTracks(tracks, firstNames, calCtx);
+  const fullNames = new Map(contacts.map((c) => [c.id, c.full_name]));
   // Drafts are written in the background: show progress, or the last failure.
   const { data: lastCall } = await db.from("claude_calls").select("status, created_at, error").eq("account_id", a.id).eq("call_type", "generate_campaign").order("created_at", { ascending: false }).limit(1).maybeSingle();
   const pending = lastCall && ["queued", "running"].includes(lastCall.status) ? lastCall : null;
@@ -126,6 +136,8 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           />
         )}
 
+        {tracks.length ? <AccountTimeline tracks={tracks} names={fullNames} projections={projections} today={today} weeklyCap={DEFAULT_CAPS.touches_per_account_per_week} /> : null}
+
         {canEdit && !a.archived ? <ContactFinder accountId={a.id} accountName={a.name} /> : null}
 
         <ContactRows
@@ -135,6 +147,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           users={users}
           campaignStatus={(campaign?.status as string) ?? null}
           canEdit={canEdit}
+          projections={projections}
         />
       </div>
     </>

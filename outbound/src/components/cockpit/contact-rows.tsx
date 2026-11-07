@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, Plus } from "lucide-react";
+import type { Projection } from "@/lib/campaigns/projection";
 import type { CockpitStep, CockpitTrack, UserLite } from "@/lib/data/queries";
 import { stepStatusOn } from "@/lib/campaigns/launch";
 import { fmtDate, firstName, PERSONA_LABEL, TRACK_STATUS_LABEL } from "@/lib/format";
@@ -42,8 +44,20 @@ export function ContactRows(props: {
   users: UserLite[];
   campaignStatus: string | null;
   canEdit: boolean;
+  projections?: Projection[];
 }) {
+  const router = useRouter();
   const [editing, setEditing] = useState<{ step: CockpitStep | null; track: CockpitTrack } | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+  const projOf = new Map((props.projections ?? []).map((p) => [p.trackId, p]));
+
+  async function startNow(trackId: string) {
+    setStartError(null);
+    const res = await fetch(`/api/tracks/${trackId}/pin`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ startDate: props.today }) });
+    const data = await res.json().catch(() => ({ ok: false, error: "No response" }));
+    if (!data.ok) return setStartError(data.error);
+    router.refresh();
+  }
   const trackOf = new Map(props.tracks.map((t) => [t.contact_id, t]));
   const nameOf = new Map(props.contacts.map((c) => [c.id, c.full_name]));
   const userIdx = new Map(props.users.map((u, i) => [u.id, { u, i }]));
@@ -86,24 +100,32 @@ export function ContactRows(props: {
                       <span className="font-medium text-ink-700">{TRACK_STATUS_LABEL[t.status] ?? t.status}</span>
                       {t.start_trigger_type !== "fixed" ? (
                         <span>
-                          · Starts {t.delay_working_days ?? 2} working days after{" "}
-                          {t.start_trigger_type === "after_reply" ? `${firstName(nameOf.get(t.trigger_from_contact_id ?? "") ?? "a contact")} replies` : `a step to ${firstName(nameOf.get(t.trigger_from_contact_id ?? "") ?? "a contact")}`}
+                          · {projOf.get(t.id) ? `Starts ${projOf.get(t.id)!.basis.replace(/^starts |^waits for /, (m) => (m === "waits for " ? "after " : ""))}` : <>Starts {t.delay_working_days ?? 2} working days after{" "}
+                          {t.start_trigger_type === "after_reply" ? `${firstName(nameOf.get(t.trigger_from_contact_id ?? "") ?? "a contact")} replies` : `a step to ${firstName(nameOf.get(t.trigger_from_contact_id ?? "") ?? "a contact")}`}</>}
                         </span>
                       ) : null}
                       {t.track_goal ? <span className="hidden md:inline">· {t.track_goal}</span> : null}
                     </div>
+                    {projOf.get(t.id)?.kind === "stuck" ? (
+                      <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        <AlertTriangle size={14} /> Waiting on something that won&apos;t happen: {(projOf.get(t.id) as Extract<Projection, { kind: "stuck" }>).reason}.
+                        {props.canEdit ? <button onClick={() => startNow(t.id)} className="ml-auto rounded-md bg-white px-2 py-1 font-medium text-ink-900 shadow-sm hover:bg-canvas">Start now</button> : null}
+                      </div>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-2">
                       {t.steps.map((s) => {
                         const st = stepStatusOn(props.today, s);
+                        const proj = projOf.get(t.id);
+                        const projected = !s.due_date && proj?.kind === "projected" ? proj.dates[s.id] : null;
                         return (
                           <button
                             key={s.id}
                             onClick={() => setEditing({ step: s, track: t })}
                             title={s.moved_reason ?? undefined}
-                            className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition hover:shadow-sm", STATUS_STYLE[st] ?? STATUS_STYLE.upcoming)}
+                            className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition hover:shadow-sm", STATUS_STYLE[st] ?? STATUS_STYLE.upcoming, projected && "border-dashed text-ink-500")}
                           >
                             <ChannelIcon channel={s.channel} size={13} />
-                            {s.due_date ? fmtDate(s.due_date) : `+${s.offset_working_days ?? 0} days`}
+                            {s.due_date ? fmtDate(s.due_date) : projected ? <>{fmtDate(projected)}<span className="text-[10px] text-ink-400">projected</span></> : `+${s.offset_working_days ?? 0} days`}
                             {s.moved_reason ? <span className="text-[10px] text-ink-400">moved</span> : null}
                           </button>
                         );
@@ -127,6 +149,7 @@ export function ContactRows(props: {
         {!ordered.length ? <div className="px-5 py-8 text-sm text-ink-500">No contacts for this account yet. Add them in the Contacts tab of the sheet.</div> : null}
       </div>
 
+      {startError ? <p role="alert" className="mx-5 mb-4 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{startError}</p> : null}
       {editing ? (
         <StepEditor
           step={editing.step}
@@ -134,6 +157,8 @@ export function ContactRows(props: {
           contact={props.contacts.find((c) => c.id === editing.track.contact_id)!}
           users={props.users.filter((u) => u.active)}
           isDraft={props.campaignStatus === "draft"}
+          projection={projOf.get(editing.track.id) ?? null}
+          today={props.today}
           canEdit={props.canEdit}
           onClose={() => setEditing(null)}
         />

@@ -226,3 +226,54 @@ export async function assignAccounts(db: SupabaseClient, user: SessionUser, acco
 function pick(o: Record<string, unknown>, keys: string[]) {
   return Object.fromEntries(keys.map((k) => [k, o[k]]));
 }
+
+/**
+ * Pin a triggered track to fixed dates (or Start now for a stuck one): the
+ * first open step lands on startDate (rolled to a working day), later steps
+ * keep their spacing. The track no longer waits on anyone.
+ */
+export async function pinTrack(db: SupabaseClient, user: SessionUser, trackId: string, startDate: string) {
+  if (!isIsoDate(startDate)) throw new ActionError("Pick a date");
+  const { data: t } = await db.from("contact_tracks").select("id, campaign_id, contact_id, status, start_trigger_type, assignee_id").eq("id", trackId).maybeSingle();
+  if (!t) throw new ActionError("Track not found", 404);
+  const c = await campaignFor(db, t.campaign_id);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can change dates", 403);
+  if (t.start_trigger_type === "fixed") throw new ActionError("This track already has fixed dates. Edit a step's date instead.");
+  if (!["not_started", "paused"].includes(t.status)) throw new ActionError("This track has already started");
+
+  const today = todayIn();
+  const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const { data: contact } = await db.from("contacts").select("country").eq("id", t.contact_id).single();
+  const scope = { country: contact?.country ?? null, assigneeId: t.assignee_id };
+  const start = rollForward(startDate < today ? today : startDate, scope, ctx).date;
+  const { data: steps } = await db.from("steps").select("id, offset_working_days, sequence_no").eq("track_id", t.id).in("status", ["upcoming", "due", "overdue"]).is("deleted_at", null).order("sequence_no");
+  const { datesForTriggeredTrack } = await import("./triggers");
+  const { scheduleTouches } = await import("@/lib/caps/schedule");
+  const { loadPlanningContext, loadScheduledTouches } = await import("./context");
+  const planned = datesForTriggeredTrack((steps ?? []).map((s) => ({ id: s.id, offset: s.offset_working_days ?? 0 })), start, 0, scope, ctx);
+  // Same rules as everything else: account and person caps, one touch a day per person, working days.
+  const p = await loadPlanningContext(db);
+  const own = new Set((steps ?? []).map((s) => s.id));
+  const existing = (await loadScheduledTouches(db, today)).filter((x) => !own.has(x.key));
+  const { data: full } = await db.from("steps").select("id, channel").in("id", [...own]);
+  const channelOf = new Map((full ?? []).map((s) => [s.id, s.channel as string]));
+  const { scheduled } = scheduleTouches(
+    planned.steps.map((x) => ({ key: x.id, date: x.date, contactId: t.contact_id, accountId: c.account_id, assigneeId: t.assignee_id ?? c.owner_id, channel: channelOf.get(x.id) ?? "email", country: contact?.country ?? null })),
+    existing, p.caps, p.ctx,
+  );
+  for (const sch of scheduled) {
+    await db.from("steps").update({
+      due_date: sch.date, scheduled_date: sch.date, original_date: sch.movedFrom ?? sch.date,
+      moved_from_date: sch.movedFrom ?? null, moved_reason: sch.movedFrom ? `Moved from ${sch.movedFrom} (account and team limits)` : null,
+      status: sch.date < today ? "overdue" : sch.date === today ? "due" : "upcoming",
+    }).eq("id", sch.key);
+  }
+  const firstDate = scheduled.map((x) => x.date).sort()[0] ?? planned.startDate;
+  const live = c.status !== "draft";
+  await db.from("contact_tracks").update({
+    start_trigger_type: "fixed", start_date: firstDate, trigger_from_contact_id: null, trigger_step_index: null,
+    status: live ? "active" : "not_started", next_step_at: firstDate, pause_reason: null,
+  }).eq("id", t.id);
+  await logActivity(db, { entityType: "track", entityId: t.id, action: "pinned_to_dates", actorId: user.id, after: { startDate: firstDate, moved: scheduled.filter((x) => x.movedFrom).length } });
+  return { startDate: firstDate, moved: scheduled.filter((x) => x.movedFrom).length };
+}

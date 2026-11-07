@@ -99,6 +99,7 @@ export type CockpitTrack = {
   status: string;
   start_trigger_type: string;
   trigger_from_contact_id: string | null;
+  trigger_step_index: number | null;
   delay_working_days: number | null;
   start_date: string | null;
   assignee_id: string | null;
@@ -123,7 +124,7 @@ export async function getCockpit(db: SupabaseClient, accountId: string) {
   let tracks: CockpitTrack[] = [];
   if (open) {
     const [t, s] = await Promise.all([
-      q<Omit<CockpitTrack, "steps">[]>(db.from("contact_tracks").select("id, contact_id, persona, track_goal, rationale, status, start_trigger_type, trigger_from_contact_id, delay_working_days, start_date, assignee_id").eq("campaign_id", open.id)),
+      q<Omit<CockpitTrack, "steps">[]>(db.from("contact_tracks").select("id, contact_id, persona, track_goal, rationale, status, start_trigger_type, trigger_from_contact_id, trigger_step_index, delay_working_days, start_date, assignee_id").eq("campaign_id", open.id)),
       q<CockpitStep[]>(
         db.from("steps").select("id, track_id, sequence_no, channel, status, due_date, original_date, moved_reason, offset_working_days, subject, body, original_body, call_script, assignee_id, completed_at, outcome_note")
           .eq("campaign_id", open.id).is("deleted_at", null).neq("status", "superseded").order("sequence_no"),
