@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * row-level security applies: an inactive or unknown user sees nothing.
  */
 
-export type UserLite = { id: string; name: string; email: string; role: string; active: boolean };
+export type UserLite = { id: string; name: string; email: string; role: string; active: boolean; sendsAs?: { name: string; email: string } };
 
 export type AccountRow = {
   id: string;
@@ -34,7 +34,17 @@ async function q<T>(p: PromiseLike<{ data: T | null; error: { message: string } 
 }
 
 export async function listUsers(db: SupabaseClient): Promise<UserLite[]> {
-  return q(db.from("users").select("id, name, email, role, active").order("name"));
+  const [users, { data: mailboxes }] = await Promise.all([
+    q<Array<UserLite & { send_mailbox_id: string | null }>>(db.from("users").select("id, name, email, role, active, send_mailbox_id").order("name")),
+    db.from("mailboxes").select("id, email, writes_as_user_id"),
+  ]);
+  const nameOf = new Map(users.map((u) => [u.id, u.name]));
+  const mb = new Map((mailboxes ?? []).map((m) => [m.id as string, m]));
+  // Who each person's emails are from: a shared mailbox in someone else's name, or themselves.
+  return users.map(({ send_mailbox_id, ...u }) => {
+    const m = send_mailbox_id ? mb.get(send_mailbox_id) : null;
+    return { ...u, sendsAs: m ? { name: nameOf.get(m.writes_as_user_id as string) ?? u.name, email: m.email as string } : { name: u.name, email: u.email } };
+  });
 }
 
 export async function listAccounts(db: SupabaseClient, opts: { includeArchived?: boolean } = {}): Promise<AccountRow[]> {
@@ -89,6 +99,8 @@ export type CockpitTrack = {
   status: string;
   start_trigger_type: string;
   trigger_from_contact_id: string | null;
+  trigger_step_index: number | null;
+  pause_reason?: string | null;
   delay_working_days: number | null;
   start_date: string | null;
   assignee_id: string | null;
@@ -113,7 +125,7 @@ export async function getCockpit(db: SupabaseClient, accountId: string) {
   let tracks: CockpitTrack[] = [];
   if (open) {
     const [t, s] = await Promise.all([
-      q<Omit<CockpitTrack, "steps">[]>(db.from("contact_tracks").select("id, contact_id, persona, track_goal, rationale, status, start_trigger_type, trigger_from_contact_id, delay_working_days, start_date, assignee_id").eq("campaign_id", open.id)),
+      q<Omit<CockpitTrack, "steps">[]>(db.from("contact_tracks").select("id, contact_id, persona, track_goal, rationale, status, pause_reason, start_trigger_type, trigger_from_contact_id, trigger_step_index, delay_working_days, start_date, assignee_id").eq("campaign_id", open.id)),
       q<CockpitStep[]>(
         db.from("steps").select("id, track_id, sequence_no, channel, status, due_date, original_date, moved_reason, offset_working_days, subject, body, original_body, call_script, assignee_id, completed_at, outcome_note")
           .eq("campaign_id", open.id).is("deleted_at", null).neq("status", "superseded").order("sequence_no"),

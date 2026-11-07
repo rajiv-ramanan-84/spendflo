@@ -7,12 +7,17 @@ const flags = [{ id: "f1", text: "Unapproved reference" }, { id: "f2", text: "Un
 
 describe("launch gate", () => {
   it("blocks while any flag is open", () => {
-    expect(canLaunch(flags, ["f1"], 3)).toEqual({ ok: false, reason: "1 review flag to resolve or dismiss" });
+    expect(canLaunch(flags, ["f1"], 3)).toEqual({ ok: true, reason: "1 flag not reviewed", warnings: [flags[1]] });
     expect(openFlags(flags, ["f1"]).map((f) => f.id)).toEqual(["f2"]);
   });
 
+  it("never blocks on flags: open ones come back as warnings", () => {
+    expect(canLaunch(flags, [], 3).ok).toBe(true);
+    expect(canLaunch(flags, [], 3).warnings.map((f) => f.id)).toEqual(["f1", "f2"]);
+  });
+
   it("opens once every flag is cleared", () => {
-    expect(canLaunch(flags, ["f1", "f2"], 3)).toEqual({ ok: true, reason: null });
+    expect(canLaunch(flags, ["f1", "f2"], 3)).toEqual({ ok: true, reason: null, warnings: [] });
   });
 
   it("needs at least one dated step", () => {

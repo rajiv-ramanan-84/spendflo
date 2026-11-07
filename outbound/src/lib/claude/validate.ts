@@ -119,11 +119,9 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
     }
     seenContacts.add(contact.id);
 
-    let assignee = userByKey.get(tr.assignee.trim().toLowerCase());
-    if (!assignee) {
-      assignee = input.users.find((u) => u.id === input.ownerId)!;
-      blocking.push({ text: `Assignee "${tr.assignee}" is not an active user; the track was given to the owner.`, contactId: contact.id });
-    }
+    // Every step on an account is sent by the account owner, from their mailbox.
+    void userByKey;
+    const assignee = input.users.find((u) => u.id === input.ownerId)!;
 
     const trig = tr.start_trigger;
     const fromContact = trig.type === "fixed" ? null : resolveContact(trig.from_contact);

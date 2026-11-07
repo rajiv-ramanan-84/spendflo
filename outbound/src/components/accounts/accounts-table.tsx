@@ -10,7 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
-type Filter = "all" | "mine" | "unassigned" | "not_started" | "draft" | "live" | "archived";
+type Filter = "all" | "mine" | "unassigned" | "not_started" | "draft" | "live" | "replied" | "archived";
 
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "mine", label: "Mine" },
@@ -18,6 +18,7 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "not_started", label: "Not started" },
   { id: "draft", label: "Draft ready" },
   { id: "live", label: "Live" },
+  { id: "replied", label: "Replied" },
   { id: "unassigned", label: "Unassigned" },
   { id: "archived", label: "Archived" },
 ];
@@ -56,6 +57,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       not_started: active.filter((a) => !a.campaign_status).length,
       draft: active.filter((a) => a.campaign_status === "draft").length,
       live: active.filter((a) => a.campaign_status && LIVE.has(a.campaign_status)).length,
+      replied: active.filter((a) => a.campaign_status === "responded" || a.campaign_status === "meeting_booked").length,
       unassigned: active.filter((a) => !a.owner_id).length,
       archived: accounts.length - active.length,
     } satisfies Record<Filter, number>;
@@ -70,6 +72,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       if (filter === "not_started" && a.campaign_status) return false;
       if (filter === "draft" && a.campaign_status !== "draft") return false;
       if (filter === "live" && !(a.campaign_status && LIVE.has(a.campaign_status))) return false;
+      if (filter === "replied" && !(a.campaign_status === "responded" || a.campaign_status === "meeting_booked")) return false;
       if (tier !== "all" && a.tier !== tier) return false;
       if (owner !== "all" && a.owner_id !== owner) return false;
       if (q && !`${a.name} ${a.domain ?? ""} ${a.sheet_account_id}`.toLowerCase().includes(q)) return false;

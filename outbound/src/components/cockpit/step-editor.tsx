@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SendButton, SendStatus, useSendFlow } from "@/components/steps/send-flow";
+import type { Projection } from "@/lib/campaigns/projection";
 import { Trash2, X } from "lucide-react";
 import type { CockpitStep, CockpitTrack, UserLite } from "@/lib/data/queries";
 import { copyIssues, wordCount } from "@/lib/claude/copy-checks";
@@ -18,6 +20,9 @@ export function StepEditor(props: {
   isDraft: boolean;
   canEdit: boolean;
   onClose: () => void;
+  onSent?: (label: string) => void;
+  projection?: Projection | null;
+  today?: string;
 }) {
   const router = useRouter();
   const s = props.step;
@@ -27,21 +32,55 @@ export function StepEditor(props: {
   const [body, setBody] = useState(s?.body ?? "");
   const [script, setScript] = useState(s?.call_script ?? "");
   const [date, setDate] = useState(s?.due_date ?? "");
-  const [assignee, setAssignee] = useState(s?.assignee_id ?? props.track.assignee_id ?? "");
+  // The account owner sends every step; the From is their mailbox (maybe a shared one, written as someone else).
+  const sender = props.users.find((u) => u.id === (s?.assignee_id ?? props.track.assignee_id));
+  const from = sender?.sendsAs ?? (sender ? { name: sender.name, email: sender.email } : null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const issues = useMemo(() => copyIssues(channel, channel === "email" ? subject : null, channel === "call" ? script || null : body, { emailWords: 150, connectChars: 300 }), [channel, subject, body, script]);
   const editable = props.canEdit && !closed;
 
-  async function save() {
+  async function persist(): Promise<boolean> {
     setBusy(true);
     setError(null);
-    const payload = { channel, subject: channel === "email" ? subject : null, body: channel === "call" ? null : body, call_script: channel === "call" ? script : null, date: date || undefined, assignee_id: assignee || undefined };
+    const payload = { channel, subject: channel === "email" ? subject : null, body: channel === "call" ? null : body, call_script: channel === "call" ? script : null, date: date || undefined };
     const res = s
       ? await fetch(`/api/steps/${s.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
       : await fetch(`/api/tracks/${props.track.id}/steps`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
+    setBusy(false);
+    if (!data.ok) {
+      setError(data.error);
+      return false;
+    }
+    return true;
+  }
+
+  async function save() {
+    if (await persist()) {
+      router.refresh();
+      props.onClose();
+    }
+  }
+
+  // Send from here too: saves your edits first, then opens Gmail or LinkedIn.
+  const flow = useSendFlow(s?.id ?? "new", (label) => {
+    router.refresh();
+    props.onSent?.(label);
+    props.onClose();
+  });
+  const canSendNow = !!s && !props.isDraft && !!s.due_date && ["upcoming", "due", "overdue"].includes(s.status) && (channel === "email" || channel.startsWith("linkedin"));
+
+  // Triggered tracks have no fixed dates: show where they will land, and let the owner pin them.
+  const triggered = !!props.track.start_trigger_type && props.track.start_trigger_type !== "fixed" && !s?.due_date;
+  const projectedDate = s && props.projection?.kind === "projected" ? props.projection.dates[s.id] ?? null : null;
+  const [pinDate, setPinDate] = useState<string>(projectedDate ?? props.today ?? "");
+  async function pin() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/tracks/${props.track.id}/pin`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ startDate: pinDate }) });
+    const data = await res.json().catch(() => ({ ok: false, error: "No response" }));
     setBusy(false);
     if (!data.ok) return setError(data.error);
     router.refresh();
@@ -77,15 +116,37 @@ export function StepEditor(props: {
                 {CHANNELS.map((c) => <option key={c} value={c}>{CHANNEL_LABEL[c]}</option>)}
               </select>
             </label>
-            <label className="text-xs font-medium text-ink-500">Date
-              <input disabled={!editable || (!!s && !s.due_date && !props.isDraft)} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2.5 py-2 text-sm text-ink-900" />
-            </label>
-            <label className="text-xs font-medium text-ink-500">Sent by
-              <select disabled={!editable} value={assignee} onChange={(e) => setAssignee(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2.5 py-2 text-sm text-ink-900">
-                {props.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-            </label>
+            {triggered && s ? (
+              <div className="text-xs font-medium text-ink-500">Date
+                <div className="mt-1 rounded-lg border border-dashed border-line bg-canvas px-2.5 py-2 text-sm text-ink-700">{projectedDate ? `${projectedDate} (projected)` : "Set when it starts"}</div>
+              </div>
+            ) : (
+              <label className="text-xs font-medium text-ink-500">Date
+                <input disabled={!editable} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-2.5 py-2 text-sm text-ink-900" />
+              </label>
+            )}
+            <div className="text-xs font-medium text-ink-500">From
+              <div className="mt-1 rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm text-ink-900" title={from?.email}>
+                {channel === "call" ? (sender?.name ?? "Owner") : (from?.name ?? "Owner")}
+                {channel !== "call" && from && sender && from.name !== sender.name ? <span className="text-ink-400"> · sent by {sender.name}</span> : null}
+              </div>
+            </div>
           </div>
+
+          {triggered && s ? (
+            <div className="rounded-xl border border-line bg-canvas p-3 text-sm">
+              <p className="text-ink-700">
+                This track {props.projection?.kind === "stuck" ? <>is waiting on something that won&apos;t happen: <b>{props.projection.reason}</b>.</> : props.projection ? <>starts {props.projection.basis.replace(/^starts /, "")}, so its dates are set when that happens (keeping caps and spacing).</> : "starts on a trigger, so its dates are set when that happens."}
+              </p>
+              {editable ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-ink-500">Rather fix the dates yourself? First step on</span>
+                  <input type="date" value={pinDate} onChange={(e) => setPinDate(e.target.value)} className="rounded-lg border border-line bg-white px-2 py-1 text-sm" />
+                  <Button variant="secondary" className="px-3 py-1 text-xs" disabled={busy || !pinDate} onClick={pin}>Pin to dates</Button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {channel === "email" ? (
             <label className="text-xs font-medium text-ink-500">Subject
@@ -120,7 +181,8 @@ export function StepEditor(props: {
               <p className="mt-2 whitespace-pre-wrap rounded-lg bg-canvas p-3 text-ink-700">{s.original_body}</p>
             </details>
           ) : null}
-          {error ? <div role="alert" className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">{error}</div> : null}
+          {error || flow.error ? <div role="alert" className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">{error ?? flow.error}</div> : null}
+          <SendStatus flow={flow} channel={channel} />
         </div>
 
         {editable ? (
@@ -132,7 +194,8 @@ export function StepEditor(props: {
             ) : <span />}
             <div className="flex gap-2">
               <Button variant="ghost" onClick={props.onClose}>Cancel</Button>
-              <Button onClick={save} disabled={busy || (!s && !date)}>{busy ? "Saving…" : "Save"}</Button>
+              <Button variant={canSendNow ? "secondary" : "primary"} onClick={save} disabled={busy || (!s && !date)}>{busy ? "Saving…" : "Save"}</Button>
+              {canSendNow ? <SendButton flow={flow} channel={channel} disabled={busy} beforeSend={persist} /> : null}
             </div>
           </div>
         ) : null}

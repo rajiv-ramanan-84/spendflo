@@ -61,7 +61,7 @@ export function ResponsePanel(p: Props) {
   }
 
   return (
-    <Card className="p-5 md:p-6">
+    <Card id="responses" className="scroll-mt-24 p-5 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Inbox size={18} className="text-brand-500" />

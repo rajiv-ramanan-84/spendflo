@@ -10,7 +10,8 @@ import { ActionError, canEdit } from "@/lib/campaigns/actions";
 import { logActivity } from "@/lib/activity/log";
 import { hasUnresolvedToken, resolveTokens, tokenContext } from "@/lib/copy-tokens";
 import { buildDraftMime, gmailDraftLink, toBase64Url } from "@/lib/google/mime";
-import { createDraft, gmailAccessToken, GoogleAuthError, updateDraft } from "@/lib/google/gmail";
+import { createDraft, getThread, GoogleAuthError, senderFor, updateDraft } from "@/lib/google/gmail";
+import { bodyText, stripQuoted } from "@/lib/responses/parse";
 import type { SessionUser } from "@/lib/auth/session";
 
 /**
@@ -36,7 +37,9 @@ async function loadStep(db: SupabaseClient, stepId: string) {
 /** The text a person will actually send: edited body with tokens resolved. */
 export async function preparedCopy(db: SupabaseClient, stepId: string) {
   const s = await loadStep(db, stepId);
-  const { data: sender } = await db.from("users").select("id, name, email").eq("id", s.step.assignee_id).single();
+  // The name the copy is signed with: the shared mailbox's person when there is one (Mouli writes as Sid).
+  const from = s.step.assignee_id ? await senderFor(db, s.step.assignee_id).catch(() => null) : null;
+  const sender = from ? { id: from.operatorId, name: from.name, email: from.email, mailboxId: from.mailboxId } : null;
   const ctx = tokenContext(s.contact, s.account.name, sender?.name ?? "");
   const subject = s.step.subject ? resolveTokens(s.step.subject, ctx) : null;
   const body = resolveTokens((s.step.channel === "call" ? s.step.call_script : s.step.body) ?? "", ctx);
@@ -54,13 +57,14 @@ export async function createGmailDraftForStep(db: SupabaseClient, user: SessionU
   if (p.unresolved) throw new ActionError("Fix the placeholder in the copy before creating the draft");
   if (!p.subject?.trim()) throw new ActionError("Add a subject first");
 
+  const from = await senderFor(db, p.step.assignee_id);
   let token: string;
   try {
-    token = await gmailAccessToken(db, user.id!);
+    token = await from.token();
   } catch (e) {
     throw new ActionError((e as GoogleAuthError).message, 409);
   }
-  const raw = toBase64Url(buildDraftMime({ from: user.email, to: p.contact.email, toName: p.contact.full_name, subject: p.subject, body: p.body }));
+  const raw = toBase64Url(buildDraftMime({ from: `${from.name} <${from.email}>`, to: p.contact.email, toName: p.contact.full_name, subject: p.subject, body: p.body }));
 
   // One draft per step, always: update the existing draft rather than make a second.
   let draft = p.step.gmail_draft_id ? await updateDraft(token, p.step.gmail_draft_id, raw, p.step.gmail_thread_id) : null;
@@ -73,7 +77,7 @@ export async function createGmailDraftForStep(db: SupabaseClient, user: SessionU
     sent_body: null,
   }).eq("id", stepId);
   await logActivity(db, { entityType: "step", entityId: stepId, action: "gmail_draft_created", actorId: user.id, after: { draftId: draft.id } });
-  return { draftId: draft.id, link: gmailDraftLink(user.email, draft.message.id) };
+  return { draftId: draft.id, link: gmailDraftLink(from.email, draft.message.id), from: from.email, fromName: from.name };
 }
 
 export async function markDone(db: SupabaseClient, user: SessionUser, stepId: string, opts: { note?: string | null; callOutcome?: "connected" | "voicemail" | "no_answer" | null; sentBody?: string | null } = {}) {
@@ -173,4 +177,28 @@ export async function startWaitingTracks(db: SupabaseClient, campaignId: string,
     if (t.assignee_id) await db.from("notifications").insert({ user_id: t.assignee_id, type: "track_started", entity_type: "contact_track", entity_id: t.id, message: "A waiting track just started" });
   }
   return ids.length;
+}
+
+/**
+ * Send in Gmail: after the compose pop-up opens, the page asks this every few
+ * seconds. The moment the draft's thread holds a sent message, the step is
+ * Done (with the text actually sent) and Done today goes up.
+ */
+export async function checkStepSent(db: SupabaseClient, user: SessionUser, stepId: string) {
+  const { data: step } = await db.from("steps").select("id, status, assignee_id, gmail_thread_id, channel").eq("id", stepId).maybeSingle();
+  if (!step) throw new ActionError("Step not found", 404);
+  if (step.status === "done") return { sent: true, already: true };
+  if (step.channel !== "email" || !step.gmail_thread_id || !step.assignee_id) return { sent: false };
+  let token: string;
+  try {
+    token = await (await senderFor(db, step.assignee_id)).token();
+  } catch (e) {
+    throw new ActionError((e as GoogleAuthError).message, 409);
+  }
+  const thread = await getThread(token, step.gmail_thread_id);
+  const sentMsg = thread?.messages.find((m) => m.labelIds?.includes("SENT") && !m.labelIds?.includes("DRAFT"));
+  if (!sentMsg) return { sent: false };
+  const res = await markDone(db, user, stepId, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail" });
+  await db.from("steps").update({ gmail_message_id: sentMsg.id }).eq("id", stepId);
+  return { sent: true, started: res.started };
 }

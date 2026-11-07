@@ -7,7 +7,7 @@ import { DEFAULT_CAPS, type Caps, type Touch } from "@/lib/caps/schedule";
 
 /** Everything a Claude call or a scheduling decision needs, loaded once. */
 
-export type TeamUser = { id: string; name: string; email: string; role: string; active: boolean; key: string; slack_user_id: string | null; timezone: string };
+export type TeamUser = { id: string; name: string; email: string; role: string; active: boolean; key: string; slack_user_id: string | null; timezone: string; writesAs: string };
 
 export type PlanningContext = {
   today: IsoDate;
@@ -34,18 +34,22 @@ export async function loadPlanningContext(db: SupabaseClient): Promise<PlanningC
   const year = Number(today.slice(0, 4));
   const [ctx, users, settings, skill, proof] = await Promise.all([
     loadCalendarContext(db, [year, year + 1]),
-    rows<Omit<TeamUser, "key">>(db.from("users").select("id, name, email, role, active, slack_user_id, timezone")),
+    rows<Omit<TeamUser, "key" | "writesAs"> & { send_mailbox_id: string | null }>(db.from("users").select("id, name, email, role, active, slack_user_id, timezone, send_mailbox_id")),
     db.from("app_settings").select("caps, default_model, tier_a_model, priority_weights").maybeSingle(),
     db.from("skill_versions").select("id, version_no, body").order("version_no", { ascending: false }).limit(1).maybeSingle(),
     rows<{ label: string; customer_name: string | null; text: string }>(db.from("proof_points").select("label, customer_name, text").eq("approved", true).is("deleted_at", null)),
   ]);
   const caps = { ...DEFAULT_CAPS, ...((settings.data?.caps as Partial<Caps>) ?? {}) };
+  // Whose name each person's emails carry: a shared mailbox's person (Mouli writes as Sid), else their own.
+  const { data: mailboxes } = await db.from("mailboxes").select("id, writes_as_user_id");
+  const nameOf = new Map(users.map((u) => [u.id, u.name]));
+  const personaOf = new Map((mailboxes ?? []).map((m) => [m.id as string, nameOf.get(m.writes_as_user_id as string)]));
   const rawCaps = (settings.data?.caps ?? {}) as Record<string, number>;
   return {
     today,
     ctx,
     caps,
-    users: users.map((u) => ({ ...u, key: userKey(u) })),
+    users: users.map(({ send_mailbox_id, ...u }) => ({ ...u, key: userKey(u), writesAs: (send_mailbox_id && personaOf.get(send_mailbox_id)) || u.name })),
     settings: {
       default_model: settings.data?.default_model ?? "claude-sonnet-5-5",
       tier_a_model: settings.data?.tier_a_model ?? "claude-opus-5-5",
@@ -98,7 +102,7 @@ export function teamPayload(p: PlanningContext, from: IsoDate, to: IsoDate) {
       for (const r of p.ctx.outOfOffice.get(u.id) ?? []) {
         for (let d = r.start < from ? from : r.start; d <= r.end && d <= to; d = addWorkingDays(d, 1, {}, p.ctx)) ooo.push(d);
       }
-      return { user: u.key, name: u.name, role: u.role, out_of_office_dates: ooo };
+      return { user: u.key, name: u.name, writes_as: u.writesAs, role: u.role, out_of_office_dates: ooo };
     });
 }
 

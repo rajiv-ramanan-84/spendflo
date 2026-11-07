@@ -10,6 +10,8 @@ import { loadDataSettings } from "@/lib/data/data-quality";
 import { DataSettings } from "@/components/settings/data-settings";
 import { monthSpend } from "@/lib/claude/budget";
 import { ClaudeSpend } from "@/components/settings/claude-spend";
+import { loadMailboxSettings } from "@/lib/google/mailbox-settings";
+import { MailboxSettings } from "@/components/settings/mailbox-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -20,16 +22,18 @@ const SECTIONS = [
   { title: "Caps and priority", body: "Touch caps, daily load and Focus Today weights." },
 ];
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mailbox_connected?: string; mailbox_error?: string }> }) {
+  const sp = await searchParams;
   const user = await requireUser();
   const db = supabaseAdmin();
-  const [slack, skill, data, spend, auto] = db
-    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft").maybeSingle()])
-    : [null, null, null, null, null];
+  const [slack, skill, data, spend, auto, mail] = db
+    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft").maybeSingle(), loadMailboxSettings(db)])
+    : [null, null, null, null, null, null];
   return (
     <>
       <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
       <div className="grid gap-5">
+        {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
         {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} canEdit={canEditAdminSettings(user)} />}
         {skill && <SkillSettings {...skill} canEdit={canEditAdminSettings(user)} />}

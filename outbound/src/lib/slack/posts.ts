@@ -137,3 +137,23 @@ export async function sendReplyAlert(db: SupabaseClient, responseId: string) {
     return { posted: false };
   }
 }
+
+/** A one-line update about an account (tracks paused, meeting booked), once per key. Never throws. */
+export async function postAccountNote(db: SupabaseClient, accountId: string, key: string, text: string) {
+  try {
+    const s = await settings(db);
+    if (!slackConfigured() || !s.channel) return { posted: false };
+    const { data: a } = await db.from("accounts").select("id, name, owner_id").eq("id", accountId).single();
+    if (!a) return { posted: false };
+    const { data: owner } = a.owner_id ? await db.from("users").select("name, slack_user_id").eq("id", a.owner_id).single() : { data: null };
+    const cl = await claim(db, { post_type: "account_note", for_date: todayIn(), dedupe_key: key });
+    if (!cl.fresh) return { posted: false };
+    const who = owner ? (owner.slack_user_id ? `<@${owner.slack_user_id}>` : owner.name) : "";
+    const link = `${appUrl()}/accounts/${a.id}`;
+    const r = await send(db, cl.id, s.channel, { text: `${a.name}: ${text}`, blocks: [{ type: "section", text: { type: "mrkdwn", text: `*<${link}|${a.name.replace(/[<>&]/g, "")}>* · ${text}${who ? ` ${who}` : ""}` } }] });
+    return { posted: r.ok };
+  } catch (e) {
+    console.error("Slack account note failed:", e);
+    return { posted: false };
+  }
+}

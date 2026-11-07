@@ -199,7 +199,11 @@ async function applyEffect(db: SupabaseClient, user: SessionUser, r: ResponseRow
   if (r.campaign_id) {
     if (e.campaignStatus) await db.from("campaigns").update({ status: e.campaignStatus }).eq("id", r.campaign_id).in("status", ["active", "paused", "responded"]);
     if (pauseOthers && e.askPauseOthers) {
-      await db.from("contact_tracks").update({ status: "paused", pause_reason: "Paused while a positive reply is worked" }).eq("campaign_id", r.campaign_id).neq("id", r.track_id ?? "").in("status", ["active"]);
+      const { data: paused } = await db.from("contact_tracks").update({ status: "paused", pause_reason: "Positive reply" }).eq("campaign_id", r.campaign_id).neq("id", r.track_id ?? "").in("status", ["active", "not_started"]).select("id");
+      if (paused?.length) {
+        const { postAccountNote } = await import("@/lib/slack/posts");
+        await postAccountNote(db, r.account_id!, `pause-positive-${r.id}`, `Positive reply: ${paused.length} other track${paused.length === 1 ? "" : "s"} paused.`);
+      }
     }
     if (e.startReplyTriggers && r.contact_id) await startWaitingTracks(db, r.campaign_id, { kind: "reply", contactId: r.contact_id }, today);
   }

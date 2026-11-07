@@ -156,7 +156,7 @@ export async function removeStep(db: SupabaseClient, user: SessionUser, stepId: 
   await logActivity(db, { entityType: "step", entityId: stepId, action: campaign.status === "draft" ? "deleted" : "skipped", actorId: user.id, before: step });
 }
 
-export async function launchCampaign(db: SupabaseClient, user: SessionUser, campaignId: string) {
+export async function launchCampaign(db: SupabaseClient, user: SessionUser, campaignId: string, opts: { acknowledgeFlags?: boolean } = {}) {
   const c = await campaignFor(db, campaignId);
   if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can launch", 403);
   if (c.status !== "draft") throw new ActionError("Only a draft can be launched");
@@ -170,6 +170,8 @@ export async function launchCampaign(db: SupabaseClient, user: SessionUser, camp
   const dated = (steps ?? []).filter((s) => s.due_date);
   const gate = canLaunch((c.review?.flags ?? []) as ReviewFlag[], c.review_flags_cleared ?? [], dated.length);
   if (!gate.ok) throw new ActionError(`Can't launch yet: ${gate.reason}`);
+  if (gate.warnings.length && !opts.acknowledgeFlags) throw new ActionError(`${gate.reason}. Confirm to launch anyway.`, 409);
+  if (gate.warnings.length) await logActivity(db, { entityType: "campaign", entityId: c.id, action: "launched_with_open_flags", actorId: user.id, after: { open: gate.warnings.map((f) => f.text) } });
 
   const today = todayIn();
   const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
@@ -223,4 +225,108 @@ export async function assignAccounts(db: SupabaseClient, user: SessionUser, acco
 
 function pick(o: Record<string, unknown>, keys: string[]) {
   return Object.fromEntries(keys.map((k) => [k, o[k]]));
+}
+
+/**
+ * Pin a triggered track to fixed dates (or Start now for a stuck one): the
+ * first open step lands on startDate (rolled to a working day), later steps
+ * keep their spacing. The track no longer waits on anyone.
+ */
+export async function pinTrack(db: SupabaseClient, user: SessionUser, trackId: string, startDate: string) {
+  if (!isIsoDate(startDate)) throw new ActionError("Pick a date");
+  const { data: t } = await db.from("contact_tracks").select("id, campaign_id, contact_id, status, start_trigger_type, assignee_id").eq("id", trackId).maybeSingle();
+  if (!t) throw new ActionError("Track not found", 404);
+  const c = await campaignFor(db, t.campaign_id);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can change dates", 403);
+  if (t.start_trigger_type === "fixed") throw new ActionError("This track already has fixed dates. Edit a step's date instead.");
+  if (!["not_started", "paused"].includes(t.status)) throw new ActionError("This track has already started");
+
+  const today = todayIn();
+  const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const { data: contact } = await db.from("contacts").select("country").eq("id", t.contact_id).single();
+  const scope = { country: contact?.country ?? null, assigneeId: t.assignee_id };
+  const start = rollForward(startDate < today ? today : startDate, scope, ctx).date;
+  const { data: steps } = await db.from("steps").select("id, offset_working_days, sequence_no").eq("track_id", t.id).in("status", ["upcoming", "due", "overdue"]).is("deleted_at", null).order("sequence_no");
+  const { datesForTriggeredTrack } = await import("./triggers");
+  const { scheduleTouches } = await import("@/lib/caps/schedule");
+  const { loadPlanningContext, loadScheduledTouches } = await import("./context");
+  const planned = datesForTriggeredTrack((steps ?? []).map((s) => ({ id: s.id, offset: s.offset_working_days ?? 0 })), start, 0, scope, ctx);
+  // Same rules as everything else: account and person caps, one touch a day per person, working days.
+  const p = await loadPlanningContext(db);
+  const own = new Set((steps ?? []).map((s) => s.id));
+  const existing = (await loadScheduledTouches(db, today)).filter((x) => !own.has(x.key));
+  const { data: full } = await db.from("steps").select("id, channel").in("id", [...own]);
+  const channelOf = new Map((full ?? []).map((s) => [s.id, s.channel as string]));
+  const { scheduled } = scheduleTouches(
+    planned.steps.map((x) => ({ key: x.id, date: x.date, contactId: t.contact_id, accountId: c.account_id, assigneeId: t.assignee_id ?? c.owner_id, channel: channelOf.get(x.id) ?? "email", country: contact?.country ?? null })),
+    existing, p.caps, p.ctx,
+  );
+  for (const sch of scheduled) {
+    await db.from("steps").update({
+      due_date: sch.date, scheduled_date: sch.date, original_date: sch.movedFrom ?? sch.date,
+      moved_from_date: sch.movedFrom ?? null, moved_reason: sch.movedFrom ? `Moved from ${sch.movedFrom} (account and team limits)` : null,
+      status: sch.date < today ? "overdue" : sch.date === today ? "due" : "upcoming",
+    }).eq("id", sch.key);
+  }
+  const firstDate = scheduled.map((x) => x.date).sort()[0] ?? planned.startDate;
+  const live = c.status !== "draft";
+  await db.from("contact_tracks").update({
+    start_trigger_type: "fixed", start_date: firstDate, trigger_from_contact_id: null, trigger_step_index: null,
+    status: live ? "active" : "not_started", next_step_at: firstDate, pause_reason: null,
+  }).eq("id", t.id);
+  await logActivity(db, { entityType: "track", entityId: t.id, action: "pinned_to_dates", actorId: user.id, after: { startDate: firstDate, moved: scheduled.filter((x) => x.movedFrom).length } });
+  return { startDate: firstDate, moved: scheduled.filter((x) => x.movedFrom).length };
+}
+
+/** Pause every running track on the campaign, with a reason everyone can see. */
+export async function pauseAllTracks(db: SupabaseClient, user: SessionUser, campaignId: string, reason: string, opts: { exceptContactId?: string | null } = {}) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can pause tracks", 403);
+  const why = reason.trim().slice(0, 120) || "Paused by the owner";
+  // The person who said yes keeps their track: that is the one booking the meeting.
+  let q = db.from("contact_tracks").update({ status: "paused", pause_reason: why }).eq("campaign_id", c.id).in("status", ["active", "not_started"]);
+  if (opts.exceptContactId) q = q.neq("contact_id", opts.exceptContactId);
+  const { data: paused } = await q.select("id");
+  if (c.status === "active" && !opts.exceptContactId) await db.from("campaigns").update({ status: "paused", paused_at: new Date().toISOString() }).eq("id", c.id);
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "paused_all", actorId: user.id, after: { reason: why, tracks: paused?.length ?? 0 } });
+  const { postAccountNote } = await import("@/lib/slack/posts");
+  await postAccountNote(db, c.account_id, `paused-${c.id}-${new Date().toISOString().slice(0, 16)}`, `${paused?.length ?? 0} track${paused?.length === 1 ? "" : "s"} paused: ${why}.`);
+  return { paused: paused?.length ?? 0 };
+}
+
+/** Resume paused tracks. Steps whose dates passed while paused move to the next working days. */
+export async function resumeTracks(db: SupabaseClient, user: SessionUser, campaignId: string) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can resume tracks", 403);
+  const today = todayIn();
+  const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const { data: tracks } = await db.from("contact_tracks").select("id, contact_id, start_trigger_type, assignee_id").eq("campaign_id", c.id).eq("status", "paused");
+  for (const t of tracks ?? []) {
+    const { data: steps } = await db.from("steps").select("id, due_date").eq("track_id", t.id).in("status", ["upcoming", "due", "overdue"]).not("due_date", "is", null).is("deleted_at", null);
+    const { data: contact } = await db.from("contacts").select("country").eq("id", t.contact_id).single();
+    const moved = rebaseTrack((steps ?? []).map((s) => ({ id: s.id, date: s.due_date! })), today, { country: contact?.country ?? null, assigneeId: t.assignee_id }, ctx);
+    for (const m of moved.filter((x) => x.movedFrom)) {
+      await db.from("steps").update({ due_date: m.date, scheduled_date: m.date, moved_from_date: m.movedFrom, moved_reason: `Moved from ${m.movedFrom} (track was paused)`, status: m.date === today ? "due" : "upcoming" }).eq("id", m.id);
+    }
+    const hasDates = (steps ?? []).length > 0;
+    await db.from("contact_tracks").update({ status: t.start_trigger_type === "fixed" || hasDates ? "active" : "not_started", pause_reason: null }).eq("id", t.id);
+  }
+  if (c.status === "paused") await db.from("campaigns").update({ status: "active", paused_at: null }).eq("id", c.id);
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "resumed", actorId: user.id, after: { tracks: tracks?.length ?? 0 } });
+  return { resumed: tracks?.length ?? 0 };
+}
+
+/** The win: campaign at Meeting booked, and the person who said yes at Meeting. */
+export async function markMeetingBooked(db: SupabaseClient, user: SessionUser, campaignId: string, contactId: string | null) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can mark a meeting", 403);
+  await db.from("campaigns").update({ status: "meeting_booked" }).eq("id", c.id);
+  if (contactId) {
+    await db.from("contacts").update({ engagement_status: "meeting" }).eq("id", contactId);
+    await db.from("contact_tracks").update({ status: "meeting" }).eq("campaign_id", c.id).eq("contact_id", contactId);
+  }
+  await logActivity(db, { entityType: "campaign", entityId: c.id, action: "meeting_booked", actorId: user.id, after: { contactId } });
+  const { postAccountNote } = await import("@/lib/slack/posts");
+  await postAccountNote(db, c.account_id, `meeting-${c.id}`, ":tada: Meeting booked.");
+  return {};
 }

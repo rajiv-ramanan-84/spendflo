@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { GoogleAuthError, getMessage, getThread, gmailAccessToken, listMessageIds } from "@/lib/google/gmail";
+import { GoogleAuthError, getMessage, getThread, gmailAccessToken, listMessageIds, senderFor } from "@/lib/google/gmail";
 import { markDone } from "@/lib/steps/execute";
 import type { SessionUser } from "@/lib/auth/session";
 import { addressOf, bodyText, bouncedAddress, header, isBounce, matchSender, stripQuoted } from "./parse";
@@ -24,21 +24,38 @@ export async function runGmailCheck(db: SupabaseClient, opts: { lookbackDays?: n
   const { data: contacts } = await db.from("contacts").select("id, email, account_id").not("email", "is", null).is("deleted_at", null);
   const { data: accounts } = await db.from("accounts").select("id, domain").is("deleted_at", null);
   const report: Array<{ user: string; sent: number; replies: number; skipped?: string }> = [];
+  const inboxesRead = new Set<string>();
 
   for (const u of users ?? []) {
-    let token: string;
-    try {
-      token = await gmailAccessToken(db, u.id);
-    } catch (e) {
-      report.push({ user: u.email, sent: 0, replies: 0, skipped: e instanceof GoogleAuthError ? "token" : "error" });
-      continue;
-    }
     const actor: SessionUser = { authUserId: u.auth_user_id, id: u.id, email: u.email, name: u.name, role: u.role, avatarUrl: u.avatar_url };
-    const sent = await checkSentDrafts(db, token, actor);
-    const replies = await checkInbound(db, token, u.email, contacts ?? [], accounts ?? [], lookback);
-    report.push({ user: u.email, sent, replies });
+    // Sent drafts live in whichever mailbox this person sends from (their own, or a shared one like sid@).
+    let sent = 0;
+    let replies = 0;
+    let skipped: string | undefined;
+    try {
+      const from = await senderFor(db, u.id);
+      const token = await from.token();
+      sent = await checkSentDrafts(db, token, actor);
+      if (!inboxesRead.has(from.email)) {
+        inboxesRead.add(from.email);
+        replies += await checkInbound(db, token, from.email, contacts ?? [], accounts ?? [], lookback);
+      }
+    } catch (e) {
+      skipped = e instanceof GoogleAuthError ? "token" : "error";
+    }
+    // Their own inbox too, in case a prospect writes to them directly.
+    if (!inboxesRead.has(u.email)) {
+      try {
+        const own = await gmailAccessToken(db, u.id);
+        inboxesRead.add(u.email);
+        replies += await checkInbound(db, own, u.email, contacts ?? [], accounts ?? [], lookback);
+      } catch {
+        skipped ??= "token";
+      }
+    }
+    report.push({ user: u.email, sent, replies, ...(skipped ? { skipped } : {}) });
   }
-  return { checked: report.length, report };
+  return { checked: report.length, inboxes: [...inboxesRead], report };
 }
 
 async function checkSentDrafts(db: SupabaseClient, token: string, actor: SessionUser) {

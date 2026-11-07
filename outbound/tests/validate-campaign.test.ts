@@ -124,10 +124,13 @@ describe("validateCampaign", () => {
     expect(v.tracks.map((t) => t.contactId)).toEqual(["c-priya"]);
   });
 
-  it("gives an inactive or unknown assignee's track to the owner, with a flag", () => {
-    const v = validateCampaign(campaign([track({ assignee: "shweta" })]), input());
-    expect(v.tracks[0].assigneeId).toBe("u-mouli");
-    expect(v.blocking[0].text).toMatch(/not an active user/);
+  it("gives every track to the account owner, whoever Claude named, without a flag", () => {
+    for (const who of ["shweta", "sid", "mouli"]) {
+      const v = validateCampaign(campaign([track({ assignee: who })]), input());
+      expect(v.tracks[0].assigneeId).toBe("u-mouli");
+      expect(v.tracks[0].steps.every((s) => s.assigneeId === "u-mouli")).toBe(true);
+      expect(v.blocking.some((b) => /assignee|active user/i.test(b.text))).toBe(false);
+    }
   });
 
   it("flags copy problems: long connect note, long email, placeholders, em dashes, missing subject", () => {
@@ -173,7 +176,7 @@ describe("validateCampaign", () => {
     const t = v.tracks[1];
     expect(t.trigger).toEqual({ type: "after_reply", startDate: null, fromContactId: "c-priya", stepIndex: null, delayWorkingDays: 2 });
     expect(t.steps.map((s) => [s.date, s.offsetWorkingDays])).toEqual([[null, 0], [null, 3]]);
-    expect(t.assigneeId).toBe("u-sid");
+    expect(t.assigneeId).toBe("u-mouli"); // the owner sends every step
   });
 
   it("flags a trigger that waits on someone not on the account", () => {

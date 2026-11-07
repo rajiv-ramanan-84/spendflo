@@ -67,4 +67,5 @@ export const ACCESS_ERROR_COPY: Record<string, string> = {
   not_on_allowlist: "This account isn't on the team list yet. Ask Rajiv or Sid to add you.",
   deactivated: "Your access is switched off right now. Ask Rajiv or Sid if that looks wrong.",
   oauth_failed: "Google sign-in didn't complete. Please try again.",
+  sending_mailbox: "That address is a shared sending mailbox, not a person, so it can't sign in. Sign in with your own Google account; the app sends from the shared mailbox for you.",
 };
