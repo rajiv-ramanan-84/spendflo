@@ -10,7 +10,8 @@ import { ActionError, canEdit } from "@/lib/campaigns/actions";
 import { logActivity } from "@/lib/activity/log";
 import { hasUnresolvedToken, resolveTokens, tokenContext } from "@/lib/copy-tokens";
 import { buildDraftMime, gmailDraftLink, toBase64Url } from "@/lib/google/mime";
-import { createDraft, GoogleAuthError, senderFor, updateDraft } from "@/lib/google/gmail";
+import { createDraft, getThread, GoogleAuthError, senderFor, updateDraft } from "@/lib/google/gmail";
+import { bodyText, stripQuoted } from "@/lib/responses/parse";
 import type { SessionUser } from "@/lib/auth/session";
 
 /**
@@ -176,4 +177,28 @@ export async function startWaitingTracks(db: SupabaseClient, campaignId: string,
     if (t.assignee_id) await db.from("notifications").insert({ user_id: t.assignee_id, type: "track_started", entity_type: "contact_track", entity_id: t.id, message: "A waiting track just started" });
   }
   return ids.length;
+}
+
+/**
+ * Send in Gmail: after the compose pop-up opens, the page asks this every few
+ * seconds. The moment the draft's thread holds a sent message, the step is
+ * Done (with the text actually sent) and Done today goes up.
+ */
+export async function checkStepSent(db: SupabaseClient, user: SessionUser, stepId: string) {
+  const { data: step } = await db.from("steps").select("id, status, assignee_id, gmail_thread_id, channel").eq("id", stepId).maybeSingle();
+  if (!step) throw new ActionError("Step not found", 404);
+  if (step.status === "done") return { sent: true, already: true };
+  if (step.channel !== "email" || !step.gmail_thread_id || !step.assignee_id) return { sent: false };
+  let token: string;
+  try {
+    token = await (await senderFor(db, step.assignee_id)).token();
+  } catch (e) {
+    throw new ActionError((e as GoogleAuthError).message, 409);
+  }
+  const thread = await getThread(token, step.gmail_thread_id);
+  const sentMsg = thread?.messages.find((m) => m.labelIds?.includes("SENT") && !m.labelIds?.includes("DRAFT"));
+  if (!sentMsg) return { sent: false };
+  const res = await markDone(db, user, stepId, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail" });
+  await db.from("steps").update({ gmail_message_id: sentMsg.id }).eq("id", stepId);
+  return { sent: true, started: res.started };
 }

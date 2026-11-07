@@ -751,6 +751,8 @@ grant select (id, email, writes_as_user_id, google_token_status, connected_by, c
 create trigger mailboxes_updated_at before update on mailboxes for each row execute function set_updated_at();
 
 alter table users add column if not exists send_mailbox_id uuid references mailboxes (id) on delete set null;
+-- Readable like the other non-secret user columns (tokens stay hidden).
+grant select (send_mailbox_id) on users to authenticated;
 
 -- Every step on an account is now sent by the account owner (from their mailbox).
 -- Move open steps and tracks that were assigned to someone else onto the owner.

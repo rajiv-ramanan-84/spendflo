@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { SendButton, SendStatus, useSendFlow } from "@/components/steps/send-flow";
 import { Trash2, X } from "lucide-react";
 import type { CockpitStep, CockpitTrack, UserLite } from "@/lib/data/queries";
 import { copyIssues, wordCount } from "@/lib/claude/copy-checks";
@@ -18,6 +19,7 @@ export function StepEditor(props: {
   isDraft: boolean;
   canEdit: boolean;
   onClose: () => void;
+  onSent?: (label: string) => void;
 }) {
   const router = useRouter();
   const s = props.step;
@@ -36,7 +38,7 @@ export function StepEditor(props: {
   const issues = useMemo(() => copyIssues(channel, channel === "email" ? subject : null, channel === "call" ? script || null : body, { emailWords: 150, connectChars: 300 }), [channel, subject, body, script]);
   const editable = props.canEdit && !closed;
 
-  async function save() {
+  async function persist(): Promise<boolean> {
     setBusy(true);
     setError(null);
     const payload = { channel, subject: channel === "email" ? subject : null, body: channel === "call" ? null : body, call_script: channel === "call" ? script : null, date: date || undefined };
@@ -45,10 +47,27 @@ export function StepEditor(props: {
       : await fetch(`/api/tracks/${props.track.id}/steps`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     const data = await res.json();
     setBusy(false);
-    if (!data.ok) return setError(data.error);
-    router.refresh();
-    props.onClose();
+    if (!data.ok) {
+      setError(data.error);
+      return false;
+    }
+    return true;
   }
+
+  async function save() {
+    if (await persist()) {
+      router.refresh();
+      props.onClose();
+    }
+  }
+
+  // Send from here too: saves your edits first, then opens Gmail or LinkedIn.
+  const flow = useSendFlow(s?.id ?? "new", (label) => {
+    router.refresh();
+    props.onSent?.(label);
+    props.onClose();
+  });
+  const canSendNow = !!s && !props.isDraft && !!s.due_date && ["upcoming", "due", "overdue"].includes(s.status) && (channel === "email" || channel.startsWith("linkedin"));
 
   async function remove() {
     if (!s) return;
@@ -123,7 +142,8 @@ export function StepEditor(props: {
               <p className="mt-2 whitespace-pre-wrap rounded-lg bg-canvas p-3 text-ink-700">{s.original_body}</p>
             </details>
           ) : null}
-          {error ? <div role="alert" className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">{error}</div> : null}
+          {error || flow.error ? <div role="alert" className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">{error ?? flow.error}</div> : null}
+          <SendStatus flow={flow} channel={channel} />
         </div>
 
         {editable ? (
@@ -135,7 +155,8 @@ export function StepEditor(props: {
             ) : <span />}
             <div className="flex gap-2">
               <Button variant="ghost" onClick={props.onClose}>Cancel</Button>
-              <Button onClick={save} disabled={busy || (!s && !date)}>{busy ? "Saving…" : "Save"}</Button>
+              <Button variant={canSendNow ? "secondary" : "primary"} onClick={save} disabled={busy || (!s && !date)}>{busy ? "Saving…" : "Save"}</Button>
+              {canSendNow ? <SendButton flow={flow} channel={channel} disabled={busy} beforeSend={persist} /> : null}
             </div>
           </div>
         ) : null}

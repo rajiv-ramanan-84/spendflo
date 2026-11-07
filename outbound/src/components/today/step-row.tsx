@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Copy, ExternalLink, Pencil, Phone } from "lucide-react";
+import { ChevronDown, Pencil, Phone } from "lucide-react";
+import { SendButton, SendStatus, useSendFlow } from "@/components/steps/send-flow";
 import type { TodayStep } from "@/lib/data/today";
 import type { CockpitStep, CockpitTrack, UserLite } from "@/lib/data/queries";
 import { ChannelIcon } from "@/components/ui/channel";
@@ -32,8 +33,6 @@ export function StepRow({ step, me, users, onActed }: { step: TodayStep; me: str
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draftLink, setDraftLink] = useState<string | null>(null);
-  const [opened, setOpened] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -51,37 +50,12 @@ export function StepRow({ step, me, users, onActed }: { step: TodayStep; me: str
     onActed(step.id, data.date ? `${label} to ${fmtDate(data.date)}` : label);
   }
 
-  async function gmailDraft() {
-    setBusy(true);
-    setError(null);
-    const data = await post(`/api/steps/${step.id}/gmail-draft`);
-    setBusy(false);
-    if (!data.ok) return setError(data.error);
-    setDraftLink(data.link);
-    window.open(data.link, "_blank", "noopener");
-  }
-
-  async function copyAndOpen() {
-    setBusy(true);
-    const r = await copyPrepared(step.id);
-    setBusy(false);
-    if (!r.ok) return setError(r.error);
-    if (r.linkedinUrl) window.open(r.linkedinUrl, "_blank", "noopener");
-    setOpened(true);
-  }
+  const flow = useSendFlow(step.id, (label) => onActed(step.id, label));
+  const from = sender?.sendsAs;
 
   const primary =
-    step.channel === "email" ? (
-      draftLink || step.gmail_message_id ? (
-        <Button className="px-3 py-1.5" onClick={() => act("done", "Marked done")} disabled={busy}>Mark sent</Button>
-      ) : (
-        <Button className="px-3 py-1.5" onClick={gmailDraft} disabled={busy || !mineToSend} title={mineToSend ? undefined : `Sent by ${sender?.name}`}>
-          {busy ? "Creating…" : "Create Gmail draft"}
-        </Button>
-      )
-    ) : step.channel.startsWith("linkedin") ? (
-      opened ? <Button className="px-3 py-1.5" onClick={() => act("done", "Marked done")} disabled={busy}>Mark done</Button>
-        : <Button className="px-3 py-1.5" onClick={copyAndOpen} disabled={busy}><Copy size={14} />Copy and open profile</Button>
+    step.channel === "email" || step.channel.startsWith("linkedin") ? (
+      <SendButton compact flow={flow} channel={step.channel} disabled={step.channel === "email" && !mineToSend} />
     ) : step.channel === "call" ? (
       <Button className="px-3 py-1.5" onClick={() => setExpanded(true)}><Phone size={14} />Call</Button>
     ) : (
@@ -107,10 +81,10 @@ export function StepRow({ step, me, users, onActed }: { step: TodayStep; me: str
             {step.subject ? ` · ${step.subject}` : preview ? ` · ${preview.slice(0, 90)}` : ""}
           </div>
           {step.moved_reason ? <div className="text-xs text-ink-400">{step.moved_reason}</div> : null}
+          {step.channel !== "call" && from && sender && from.name !== sender.name ? <div className="text-xs text-ink-400">Sends as {from.name} ({from.email})</div> : null}
         </div>
         <div className="ml-12 flex items-center gap-2 sm:ml-0">
           {sender && !mineToSend ? <Avatar name={sender.name} size={22} title={`Sent by ${sender.name}`} /> : null}
-          {draftLink ? <a href={draftLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline"><ExternalLink size={14} />Open in Gmail</a> : null}
           {primary}
           <button onClick={() => setEditing(true)} aria-label="Edit before send" className="rounded-lg p-2 text-ink-400 hover:bg-canvas hover:text-ink-900"><Pencil size={15} /></button>
           <div className="relative">
@@ -145,7 +119,8 @@ export function StepRow({ step, me, users, onActed }: { step: TodayStep; me: str
           )}
         </div>
       ) : null}
-      {error ? <div role="alert" className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">{error}</div> : null}
+      <SendStatus flow={flow} channel={step.channel} />
+      {error || flow.error ? <div role="alert" className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">{error ?? flow.error}</div> : null}
 
       {editing ? (
         <StepEditor
@@ -155,7 +130,8 @@ export function StepRow({ step, me, users, onActed }: { step: TodayStep; me: str
           users={users}
           isDraft={false}
           canEdit
-          onClose={() => { setEditing(false); setDraftLink(null); router.refresh(); }}
+          onClose={() => { setEditing(false); router.refresh(); }}
+          onSent={(label) => onActed(step.id, label)}
         />
       ) : null}
     </li>
