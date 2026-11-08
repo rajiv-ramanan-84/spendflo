@@ -6,7 +6,7 @@ import { CalendarCheck, Building2, LayoutDashboard, Settings } from "lucide-reac
 import { cn } from "@/lib/cn";
 
 export const NAV = [
-  { href: "/today", label: "Today", icon: CalendarCheck },
+  { href: "/today", label: "Tasks", icon: CalendarCheck },
   { href: "/accounts", label: "Accounts", icon: Building2 },
   { href: "/team", label: "Team", icon: LayoutDashboard },
   { href: "/settings", label: "Settings", icon: Settings },

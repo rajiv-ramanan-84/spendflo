@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { todayIn, type IsoDate } from "@/lib/calendar/dates";
 import { addWorkingDays, nextValidDate } from "@/lib/calendar/working-calendar";
 import { loadCalendarContext } from "@/lib/calendar/context";
-import { scheduleTouches } from "@/lib/caps/schedule";
+import { scheduleTouches, weekStart, type Touch } from "@/lib/caps/schedule";
+import { pullForwardBlock } from "@/lib/caps/pull-forward";
 import { loadPlanningContext, loadScheduledTouches } from "@/lib/campaigns/context";
 import { datesForTriggeredTrack, tracksToStart } from "@/lib/campaigns/triggers";
 import { ActionError, canEdit } from "@/lib/campaigns/actions";
@@ -136,10 +137,52 @@ export async function snoozeStep(db: SupabaseClient, user: SessionUser, stepId: 
   return { date };
 }
 
+/**
+ * "Do today" from Tasks: move a future step to today, if the plan's rules allow
+ * it (earlier steps finished, working day, one touch per person a day, weekly caps).
+ */
+export async function pullForward(db: SupabaseClient, user: SessionUser, stepId: string) {
+  const s = await loadStep(db, stepId);
+  if (!OPEN_STEP.includes(s.step.status)) throw new ActionError("This step is already closed");
+  if (!canEdit(user, s.campaign.owner_id) && s.step.assignee_id !== user.id) throw new ActionError("You can move steps on your own accounts or assigned to you", 403);
+  if (s.track.status !== "active") throw new ActionError(s.track.status === "not_started" ? "This person's track hasn't started yet. It waits on a trigger." : `This person's track is ${s.track.status.replace("_", " ")}`);
+  const p = await loadPlanningContext(db);
+  const today = p.today;
+  const wk = weekStart(today);
+  const [{ data: siblings }, { data: contact }, scheduled, { data: doneRows }] = await Promise.all([
+    db.from("steps").select("id, sequence_no").eq("track_id", s.track.id).in("status", OPEN_STEP).is("deleted_at", null).neq("id", stepId),
+    db.from("contacts").select("country").eq("id", s.contact.id).single(),
+    loadScheduledTouches(db, wk),
+    db.from("steps").select("id, campaign_id, contact_id, assignee_id, completed_by, channel, completed_at").eq("status", "done").gte("completed_at", `${wk}T00:00:00`),
+  ]);
+  // What already happened this week counts toward the caps too.
+  const campIds = [...new Set((doneRows ?? []).map((d) => d.campaign_id))];
+  const { data: camps } = campIds.length ? await db.from("campaigns").select("id, account_id").in("id", campIds) : { data: [] as Array<{ id: string; account_id: string }> };
+  const accountOf = new Map((camps ?? []).map((c) => [c.id, c.account_id]));
+  const done: Touch[] = (doneRows ?? []).map((d) => ({
+    key: d.id, date: d.completed_at!.slice(0, 10), contactId: d.contact_id, accountId: accountOf.get(d.campaign_id) ?? "",
+    assigneeId: d.assignee_id ?? d.completed_by ?? "", channel: d.channel,
+  }));
+  const block = pullForwardBlock({
+    step: { id: stepId, sequenceNo: s.step.sequence_no, dueDate: s.step.due_date, contactId: s.contact.id, accountId: s.campaign.account_id, assigneeId: s.step.assignee_id ?? s.campaign.owner_id, channel: s.step.channel, country: contact?.country ?? null },
+    today,
+    openSequenceNos: (siblings ?? []).map((x) => x.sequence_no),
+    existing: [...scheduled, ...done],
+    caps: p.caps,
+    ctx: p.ctx,
+  });
+  if (block) throw new ActionError(block, 409);
+  const before = { due_date: s.step.due_date, scheduled_date: s.step.scheduled_date, status: s.step.status, moved_reason: s.step.moved_reason, moved_from_date: s.step.moved_from_date };
+  await db.from("steps").update({ due_date: today, scheduled_date: today, status: "due", moved_from_date: s.step.due_date, moved_reason: `Pulled forward from ${s.step.due_date} by ${user.name.split(" ")[0]}` }).eq("id", stepId);
+  await db.from("contact_tracks").update({ next_step_at: today }).eq("id", s.track.id);
+  await logActivity(db, { entityType: "step", entityId: stepId, action: "pulled_forward", actorId: user.id, before, after: { due_date: today } });
+  return { date: today, from: s.step.due_date };
+}
+
 /** 10-second undo for done, skip and snooze: restores the step from the activity log. */
 export async function undoStepAction(db: SupabaseClient, user: SessionUser, stepId: string) {
   const { data: last } = await db.from("activity_log").select("id, action, before, at, actor_id")
-    .eq("entity_type", "step").eq("entity_id", stepId).in("action", ["done", "skipped", "snoozed"])
+    .eq("entity_type", "step").eq("entity_id", stepId).in("action", ["done", "skipped", "snoozed", "pulled_forward"])
     .order("at", { ascending: false }).limit(1).maybeSingle();
   if (!last || last.actor_id !== user.id || Date.now() - new Date(last.at).getTime() > 120_000) throw new ActionError("Nothing to undo");
   await db.from("steps").update(last.before as Record<string, unknown>).eq("id", stepId);
@@ -201,4 +244,37 @@ export async function checkStepSent(db: SupabaseClient, user: SessionUser, stepI
   const res = await markDone(db, user, stepId, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail" });
   await db.from("steps").update({ gmail_message_id: sentMsg.id }).eq("id", stepId);
   return { sent: true, started: res.started };
+}
+
+/** What the Tasks side panel shows next to a step: the person's track, the last message, and the account's week. */
+export async function stepContext(db: SupabaseClient, stepId: string) {
+  const s = await loadStep(db, stepId);
+  const today = todayIn();
+  const wk = weekStart(today);
+  const wkEnd = addWorkingDays(wk, 4, {}, await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]));
+  const [{ data: track }, { data: account }, { data: camps }, { count: replies }] = await Promise.all([
+    db.from("steps").select("id, sequence_no, channel, status, due_date, completed_at, subject, sent_body, body").eq("track_id", s.track.id).is("deleted_at", null).neq("status", "superseded").order("sequence_no"),
+    db.from("accounts").select("id, name, tier, owner_id").eq("id", s.campaign.account_id).single(),
+    db.from("campaigns").select("id, job, objective").eq("account_id", s.campaign.account_id).is("deleted_at", null),
+    db.from("responses").select("id", { count: "exact", head: true }).eq("contact_id", s.contact.id),
+  ]);
+  const campIds = (camps ?? []).map((c) => c.id);
+  const { data: weekSteps } = campIds.length
+    ? await db.from("steps").select("id, contact_id, channel, status, due_date, completed_at").in("campaign_id", campIds).is("deleted_at", null).in("status", [...OPEN_STEP, "done"])
+        .or(`and(due_date.gte.${wk},due_date.lte.${wkEnd}),completed_at.gte.${wk}T00:00:00`)
+    : { data: [] as Array<{ id: string; contact_id: string; channel: string; status: string; due_date: string | null; completed_at: string | null }> };
+  const contactIds = [...new Set((weekSteps ?? []).map((w) => w.contact_id))];
+  const { data: names } = contactIds.length ? await db.from("contacts").select("id, full_name").in("id", contactIds) : { data: [] as Array<{ id: string; full_name: string }> };
+  const nameOf = new Map((names ?? []).map((n) => [n.id, n.full_name]));
+  const prev = (track ?? []).filter((t) => t.status === "done" && t.sequence_no < s.step.sequence_no).pop() ?? null;
+  const campaign = (camps ?? []).find((c) => c.id === s.campaign.id);
+  return {
+    contact: { id: s.contact.id, full_name: s.contact.full_name, title: s.contact.title, email: s.contact.email, linkedin_url: s.contact.linkedin_url, phone: s.contact.phone, bounced: s.contact.bounced, engagement_status: s.contact.engagement_status, persona: s.track.persona ?? null, replies: replies ?? 0 },
+    track: (track ?? []).map((t) => ({ id: t.id, sequence_no: t.sequence_no, channel: t.channel, status: t.status, due_date: t.due_date, completed_at: t.completed_at, current: t.id === stepId })),
+    previous: prev ? { sequence_no: prev.sequence_no, channel: prev.channel, subject: prev.subject, text: (prev.sent_body || prev.body || "").slice(0, 2000), sent_on: prev.completed_at?.slice(0, 10) ?? null } : null,
+    account: { id: account!.id, name: account!.name, tier: account!.tier, job: campaign?.job ?? null, objective: campaign?.objective ?? null },
+    week: (weekSteps ?? [])
+      .map((w) => ({ id: w.id, date: (w.status === "done" ? w.completed_at?.slice(0, 10) : w.due_date) ?? "", name: nameOf.get(w.contact_id) ?? "", channel: w.channel, done: w.status === "done", current: w.id === stepId }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  };
 }

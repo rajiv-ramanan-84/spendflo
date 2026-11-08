@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadCalendarContext } from "@/lib/calendar/context";
@@ -5,7 +6,10 @@ import { todayIn } from "@/lib/calendar/dates";
 import { loadToday } from "@/lib/data/today";
 import { listUsers } from "@/lib/data/queries";
 import { PageHeader } from "@/components/ui/page-header";
-import { TodayBoard } from "@/components/today/today-board";
+import { TasksWorkspace } from "@/components/tasks/tasks-workspace";
+import { FocusStrip, RepliesStrip } from "@/components/tasks/today-extras";
+import { fromQuery } from "@/lib/tasks/view";
+import { cn } from "@/lib/cn";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +18,12 @@ function greeting() {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-export default async function TodayPage({ searchParams }: { searchParams: Promise<{ scope?: string }> }) {
+export default async function TasksPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const user = await requireUser();
-  const { scope: rawScope } = await searchParams;
-  const scope = rawScope === "team" ? "team" : "mine";
+  const sp = await searchParams;
+  const scope = sp.scope === "team" ? "team" : "mine";
   const db = await createSupabaseServerClient();
-  const today = todayIn(user.role ? "Asia/Kolkata" : "Asia/Kolkata");
+  const today = todayIn("Asia/Kolkata");
   const year = Number(today.slice(0, 4));
   const [ctx, users] = await Promise.all([loadCalendarContext(db, [year, year + 1]), listUsers(db)]);
   const data = await loadToday(db, { userId: user.id, scope, today, ctx });
@@ -27,8 +31,19 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader eyebrow={dateLabel} title={`${greeting()}, ${user.name.split(" ")[0]}`} subtitle={data.header.replies ? "Replies first, then your day." : "Here's what moves today."} />
-      <TodayBoard data={data} me={user.id} users={users.filter((u) => u.active)} scope={scope} today={today} />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <PageHeader eyebrow={dateLabel} title={`${greeting()}, ${user.name.split(" ")[0]}`} subtitle={data.header.replies ? "Replies first, then your tasks." : "Here's what moves today."} />
+        <div className="mb-6 flex gap-1 text-sm">
+          {(["mine", "team"] as const).map((s) => (
+            <Link key={s} href={s === "mine" ? "/today" : "/today?scope=team"} className={cn("rounded-full px-3 py-1.5 font-medium", scope === s ? "bg-ink-900 text-white" : "text-ink-500 hover:bg-white")}>
+              {s === "mine" ? "My tasks" : "Whole team"}
+            </Link>
+          ))}
+        </div>
+      </div>
+      <RepliesStrip replies={data.replies} />
+      <FocusStrip focus={data.focus} />
+      <TasksWorkspace tasks={data.steps} users={users.filter((u) => u.active)} me={user.id} today={today} doneToday={data.header.doneToday} scope={scope} initial={fromQuery(sp)} />
     </>
   );
 }
