@@ -49,6 +49,7 @@ export const TRACK_STATUS_LABEL: Record<string, string> = {
   meeting: "Meeting",
   completed: "Completed",
   stopped: "Stopped",
+  nurture: "Nurture",
 };
 
 export function firstName(name: string | null | undefined): string {

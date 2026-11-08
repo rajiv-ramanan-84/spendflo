@@ -45,10 +45,13 @@ export function ContactRows(props: {
   campaignStatus: string | null;
   canEdit: boolean;
   projections?: Projection[];
+  /** Wave order from the attack plan: who gets reached first sits on top. */
+  groups?: Array<{ key: string; label: string; hint?: string; contactIds: string[]; collapsed?: boolean }>;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<{ step: CockpitStep | null; track: CockpitTrack } | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(new Set((props.groups ?? []).filter((g) => !g.collapsed).map((g) => g.key)));
   const projOf = new Map((props.projections ?? []).map((p) => [p.trackId, p]));
 
   async function startNow(trackId: string) {
@@ -68,11 +71,7 @@ export function ContactRows(props: {
     ...props.contacts.filter((c) => !trackOf.has(c.id)),
   ];
 
-  return (
-    <Card>
-      <CardHeader title="Contacts and their tracks" hint="One row per person. Each track runs on its own timeline." />
-      <div className="mt-3 divide-y divide-line">
-        {ordered.map((c) => {
+  function renderRow(c: Contact) {
           const t = trackOf.get(c.id);
           const assignee = t?.assignee_id ? userIdx.get(t.assignee_id) : undefined;
           const blocked = c.exclude || c.do_not_contact || !!c.sheet_deleted_at;
@@ -149,7 +148,28 @@ export function ContactRows(props: {
               </div>
             </div>
           );
-        })}
+        }
+
+  return (
+    <Card>
+      <CardHeader title="Contacts and their tracks" hint="One row per person. Each track runs on its own timeline." />
+      <div className="mt-3 divide-y divide-line">
+        {props.groups ? props.groups.map((g) => {
+          const isOpen = openGroups.has(g.key);
+          const people = g.contactIds.map((id) => props.contacts.find((c) => c.id === id)).filter((c): c is Contact => !!c);
+          if (!people.length) return null;
+          return (
+            <div key={g.key}>
+              <button onClick={() => setOpenGroups((o) => { const n = new Set(o); if (n.has(g.key)) n.delete(g.key); else n.add(g.key); return n; })} aria-expanded={isOpen}
+                className="flex w-full items-baseline gap-2 bg-canvas px-5 py-2 text-left">
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink-500">{g.label}</span>
+                <span className="text-xs text-ink-400">{people.length}{g.hint ? ` · ${g.hint}` : ""}</span>
+                <span className="ml-auto text-xs text-ink-400">{isOpen ? "Hide" : "Show"}</span>
+              </button>
+              {isOpen ? <div className="divide-y divide-line">{people.map(renderRow)}</div> : null}
+            </div>
+          );
+        }) : ordered.map(renderRow)}
         {!ordered.length ? <div className="px-5 py-8 text-sm text-ink-500">No contacts for this account yet. Add them in the Contacts tab of the sheet.</div> : null}
       </div>
 

@@ -222,3 +222,23 @@ describe("names in Claude's notes", () => {
     expect(namesForRefs(null, toId, names)).toBeNull();
   });
 });
+
+describe("active cap on new drafts", () => {
+  it("parks tracks over the cap in nurture with their spacing kept", () => {
+    const tracks = [
+      track({ contact_ref: "c-priya" }),
+      track({ contact_ref: "c-sam", start_trigger: { type: "fixed", date: "2026-11-09", from_contact: null, step_index: null, delay_working_days: null }, steps: [step("2026-11-09", "linkedin_connect"), step("2026-11-12", "linkedin_message")] }),
+      track({ contact_ref: "c-cfo", start_trigger: { type: "fixed", date: "2026-11-16", from_contact: null, step_index: null, delay_working_days: null }, steps: [step("2026-11-16", "email", "Note.", "renewals"), step("2026-11-19", "email", "Follow-up.", "renewals")] }),
+    ];
+    const v = validateCampaign(campaign(tracks), input({ activeCap: 2, contacts: input().contacts.map((c) => ({ ...c, name: c.id })) }));
+    const parked = v.tracks.find((t) => t.contactId === "c-cfo")!;
+    expect(parked.nurture).toBe(true);
+    expect(parked.steps.map((s) => [s.date, s.offsetWorkingDays])).toEqual([[null, 0], [null, 3]]);
+    expect(v.tracks.filter((t) => !t.nurture)).toHaveLength(2);
+    expect(v.notes.some((n) => /c-cfo moved to nurture/.test(n.text))).toBe(true);
+  });
+  it("leaves re-plans alone (no cap passed)", () => {
+    const v = validateCampaign(campaign([track({}), track({ contact_ref: "c-sam" }), track({ contact_ref: "c-cfo" })]), input());
+    expect(v.tracks.some((t) => t.nurture)).toBe(false);
+  });
+});

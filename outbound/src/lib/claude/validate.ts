@@ -1,5 +1,6 @@
 import { isIsoDate, type IsoDate } from "@/lib/calendar/dates";
-import { addWorkingDays, rollForward, reasonCopy, type CalendarContext } from "@/lib/calendar/working-calendar";
+import { addWorkingDays, rollForward, reasonCopy, workingDaysBetween, type CalendarContext } from "@/lib/calendar/working-calendar";
+import { overflowToNurture } from "@/lib/campaigns/attack-plan";
 import { scheduleTouches, MOVE_REASON_COPY, type Caps, type Touch } from "@/lib/caps/schedule";
 import type { CampaignOutput, Channel } from "./schemas";
 import { copyIssues } from "./copy-checks";
@@ -23,6 +24,7 @@ export type ValidationContact = {
   country: string | null;
   excluded: boolean;
   doNotContact: boolean;
+  name?: string;
 };
 
 export type ValidationUser = { id: string; key: string; active: boolean };
@@ -41,6 +43,8 @@ export type ValidationInput = {
   ctx: CalendarContext;
   emailWordFlag?: number;
   linkedinConnectMaxChars?: number;
+  /** New drafts only: people active at once on the account. Extra tracks go to nurture. */
+  activeCap?: number;
 };
 
 export type DraftStep = {
@@ -76,6 +80,8 @@ export type DraftTrack = {
     delayWorkingDays: number | null;
   };
   steps: DraftStep[];
+  /** Over the account's active cap: saved with its steps parked, no dates, until someone makes it active. */
+  nurture?: boolean;
 };
 
 export type Finding = { text: string; contactId?: string; sequenceNo?: number };
@@ -204,6 +210,25 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
       },
       steps,
     });
+  }
+
+  // At most N people active at one account (default 6); the rest are parked in nurture with their steps.
+  const cap = input.activeCap ?? Infinity;
+  const { nurture: overflow } = Number.isFinite(cap) ? overflowToNurture(tracks, cap) : { nurture: [] as typeof tracks };
+  if (overflow.length) {
+    const names = overflow.map((t) => byId.get(t.contactId)?.name ?? "a contact").join(", ");
+    notes.push({ text: `Claude wrote ${tracks.length} tracks. ${cap} stay active (the account cap); ${names} moved to nurture with their steps saved. Make any of them active from the plan.` });
+    for (const t of overflow) {
+      const scope = { country: byId.get(t.contactId)?.country ?? null, assigneeId: t.assigneeId };
+      const start = t.steps.map((s) => s.date).filter(Boolean).sort()[0] as IsoDate | undefined;
+      for (const s of t.steps) {
+        if (s.date && start) s.offsetWorkingDays = workingDaysBetween(start, s.date, scope, input.ctx);
+        s.offsetWorkingDays ??= 0;
+        s.date = null;
+        s.movedNote = null;
+      }
+      (t as DraftTrack).nurture = true;
+    }
   }
 
   // Caps and the collision guard across the whole draft plus everything already scheduled.

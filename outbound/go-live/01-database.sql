@@ -764,6 +764,13 @@ from campaigns c
 where t.campaign_id = c.id and t.status in ('not_started', 'active', 'paused') and t.assignee_id is distinct from c.owner_id;
 
 -- ============================================================
+-- supabase/migrations/20261108000010_nurture.sql
+-- ============================================================
+-- Nurture: people held back on purpose at an account. Their steps stay saved
+-- without dates until someone makes them active from the attack plan.
+alter type track_status add value if not exists 'nurture';
+
+-- ============================================================
 -- supabase/seed.sql (team and default settings)
 -- ============================================================
 -- Seed: the four launch users and default settings. Safe to re-run.

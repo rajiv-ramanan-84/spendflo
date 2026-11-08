@@ -20,6 +20,8 @@ export type Caps = {
   steps_per_person_per_day: number;
   linkedin_connects_per_person_per_week: number;
   linkedin_connect_warn_ratio: number;
+  /** People with a live sequence at one account at a time; the rest wait in nurture. */
+  active_contacts_per_account: number;
 };
 
 export const DEFAULT_CAPS: Caps = {
@@ -29,6 +31,7 @@ export const DEFAULT_CAPS: Caps = {
   steps_per_person_per_day: 25,
   linkedin_connects_per_person_per_week: 80,
   linkedin_connect_warn_ratio: 0.8,
+  active_contacts_per_account: 6,
 };
 
 export type Touch = {

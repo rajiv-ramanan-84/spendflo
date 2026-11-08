@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
  * person, so clashes, gaps and the account's weekly cap are visible at a glance.
  * Projected touches (tracks waiting on a trigger) are dashed.
  */
-const COLORS = ["bg-brand-500", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-violet-500", "bg-rose-400", "bg-teal-500", "bg-orange-500"];
+import { PERSON_COLORS as COLORS } from "@/lib/campaigns/attack-plan";
 const OPEN = ["upcoming", "due", "overdue"];
 
 function mondayOf(iso: string) {

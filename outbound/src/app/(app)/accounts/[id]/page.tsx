@@ -20,6 +20,11 @@ import { ReviewPanel } from "@/components/cockpit/review-panel";
 import { ContactRows } from "@/components/cockpit/contact-rows";
 import { ResponsePanel } from "@/components/cockpit/response-panel";
 import type { ReviewFlag } from "@/lib/campaigns/launch";
+import { buildAttackPlan, DEFAULT_ACTIVE_CAP, PERSON_COLORS } from "@/lib/campaigns/attack-plan";
+import { AttackPlanCard } from "@/components/cockpit/attack-plan";
+import { AccountTabs } from "@/components/cockpit/account-tabs";
+import { ActivityFeed, type ActivityItem } from "@/components/cockpit/activity-feed";
+import { fmtDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +77,46 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const pending = lastCall && ["queued", "running"].includes(lastCall.status) ? lastCall : null;
   const lastError = lastCall && ["failed", "invalid"].includes(lastCall.status) && (!campaign || campaign.created_at < lastCall.created_at) ? (lastCall.error as string | null) : null;
 
+  // The attack plan: waves from the real dates and triggers, the rest in nurture.
+  const { data: settings } = await db.from("app_settings").select("caps").maybeSingle();
+  const cap = Number((settings?.caps as Record<string, number> | null)?.active_contacts_per_account) || DEFAULT_ACTIVE_CAP;
+  const plan = campaign && tracks.length ? buildAttackPlan({ tracks, contacts, projections, skipped: review.skipped ?? [], cap }) : null;
+  const planOrder = plan ? plan.active.map((p) => p.trackId) : [];
+  const orderedTracks = [...tracks].filter((t) => t.status !== "nurture").sort((x, y) => (planOrder.indexOf(x.id) + 1 || 999) - (planOrder.indexOf(y.id) + 1 || 999));
+  const colorOf = Object.fromEntries(orderedTracks.map((t, i) => [t.contact_id, PERSON_COLORS[i % PERSON_COLORS.length]]));
+  const groups = plan ? [
+    ...plan.waves.map((w) => ({ key: `w${w.wave}`, label: w.label, hint: w.from ? `from ${fmtDate(w.from)}` : w.hint, contactIds: w.people.map((p) => p.contactId) })),
+    { key: "nurture", label: "Nurture", hint: "held back, no touches", contactIds: plan.nurture.map((n) => n.contactId), collapsed: true },
+    { key: "outside", label: "Not contacted", hint: "excluded or do not contact", contactIds: plan.outside.map((o) => o.contactId), collapsed: true },
+  ] : undefined;
+
+  // History for the Activity tab.
+  const stepIds = tracks.flatMap((t) => t.steps.map((x) => x.id));
+  const entityIds = [...(campaign ? [campaign.id] : []), ...tracks.map((t) => t.id), ...stepIds];
+  const { data: logRows } = entityIds.length
+    ? await db.from("activity_log").select("id, at, action, actor_id, entity_type, entity_id, before, after").in("entity_id", entityIds).order("at", { ascending: false }).limit(60)
+    : { data: [] as Array<{ id: number; at: string; action: string; actor_id: string | null; entity_type: string; entity_id: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null }> };
+  const stepOf = new Map(tracks.flatMap((t) => t.steps.map((x) => [x.id, { contactId: t.contact_id, channel: x.channel }] as const)));
+  const trackContact = new Map(tracks.map((t) => [t.id, t.contact_id]));
+  const activity: ActivityItem[] = (logRows ?? []).map((r) => {
+    const st = stepOf.get(r.entity_id);
+    const cid = st?.contactId ?? trackContact.get(r.entity_id) ?? null;
+    const after = (r.after ?? {}) as Record<string, unknown>;
+    const before = (r.before ?? {}) as Record<string, unknown>;
+    const detail = typeof after.reason === "string" ? after.reason
+      : typeof after.skip_reason === "string" ? after.skip_reason
+      : r.action === "pulled_forward" && before.due_date ? `Was due ${fmtDate(String(before.due_date))}`
+      : r.action === "snoozed" && after.due_date ? `To ${fmtDate(String(after.due_date))}`
+      : null;
+    return { id: r.id, at: r.at, action: r.action, actor: users.find((u) => u.id === r.actor_id)?.name.split(" ")[0] ?? null, who: cid ? fullNames.get(cid) ?? null : null, channel: st?.channel ?? null, detail };
+  });
+  const pendingReplies = inbox.responses.filter((r) => r.state === "pending").length;
+
+  // Data issues on this account's rows in the sheet.
+  const keys = [a.sheet_account_id, ...contacts.map((c) => c.sheet_contact_key)].filter(Boolean) as string[];
+  const { data: dq } = keys.length ? await db.from("data_quality_issues").select("id, issue_type, details, sheet_tab, sheet_row").in("sheet_key", keys).eq("status", "open").limit(30) : { data: [] as Array<{ id: string; issue_type: string; details: string | null; sheet_tab: string; sheet_row: number | null }> };
+  const discovery = (campaign?.discovery_questions as string[] | undefined) ?? [];
+
   return (
     <>
       <Link href="/accounts" className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-ink-900">
@@ -105,60 +150,111 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             </div>
           </div>
         </div>
-        <div className="mt-5 grid gap-5 border-t border-line pt-5 md:grid-cols-3">
-          <Fact label="Coupa evidence">{a.coupa_evidence}</Fact>
-          <Fact label="Trigger">{a.trigger}</Fact>
-          <Fact label="Outreach angle">{(campaign?.angle as string) ?? a.outreach_angle}</Fact>
-        </div>
       </Card>
 
-      <div className="mt-5 grid gap-5">
-        {live ? <CampaignStatusBar campaignId={live.id} status={live.status as string} canEdit={canEdit} positive={positive} paused={pausedTracks} running={runningTracks} /> : null}
-        {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}
-        {pending && campaign?.status !== "draft" ? null : !campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
-          <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} />
-        ) : campaign.status === "draft" ? (
-          <ReviewPanel
-            campaignId={campaign.id}
-            name={campaign.name as string}
-            objective={campaign.objective as string}
-            rationale={campaign.rationale as string}
-            likelyReply={review.likely_reply ?? null}
-            mainWeakness={review.main_weakness ?? null}
-            flags={review.flags ?? []}
-            cleared={cleared}
-            notes={review.notes ?? []}
-            skipped={review.skipped ?? []}
-            datedSteps={datedSteps}
-            canEdit={canEdit}
-            accountId={a.id}
-          />
-        ) : null}
+      {live ? <div className="mt-5"><CampaignStatusBar campaignId={live.id} status={live.status as string} canEdit={canEdit} positive={positive} paused={pausedTracks} running={runningTracks} /></div> : null}
 
-        {(live || inbox.responses.some((r) => r.state === "pending")) && (
-          <ResponsePanel
-            responses={inbox.responses}
-            replan={inbox.replan}
-            contacts={usable.map((c) => ({ id: c.id, full_name: c.full_name, title: c.title }))}
-            campaignId={live?.id ?? null}
-            campaignStatus={(live?.status as string) ?? null}
-            focusId={reply ?? null}
-            canEdit={canEdit}
-          />
-        )}
-
-        {tracks.length ? <AccountTimeline tracks={tracks} names={fullNames} projections={projections} today={today} weeklyCap={DEFAULT_CAPS.touches_per_account_per_week} /> : null}
-
-        {canEdit && !a.archived ? <ContactFinder accountId={a.id} accountName={a.name} /> : null}
-
-        <ContactRows
-          today={todayIn()}
-          contacts={contacts}
-          tracks={tracks}
-          users={users}
-          campaignStatus={(campaign?.status as string) ?? null}
-          canEdit={canEdit}
-          projections={projections}
+      <div className="mt-5">
+        <AccountTabs
+          initial={reply ? "activity" : "plan"}
+          tabs={[
+            { id: "plan", label: "Plan" },
+            { id: "contacts", label: "Contacts", badge: contacts.length },
+            { id: "activity", label: "Activity", badge: pendingReplies || undefined, tone: "alert" },
+            { id: "notes", label: "Notes" },
+            { id: "details", label: "Details", badge: dq?.length || undefined },
+          ]}
+          panels={{
+            plan: (
+              <>
+                {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}
+                {pending && campaign?.status !== "draft" ? null : !campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
+                  <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} />
+                ) : campaign.status === "draft" ? (
+                  <ReviewPanel
+                    campaignId={campaign.id}
+                    name={campaign.name as string}
+                    objective={campaign.objective as string}
+                    rationale={campaign.rationale as string}
+                    likelyReply={review.likely_reply ?? null}
+                    mainWeakness={review.main_weakness ?? null}
+                    flags={review.flags ?? []}
+                    cleared={cleared}
+                    notes={review.notes ?? []}
+                    skipped={review.skipped ?? []}
+                    datedSteps={datedSteps}
+                    canEdit={canEdit}
+                    accountId={a.id}
+                  />
+                ) : null}
+                {plan ? (
+                  <AttackPlanCard plan={plan} job={(campaign?.name as string) ?? null} objective={(campaign?.objective as string) ?? null} campaignId={campaign?.id ?? null}
+                    campaignStatus={(campaign?.status as string) ?? null} canEdit={canEdit} colorOf={colorOf} today={today} />
+                ) : null}
+                {orderedTracks.length ? <AccountTimeline tracks={orderedTracks} names={fullNames} projections={projections} today={today} weeklyCap={DEFAULT_CAPS.touches_per_account_per_week} /> : null}
+              </>
+            ),
+            contacts: (
+              <>
+                {canEdit && !a.archived ? <ContactFinder accountId={a.id} accountName={a.name} /> : null}
+                <ContactRows today={todayIn()} contacts={contacts} tracks={tracks} users={users} campaignStatus={(campaign?.status as string) ?? null} canEdit={canEdit} projections={projections} groups={groups} />
+              </>
+            ),
+            activity: (
+              <>
+                {(live || inbox.responses.some((r) => r.state === "pending")) && (
+                  <ResponsePanel
+                    responses={inbox.responses}
+                    replan={inbox.replan}
+                    contacts={usable.map((c) => ({ id: c.id, full_name: c.full_name, title: c.title }))}
+                    campaignId={live?.id ?? null}
+                    campaignStatus={(live?.status as string) ?? null}
+                    focusId={reply ?? null}
+                    canEdit={canEdit}
+                  />
+                )}
+                <ActivityFeed items={activity} />
+              </>
+            ),
+            notes: (
+              <Card className="p-5 md:p-6">
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Fact label="Why this plan">{campaign?.rationale as string}</Fact>
+                  <Fact label="Outreach angle">{(campaign?.angle as string) ?? a.outreach_angle}</Fact>
+                  <Fact label="Likely reply">{review.likely_reply ? `${review.likely_reply[0].toUpperCase()}${review.likely_reply.slice(1)}` : null}</Fact>
+                  <Fact label="Main weakness">{review.main_weakness}</Fact>
+                  <Fact label="Who to target (from the sheet)">{a.target_contact_notes}</Fact>
+                  {discovery.length ? <Fact label="Questions for the first call"><ul className="list-disc pl-5">{discovery.map((d) => <li key={d}>{d}</li>)}</ul></Fact> : null}
+                </div>
+                {!campaign ? <p className="text-sm text-ink-400">Notes appear once a campaign is drafted.</p> : null}
+              </Card>
+            ),
+            details: (
+              <>
+                <Card className="p-5 md:p-6">
+                  <div className="grid gap-5 md:grid-cols-3">
+                    <Fact label="Coupa evidence">{a.coupa_evidence}</Fact>
+                    <Fact label="Trigger">{a.trigger}</Fact>
+                    <Fact label="Signals">{a.signals}</Fact>
+                    <Fact label="Revenue">{a.revenue}</Fact>
+                    <Fact label="Employees">{a.employees}</Fact>
+                    <Fact label="HQ">{a.hq}</Fact>
+                    <Fact label="Ownership">{a.ownership}</Fact>
+                    <Fact label="Segment">{a.segment}</Fact>
+                    <Fact label="Disqualifier flags">{a.disqualifier_flags}</Fact>
+                  </div>
+                </Card>
+                {dq?.length ? (
+                  <Card className="p-5 md:p-6">
+                    <h2 className="text-[15px] font-semibold">Data to fix in the sheet</h2>
+                    <ul className="mt-3 divide-y divide-line text-sm">
+                      {dq.map((d) => <li key={d.id} className="py-2"><b className="font-medium">{d.issue_type.replace(/_/g, " ")}</b> <span className="text-ink-500">· {d.sheet_tab}{d.sheet_row ? ` row ${d.sheet_row}` : ""}</span>{d.details ? <div className="text-ink-600">{d.details}</div> : null}</li>)}
+                    </ul>
+                  </Card>
+                ) : null}
+              </>
+            ),
+          }}
         />
       </div>
     </>
