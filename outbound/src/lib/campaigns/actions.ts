@@ -238,8 +238,8 @@ export async function pinTrack(db: SupabaseClient, user: SessionUser, trackId: s
   if (!t) throw new ActionError("Track not found", 404);
   const c = await campaignFor(db, t.campaign_id);
   if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can change dates", 403);
-  if (t.start_trigger_type === "fixed") throw new ActionError("This track already has fixed dates. Edit a step's date instead.");
-  if (!["not_started", "paused"].includes(t.status)) throw new ActionError("This track has already started");
+  if (t.start_trigger_type === "fixed" && t.status !== "nurture") throw new ActionError("This track already has fixed dates. Edit a step's date instead.");
+  if (!["not_started", "paused", "nurture"].includes(t.status)) throw new ActionError("This track has already started");
 
   const today = todayIn();
   const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
@@ -329,4 +329,64 @@ export async function markMeetingBooked(db: SupabaseClient, user: SessionUser, c
   const { postAccountNote } = await import("@/lib/slack/posts");
   await postAccountNote(db, c.account_id, `meeting-${c.id}`, ":tada: Meeting booked.");
   return {};
+}
+
+/**
+ * Nurture: hold a person back without losing their plan. Open steps keep their
+ * spacing (as working-day offsets) but lose their dates, so they stop counting
+ * toward caps and drop off Tasks until someone makes them active again.
+ */
+export async function moveToNurture(db: SupabaseClient, user: SessionUser, trackId: string, reason: string) {
+  const { data: t } = await db.from("contact_tracks").select("id, campaign_id, contact_id, status, assignee_id").eq("id", trackId).maybeSingle();
+  if (!t) throw new ActionError("Track not found", 404);
+  const c = await campaignFor(db, t.campaign_id);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can change who is active", 403);
+  if (!["not_started", "active", "paused"].includes(t.status)) throw new ActionError(t.status === "nurture" ? "Already in nurture" : "This person's track has ended");
+  const today = todayIn();
+  const ctx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const { data: contact } = await db.from("contacts").select("country").eq("id", t.contact_id).single();
+  const scope = { country: contact?.country ?? null, assigneeId: t.assignee_id };
+  const { data: steps } = await db.from("steps").select("id, due_date, offset_working_days, sequence_no").eq("track_id", t.id).in("status", ["upcoming", "due", "overdue"]).is("deleted_at", null).order("sequence_no");
+  const { workingDaysBetween } = await import("@/lib/calendar/working-calendar");
+  const start = (steps ?? []).map((x) => x.due_date).filter(Boolean).sort()[0] as string | undefined;
+  for (const x of steps ?? []) {
+    const offset = x.due_date && start ? workingDaysBetween(start, x.due_date, scope, ctx) : (x.offset_working_days ?? 0);
+    await db.from("steps").update({ due_date: null, offset_working_days: offset, status: "upcoming", gmail_draft_id: null }).eq("id", x.id);
+  }
+  const why = reason.trim().slice(0, 160) || "Held back by the owner";
+  await db.from("contact_tracks").update({ status: "nurture", pause_reason: why, next_step_at: null }).eq("id", t.id);
+  await logActivity(db, { entityType: "track", entityId: t.id, action: "moved_to_nurture", actorId: user.id, before: { status: t.status }, after: { status: "nurture", reason: why, parkedSteps: steps?.length ?? 0 } });
+  const { data: waiting } = await db.from("contact_tracks").select("id").eq("campaign_id", t.campaign_id).eq("trigger_from_contact_id", t.contact_id).eq("status", "not_started");
+  return { parked: steps?.length ?? 0, waitingOnThem: waiting?.length ?? 0 };
+}
+
+/** Make a nurture person active: their saved steps get real dates from the start date, under the same caps. */
+export async function activateTrack(db: SupabaseClient, user: SessionUser, trackId: string, reason: string, startDate?: string) {
+  const { data: t } = await db.from("contact_tracks").select("id, status").eq("id", trackId).maybeSingle();
+  if (!t) throw new ActionError("Track not found", 404);
+  if (t.status !== "nurture") throw new ActionError("This person is already active");
+  const { count } = await db.from("steps").select("id", { count: "exact", head: true }).eq("track_id", trackId).in("status", ["upcoming", "due", "overdue"]).is("deleted_at", null);
+  if (!count) throw new ActionError("This person has no steps yet. Add a step first.");
+  const r = await pinTrack(db, user, trackId, startDate && isIsoDate(startDate) ? startDate : todayIn());
+  await logActivity(db, { entityType: "track", entityId: trackId, action: "made_active", actorId: user.id, after: { reason: reason.trim().slice(0, 160) || null, startDate: r.startDate } });
+  return r;
+}
+
+/** Bring someone with no track into the campaign: an empty track the owner fills with steps. */
+export async function addPersonToCampaign(db: SupabaseClient, user: SessionUser, campaignId: string, contactId: string, reason: string) {
+  const c = await campaignFor(db, campaignId);
+  if (!canEdit(user, c.owner_id)) throw new ActionError("Only the owner, admins or the manager can change who is active", 403);
+  const { data: contact } = await db.from("contacts").select("id, account_id, persona, exclude, do_not_contact").eq("id", contactId).maybeSingle();
+  if (!contact || contact.account_id !== c.account_id) throw new ActionError("That person is not on this account", 404);
+  if (contact.exclude || contact.do_not_contact) throw new ActionError("This person is excluded or marked do not contact");
+  const { data: existing } = await db.from("contact_tracks").select("id").eq("campaign_id", c.id).eq("contact_id", contactId).maybeSingle();
+  if (existing) throw new ActionError("This person already has a track in this campaign");
+  const today = todayIn();
+  const { data: track, error } = await db.from("contact_tracks").insert({
+    campaign_id: c.id, contact_id: contactId, persona: contact.persona, start_trigger_type: "fixed", start_date: today,
+    assignee_id: c.owner_id, status: c.status === "draft" ? "not_started" : "active", rationale: reason.trim().slice(0, 300) || null,
+  }).select("id").single();
+  if (error || !track) throw new ActionError("Could not add them. Please try again.");
+  await logActivity(db, { entityType: "track", entityId: track.id, action: "made_active", actorId: user.id, after: { reason: reason.trim().slice(0, 160) || null, added: true } });
+  return { trackId: track.id };
 }

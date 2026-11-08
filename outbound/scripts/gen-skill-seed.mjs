@@ -22,6 +22,7 @@ const appNotes = [
   "- step_index counts from 1, and the app dates triggered tracks and enforces caps itself. Do not flag how the app counts or schedules; flag only what a person must do.",
   "- For replan_campaign with scope \"track\", return only the replying contact's track. Other tracks stay as they are.",
   "- Every step on an account is sent by the account owner (the owner field). Set every track's assignee to the owner.",
+  "- Active people per account: write tracks for the 4 to 6 people you would go to now for this one use case, never more than 6. Put everyone else in skipped_contacts with a one-line reason (for example \"same remit as c2, hold for a referral\"); they wait in nurture. The app keeps at most 6 active and parks any extra tracks in nurture.",
   "- Write and sign every email and LinkedIn message as the owner's writes_as person from the team list. It can differ from the owner: a teammate may run a mailbox in a founder's name (Mouli writes as Sid). Sign with that person's first name and title, never the operator's.",
   "- Calls are made by the owner in their own name. When writes_as differs, the call opener refers to that person's note, e.g. \"Mouli from Spendflo, following Sid's note\".",
 ].join("\n");
