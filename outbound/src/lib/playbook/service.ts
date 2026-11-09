@@ -4,6 +4,7 @@ import { addDays, todayIn, type IsoDate } from "@/lib/calendar/dates";
 import { loadCalendarContext } from "@/lib/calendar/context";
 import { nextValidDate } from "@/lib/calendar/working-calendar";
 import { PLAY_SHORT } from "./catalog";
+import { evaluateFit, liveSignalIds } from "./fit";
 import { LEVEL_LABEL, START_WITHIN_HOURS } from "./gate";
 import { playForAccount } from "./payload";
 import { parseSignals, type ParsedSignal } from "./signals";
@@ -19,7 +20,7 @@ export const lineKey = (s: ParsedSignal) => `${s.id}|${s.seenOn ?? ""}|${s.evide
 
 export async function refreshPlays(db: SupabaseClient, opts: { accountIds?: string[]; today?: IsoDate } = {}) {
   const today = opts.today ?? todayIn();
-  let q = db.from("accounts").select("id, name, owner_id, signals, outreach_angle, archived, icp_verdict, do_not_contact, play_level, level_since, start_by").is("deleted_at", null);
+  let q = db.from("accounts").select("id, name, owner_id, signals, outreach_angle, archived, icp_verdict, do_not_contact, play_level, level_since, start_by, coupa_evidence, employees, disqualifier_flags, custom_fields").is("deleted_at", null);
   if (opts.accountIds?.length) q = q.in("id", opts.accountIds);
   const { data: accounts, error } = await q.limit(5000);
   if (error) throw new Error(`Play refresh could not read accounts: ${error.message}`);
@@ -33,6 +34,13 @@ export async function refreshPlays(db: SupabaseClient, opts: { accountIds?: stri
   }
   const have = new Map<string, Map<string, string>>();
   for (const e of existing) have.set(e.account_id, (have.get(e.account_id) ?? new Map()).set(e.line_key, e.id));
+
+  // Who is on each account's contact list, for the fit checks.
+  const personasOf = new Map<string, string[]>();
+  for (const part of chunk(ids, 100)) {
+    const { data } = await db.from("contacts").select("account_id, persona").in("account_id", part).is("deleted_at", null).is("sheet_deleted_at", null);
+    for (const c of data ?? []) if (c.persona) personasOf.set(c.account_id as string, [...(personasOf.get(c.account_id as string) ?? []), c.persona as string]);
+  }
 
   // Accounts already running a campaign don't need a start deadline.
   const running = new Set<string>();
@@ -72,7 +80,14 @@ export async function refreshPlays(db: SupabaseClient, opts: { accountIds?: stri
       startBy = kept && (prevLevel === "super_hot" || prevLevel === "hot") ? (kept < computed ? kept : computed) : computed;
       if (changed && a.owner_id) alerts.push({ user_id: a.owner_id, type: "account_urgent", entity_type: "account", entity_id: a.id, message: `${LEVEL_LABEL[r.level]}: ${a.name}. ${r.play ? PLAY_SHORT[r.play] + ". " : ""}Start within ${START_WITHIN_HOURS[r.level]} hours.` });
     }
+    const fit = evaluateFit({
+      coupaEvidence: (a.coupa_evidence as string | null) ?? null, employees: (a.employees as string | null) ?? null,
+      disqualifierFlags: (a.disqualifier_flags as string | null) ?? null,
+      researchFit: ((a.custom_fields as Record<string, unknown> | null)?.["Fit Agent(s)"] as string | undefined) ?? null,
+      personas: personasOf.get(a.id) ?? [], liveSignalIds: liveSignalIds(parsed),
+    });
     const { error: upErr } = await db.from("accounts").update({
+      fit_level: fit.level, fit_best_play: fit.best, fit_scores: fit.plays.map((p) => ({ play: p.play, level: p.level, score: p.score, met: p.met, evaluable: p.evaluable, unknown: p.unknown, checks: p.checks })), fit_computed_at: now,
       play: r.play, play_level: r.level, play_points_to: r.pointsTo, play_reasons: r.reasons,
       play_signal_count: r.level === "hot" ? r.signalCount180 : r.signalCount, last_signal_on: r.lastSignalOn, play_computed_at: now,
       play_cooling: r.cooling, level_since: changed ? now : (a.level_since ?? now), start_by: startBy,

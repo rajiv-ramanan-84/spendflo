@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { LevelChip } from "@/components/cockpit/why-this-plan";
+import { FitChip } from "@/components/cockpit/fit-card";
 import { PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
 
 type Filter = "all" | "mine" | "unassigned" | "not_started" | "draft" | "live" | "replied" | "archived";
@@ -45,6 +46,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
   const [tier, setTier] = useState<string>("all");
   const [owner, setOwner] = useState<string>("all");
   const [level, setLevel] = useState<string>("all");
+  const [fit, setFit] = useState<string>("all");
   const [play, setPlay] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -81,11 +83,12 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       if (tier !== "all" && a.tier !== tier) return false;
       if (owner !== "all" && a.owner_id !== owner) return false;
       if (level !== "all" && a.play_level !== level) return false;
+      if (fit !== "all" && a.fit_level !== fit) return false;
       if (play !== "all" && (a.play ?? a.play_points_to) !== play) return false;
       if (q && !`${a.name} ${a.domain ?? ""} ${a.sheet_account_id}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [accounts, filter, tier, owner, level, play, query, me]);
+  }, [accounts, filter, tier, owner, level, fit, play, query, me]);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
@@ -129,6 +132,12 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
             <option value="warm">Warm</option>
             <option value="nurture">Nurture</option>
           </select>
+          <select value={fit} onChange={(e) => setFit(e.target.value)} aria-label="Fit" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
+            <option value="all">All fit</option>
+            <option value="strong">Strong fit</option>
+            <option value="possible">Possible fit</option>
+            <option value="weak">Weak fit</option>
+          </select>
           <select value={play} onChange={(e) => setPlay(e.target.value)} aria-label="Play" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
             <option value="all">All plays</option>
             {(["A1", "A2", "A3"] as const).map((c) => <option key={c} value={c}>{PLAY_SHORT[c]}</option>)}
@@ -168,6 +177,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
               ) : null}
               <th className="px-4 py-3">Account</th>
               <th className="px-2 py-3">Tier</th>
+              <th className="px-2 py-3">Fit</th>
               <th className="px-2 py-3">Play</th>
               <th className="px-2 py-3">Owner</th>
               <th className="px-2 py-3">Engaged</th>
@@ -200,6 +210,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
                     <div className="text-xs text-ink-400">{a.sheet_account_id}{a.domain ? ` · ${a.domain}` : ""}</div>
                   </td>
                   <td className="px-2 py-3"><span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-700">{a.tier ?? "–"}</span></td>
+                  <td className="px-2 py-3"><FitChip level={a.fit_level} play={a.fit_best_play} /></td>
                   <td className="px-2 py-3">
                     {a.play_level ? (
                       <div className="flex flex-col items-start gap-0.5">

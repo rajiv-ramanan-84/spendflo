@@ -27,6 +27,7 @@ import { ActivityFeed, type ActivityItem } from "@/components/cockpit/activity-f
 import { fmtDate } from "@/lib/format";
 import { playForAccount } from "@/lib/playbook/payload";
 import { LevelChip, WhyThisPlan } from "@/components/cockpit/why-this-plan";
+import { FitCard, type StoredPlayFit } from "@/components/cockpit/fit-card";
 
 export const dynamic = "force-dynamic";
 
@@ -172,6 +173,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
             plan: (
               <>
                 <WhyThisPlan result={playResult} draftPlay={(campaign?.play as string | null) ?? null} startBy={a.start_by as unknown as string | null} today={today} />
+                <FitCard plays={(a.fit_scores as unknown as StoredPlayFit[] | null) ?? null} best={(a.fit_best_play as string | null) ?? null} />
                 {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}
                 {pending && campaign?.status !== "draft" ? null : !campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
                   <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} level={playResult.level} pointsTo={playResult.pointsTo} />
