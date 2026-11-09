@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { addWorkingDays, defaultCampaignStart, listValidDates, type CalendarContext } from "@/lib/calendar/working-calendar";
+import { addWorkingDays, defaultCampaignStart, listValidDates, nextValidDate, type CalendarContext } from "@/lib/calendar/working-calendar";
 import { todayIn, type IsoDate } from "@/lib/calendar/dates";
 import { loadCalendarContext } from "@/lib/calendar/context";
 import { DEFAULT_CAPS, type Caps, type Touch } from "@/lib/caps/schedule";
@@ -87,8 +87,9 @@ export async function loadScheduledTouches(db: SupabaseClient, from: IsoDate): P
     }));
 }
 
-export function planningWindow(p: PlanningContext, days = 30) {
-  const start = defaultCampaignStart(p.today, p.ctx);
+/** The first date a campaign may use. Super hot accounts start today (or the next working day); everything else starts the next working day. */
+export function planningWindow(p: PlanningContext, days = 30, opts: { sameDay?: boolean } = {}) {
+  const start = opts.sameDay ? nextValidDate(p.today, {}, p.ctx) : defaultCampaignStart(p.today, p.ctx);
   const validWorkingDates = listValidDates(start, days, {}, p.ctx);
   const end = validWorkingDates[validWorkingDates.length - 1] ?? addWorkingDays(start, days, {}, p.ctx);
   return { start, end, validWorkingDates };

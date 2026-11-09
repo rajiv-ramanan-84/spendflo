@@ -36,6 +36,7 @@ out("03-update-playbook.sql", [
   "",
   read("supabase/migrations/20261108000010_nurture.sql"),
   read("supabase/migrations/20261109000011_signals_play.sql"),
+  read("supabase/migrations/20261109000012_super_hot.sql"),
   "notify pgrst, 'reload schema';",
   "",
   "-- The campaign skill, rewritten around the three plays. Adds a new skill version only if the text changed.",

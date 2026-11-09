@@ -64,7 +64,7 @@ export type GenerateInput = {
 };
 
 export type PayloadPlay = { code: string; job: string; name: string; level: string; why: string[]; points_to: string | null };
-export type PayloadSignal = { id: string; name: string; type: string; seen_on: string | null; age_days: number | null; counts: boolean; why_not?: string; confidence: string | null; evidence: string; source: string | null };
+export type PayloadSignal = { id: string; name: string; type: string; seen_on: string | null; age_days: number | null; counts: boolean; why_not?: string; note?: string; confidence: string | null; evidence: string; source: string | null };
 
 /** Custom sheet columns that are research worth passing on. Everything else stays home. */
 const USEFUL_CUSTOM = /why|signal|fit|target|procurement lead|sales nav|notes|agent/i;

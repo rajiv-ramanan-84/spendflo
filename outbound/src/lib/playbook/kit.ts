@@ -41,7 +41,8 @@ export const PLAYBOOK_INTRO = [
   "- The three jobs are redlining, renewals and guided_buying. Set `job` to the play's job. If the evidence clearly points elsewhere, set the job you believe in, say why in the rationale and add a flag.",
   "- Other counting signals on the account can shape a secondary track even when they point to another play. For example, a new CFO is a good opening line for the economic buyer track on a redlining plan.",
   "- Only signals marked counts: true are triggers. Cite the signal and its date in the first touch and the rationale. Never present an old or undated signal as current.",
-  "- Level hot: full multi-contact plan. Level warm: a 4-touch track per contact. Level nurture: no live trigger, so write a short, low-key sequence of 3 touches and flag that there is no live signal.",
+  "- Level super_hot (two signals within 90 days): the first touches go out today, on the first date in the list. Lead with the strongest signal and use the second for another track. Level hot (two signals within 180 days, one older than 90): a full multi-contact plan starting within 48 hours. Level warm: a 4-touch track per contact. Level nurture: no live trigger, so write a short, low-key sequence of 3 touches and flag that there is no live signal.",
+  "- A signal 91 to 180 days old counts toward hot, but say so honestly in the copy: reference the event, not the word recent.",
   "- The message kit below shows the pattern, the tone and the claims that are safe. Write original copy for each contact from their role and the signal. Do not paste the examples.",
   "- You may ask to run Flo on the buyer's own documents (for example three recent contracts). Never say a sample or demo output already exists unless the request says so.",
 ].join("\n");

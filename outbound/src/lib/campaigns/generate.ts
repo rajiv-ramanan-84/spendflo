@@ -67,13 +67,14 @@ export async function prepareGenerate(
   const usable = contacts.filter((c) => !c.exclude && !c.do_not_contact && (c.email || c.linkedin_url));
   if (!usable.length) return { ok: false, error: "No usable contacts (each needs an email or LinkedIn URL and must not be excluded).", retryable: false };
 
-  const win = planningWindow(p);
+  // The level is decided before the window: a super hot account starts today, anything else the next working day.
+  const evaluated = playForAccount(account as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, p.today);
+  const win = planningWindow(p, 30, { sameDay: evaluated.level === "super_hot" });
   const touches = await loadScheduledTouches(db, p.today);
   const model = account.tier === "A" ? p.settings.tier_a_model : p.settings.default_model;
 
   // Overnight drafts reuse the refs Claude saw when the batch was sent.
   const refs = contactRefs(opts.refIds ?? contacts.map((c) => c.id));
-  const evaluated = playForAccount(account as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, p.today);
   // No signal points anywhere: a person picks the play, so Claude never gets all three.
   const play: PlayResult = opts.forcePlay && !evaluated.play ? { ...evaluated, pointsTo: opts.forcePlay } : evaluated;
   const pp = playPayload(play);
@@ -146,7 +147,7 @@ export async function finishGenerate(db: SupabaseClient, prep: Prepared, data: C
   // Vetting the draft against the gate: say so when Claude's job disagrees with the signals, or when there is no live trigger.
   const pr = prep.play;
   if (pr.play && data.job !== PLAY_JOB[pr.play]) readable.blocking.push({ text: `The signals point to ${PLAY_SHORT[pr.play]}, but this draft leads with ${data.job.replace("_", " ")}. Check which one you want to test.` });
-  if (pr.level === "nurture") readable.blocking.push({ text: pr.stale.length ? `No signal in the last 90 days (the newest is ${pr.stale[0].ageDays} days old). This draft has no live trigger.` : "No dated signal on this account. This draft has no live trigger." });
+  if (pr.level === "nurture") readable.blocking.push({ text: [...pr.aging, ...pr.stale].length ? `No signal in the last 90 days (the newest is ${[...pr.aging, ...pr.stale][0].ageDays} days old). This draft has no live trigger.` : "No dated signal on this account. This draft has no live trigger." });
   const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: meta.model, p, createdBy: meta.requestedBy, play: pr.play ?? pr.pointsTo, level: pr.level });
   await db.from("claude_calls").update({ campaign_id: campaignId }).eq("id", meta.callId);
   await logActivity(db, { entityType: "campaign", entityId: campaignId, action: "draft_generated", actorId: meta.requestedBy, after: { model: meta.model, blocking: validated.blocking.length } });

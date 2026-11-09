@@ -6,6 +6,7 @@ import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export const LEVEL_TONE: Record<string, string> = {
+  super_hot: "bg-brand-600 text-white",
   hot: "bg-brand-100 text-brand-700",
   warm: "bg-amber-100 text-amber-800",
   nurture: "bg-sky-100 text-sky-800",
@@ -30,10 +31,11 @@ function ago(days: number | null) {
  * The long reasoning Claude wrote sits behind a click on the draft; this is the
  * part a person can check in ten seconds.
  */
-export function WhyThisPlan({ result, draftPlay }: { result: PlayResult; draftPlay?: string | null }) {
+export function WhyThisPlan({ result, draftPlay, startBy, today }: { result: PlayResult; draftPlay?: string | null; startBy?: string | null; today?: string }) {
   const code = result.play ?? result.pointsTo;
   const rows = [
     ...result.fresh.map((s) => ({ s, state: "counts" as const })),
+    ...result.aging.map((s) => ({ s, state: "aging" as const })),
     ...result.stale.map((s) => ({ s, state: "history" as const })),
     ...result.facts.map((s) => ({ s, state: "fact" as const })),
     ...result.ignored.map((s) => ({ s, state: "ignored" as const })),
@@ -45,8 +47,14 @@ export function WhyThisPlan({ result, draftPlay }: { result: PlayResult; draftPl
         <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-600">Why this plan</div>
         <LevelChip level={result.level} />
         {code ? <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-semibold text-ink-700 ring-1 ring-line">{PLAY_NAME[code]}</span> : null}
+        {result.cooling ? <span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">Cooling</span> : null}
         {result.lastSignalOn ? <span className="text-xs text-ink-400">Newest signal {fmtDate(result.lastSignalOn)}</span> : null}
       </div>
+      {startBy ? (
+        <div className={cn("mt-3 rounded-xl px-3 py-2 text-sm font-medium", today && startBy < today ? "bg-red-50 text-red-800" : "bg-brand-50 text-brand-800")}>
+          {today && startBy < today ? `Overdue: the first activity was due ${fmtDate(startBy)}.` : today && startBy === today ? "Start today. This account is " + (result.level === "super_hot" ? "super hot." : "hot.") : `Start by ${fmtDate(startBy)}.`}
+        </div>
+      ) : null}
       <ul className="mt-2 flex flex-col gap-0.5 text-sm text-ink-700">
         {result.reasons.map((r) => <li key={r}>{r}</li>)}
         {result.level === "nurture" ? <li className="text-ink-500">No sequence is drafted until a signal lands. You can still draft one.</li> : null}
@@ -75,7 +83,7 @@ export function WhyThisPlan({ result, draftPlay }: { result: PlayResult; draftPl
                   <td className="whitespace-nowrap px-3 py-2"><span className="font-mono text-xs font-semibold">{s.id}</span> <span className="text-ink-600">{s.name}</span>{s.kind === "Direct" ? <span className="ml-1.5 rounded-full bg-brand-50 px-1.5 text-[10px] font-semibold text-brand-700">Direct</span> : null}</td>
                   <td className="whitespace-nowrap px-3 py-2 tabular-nums">{s.seenOn ? <>{fmtDate(s.seenOn)}<div className="text-xs text-ink-400">{ago(s.ageDays)}</div></> : "Undated"}</td>
                   <td className="px-3 py-2"><span className="line-clamp-2">{s.evidence || "No detail"}</span>{s.url ? <a href={s.url} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-xs text-brand-700 hover:underline">Source<ExternalLink size={11} /></a> : null}{s.confidence === "likely" ? <span className="ml-2 text-xs text-ink-400">Likely</span> : null}</td>
-                  <td className="whitespace-nowrap px-3 py-2">{state === "counts" ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Counts</span> : state === "history" ? <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-500 ring-1 ring-line">History</span> : state === "fact" ? <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-500 ring-1 ring-line">Fit fact</span> : <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{s.expired ? "Expired" : s.ageDays === null ? "Undated" : "Not on the list"}</span>}</td>
+                  <td className="whitespace-nowrap px-3 py-2">{state === "counts" ? <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Counts</span> : state === "aging" ? <span title="Counts toward Hot, not Super hot" className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Aging</span> : state === "history" ? <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-500 ring-1 ring-line">History</span> : state === "fact" ? <span className="rounded-full bg-canvas px-2 py-0.5 text-xs font-medium text-ink-500 ring-1 ring-line">Fit fact</span> : <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">{s.expired ? "Expired" : s.ageDays === null ? "Undated" : "Not on the list"}</span>}</td>
                 </tr>
               ))}
             </tbody>

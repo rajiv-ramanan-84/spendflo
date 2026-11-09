@@ -35,10 +35,11 @@ The app has already matched the account to one play from its dated signals and s
 
 The three plays are redlining (A1), renewals (A2) and guided_buying (A3). Contract sweep and contract intake are not plays and never lead. Tariff and supplier repricing signals belong to redlining (A1.S8).
 
-- **Level hot:** two or more different signals in the last 90 days. Build the full multi-contact plan.
-- **Level warm:** one signal. A 4-touch track per contact.
-- **Level nurture:** no signal in 90 days. Write a short, low-key 3-touch sequence per contact, and flag that there is no live trigger.
-- Count only signals with `counts: true`. A signal older than 90 days is history, an undated signal is weak, and an expired one is not a signal. Cite the strongest counting signal and its date in the first touch and in the rationale.
+- **Level super_hot:** two or more different signals, both within the last 90 days. The first touches go out today, on the first date in the list. Lead with the strongest signal and use the second for another track.
+- **Level hot:** two or more different signals within 180 days, with at least one older than 90 days. Build the full multi-contact plan, starting within 48 hours.
+- **Level warm:** one signal within 90 days. A 4-touch track per contact.
+- **Level nurture:** no signal in 90 days (cooling if one is 91 to 180 days old). Write a short, low-key 3-touch sequence per contact, and flag that there is no live trigger.
+- Count only signals with `counts: true`. A signal 91 to 180 days old still counts toward hot, and its `note` says so: name the event rather than calling it recent. Older than 180 days is history, an undated signal is weak, and an expired one is not a signal. Cite the strongest counting signal and its date in the first touch and in the rationale.
 - Set `job` to the play's job. If the evidence clearly points to another play, set that job, say why in the rationale and add a flag.
 - State PULL in `rationale`: the Project they own, the Unavoidable trigger, the List of alternatives (including doing nothing and the suite they already have), and the Limitations of those alternatives. The playbook has these written for each play. Add what is specific to this account, and name the answer that would disqualify the play. An incumbent's missing capability must come from the input, never invented.
 - Check the play's disqualifiers against the account facts. If one may apply, say so in the rationale and add a flag.
@@ -240,10 +241,11 @@ The app has already matched the account to one play from its dated signals and s
 
 The three plays are redlining (A1), renewals (A2) and guided_buying (A3). Contract sweep and contract intake are not plays and never lead. Tariff and supplier repricing signals belong to redlining (A1.S8).
 
-- **Level hot:** two or more different signals in the last 90 days. Build the full multi-contact plan.
-- **Level warm:** one signal. A 4-touch track per contact.
-- **Level nurture:** no signal in 90 days. Write a short, low-key 3-touch sequence per contact, and flag that there is no live trigger.
-- Count only signals with `counts: true`. A signal older than 90 days is history, an undated signal is weak, and an expired one is not a signal. Cite the strongest counting signal and its date in the first touch and in the rationale.
+- **Level super_hot:** two or more different signals, both within the last 90 days. The first touches go out today, on the first date in the list. Lead with the strongest signal and use the second for another track.
+- **Level hot:** two or more different signals within 180 days, with at least one older than 90 days. Build the full multi-contact plan, starting within 48 hours.
+- **Level warm:** one signal within 90 days. A 4-touch track per contact.
+- **Level nurture:** no signal in 90 days (cooling if one is 91 to 180 days old). Write a short, low-key 3-touch sequence per contact, and flag that there is no live trigger.
+- Count only signals with `counts: true`. A signal 91 to 180 days old still counts toward hot, and its `note` says so: name the event rather than calling it recent. Older than 180 days is history, an undated signal is weak, and an expired one is not a signal. Cite the strongest counting signal and its date in the first touch and in the rationale.
 - Set `job` to the play's job. If the evidence clearly points to another play, set that job, say why in the rationale and add a flag.
 - State PULL in `rationale`: the Project they own, the Unavoidable trigger, the List of alternatives (including doing nothing and the suite they already have), and the Limitations of those alternatives. The playbook has these written for each play. Add what is specific to this account, and name the answer that would disqualify the play. An incumbent's missing capability must come from the input, never invented.
 - Check the play's disqualifiers against the account facts. If one may apply, say so in the rationale and add a flag.

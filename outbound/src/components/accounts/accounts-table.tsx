@@ -39,6 +39,7 @@ function statusChip(s: string | null) {
 }
 
 export function AccountsTable({ accounts, users, me, canAssign }: { accounts: AccountRow[]; users: UserLite[]; me: string | null; canAssign: boolean }) {
+  const todayIso = new Date().toISOString().slice(0, 10);
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>(me && accounts.some((a) => a.owner_id === me) ? "mine" : "all");
   const [tier, setTier] = useState<string>("all");
@@ -123,6 +124,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
           </select>
           <select value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
             <option value="all">All levels</option>
+            <option value="super_hot">Super hot</option>
             <option value="hot">Hot</option>
             <option value="warm">Warm</option>
             <option value="nurture">Nurture</option>
@@ -202,7 +204,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
                     {a.play_level ? (
                       <div className="flex flex-col items-start gap-0.5">
                         <span className="inline-flex items-center gap-1.5"><LevelChip level={a.play_level} /><span className="text-xs text-ink-700">{(a.play ?? a.play_points_to) ? PLAY_SHORT[(a.play ?? a.play_points_to) as PlayCode] : ""}</span></span>
-                        <span className="text-[11px] text-ink-400">{a.play_level === "nurture" ? (a.last_signal_on ? `Last signal ${fmtDate(a.last_signal_on)}` : "No signal yet") : a.play_level === "not_fit" ? "" : `${a.play_signal_count} signal${a.play_signal_count === 1 ? "" : "s"}`}</span>
+                        <span className={cn("text-[11px]", a.start_by && a.start_by < todayIso ? "font-semibold text-red-700" : "text-ink-400")}>{a.start_by ? (a.start_by < todayIso ? `Overdue ${fmtDate(a.start_by)}` : a.start_by === todayIso ? "Start today" : `Start by ${fmtDate(a.start_by)}`) : a.play_level === "nurture" ? `${a.play_cooling ? "Cooling · " : ""}${a.last_signal_on ? `last signal ${fmtDate(a.last_signal_on)}` : "no signal yet"}` : a.play_level === "not_fit" ? "" : `${a.play_signal_count} signal${a.play_signal_count === 1 ? "" : "s"}`}</span>
                       </div>
                     ) : <span className="text-ink-400">–</span>}
                   </td>

@@ -1,7 +1,7 @@
 import type { IsoDate } from "@/lib/calendar/dates";
 import type { PayloadPlay, PayloadSignal } from "@/lib/claude/payload";
 import { PLAY_JOB, PLAY_NAME } from "./catalog";
-import { FRESH_DAYS, LEVEL_LABEL, evaluatePlay, type PlayResult } from "./gate";
+import { AGING_DAYS, evaluatePlay, type PlayResult } from "./gate";
 import { parseSignals } from "./signals";
 
 /** What Claude is told about an account's signals and the play they earned. Pure. */
@@ -21,13 +21,14 @@ export function playPayload(r: PlayResult): { play: PayloadPlay | null; signals:
   });
   const signals = [
     ...r.fresh.map((s) => row(s, true)),
-    ...r.stale.map((s) => row(s, false, `older than ${FRESH_DAYS} days: history, not a trigger`)),
+    ...r.aging.map((s) => ({ ...row(s, true), note: `${s.ageDays} days old: counts toward Hot, weaker than a fresh signal` })),
+    ...r.stale.map((s) => row(s, false, `older than ${AGING_DAYS} days: history, not a trigger`)),
     ...r.facts.map((s) => row(s, false, "a fit fact (size or team), not a trigger")),
     ...r.ignored.map((s) => row(s, false, s.expired ? "expired" : s.ageDays === null ? "undated" : s.plays.length ? "date is in the future" : "not on the signal list")),
   ];
   const code = r.play ?? r.pointsTo;
   return {
     signals,
-    play: code ? { code, job: PLAY_JOB[code], name: PLAY_NAME[code], level: LEVEL_LABEL[r.level].toLowerCase(), why: r.reasons, points_to: r.play ? null : r.pointsTo } : null,
+    play: code ? { code, job: PLAY_JOB[code], name: PLAY_NAME[code], level: r.level, why: r.reasons, points_to: r.play ? null : r.pointsTo } : null,
   };
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import data from "@/lib/playbook/playbook.json";
 import { SIGNALS, signalDef, PLAY_JOB } from "@/lib/playbook/catalog";
 import { parseSignals } from "@/lib/playbook/signals";
-import { angleToPlay, evaluatePlay, FRESH_DAYS } from "@/lib/playbook/gate";
+import { angleToPlay, AGING_DAYS, evaluatePlay, FRESH_DAYS, START_WITHIN_HOURS } from "@/lib/playbook/gate";
 import { kitFor } from "@/lib/playbook/kit";
 import { playForAccount, playPayload } from "@/lib/playbook/payload";
 import { campaignSystem } from "@/lib/claude/system-prompt";
@@ -54,31 +54,43 @@ describe("parseSignals", () => {
 describe("the gate", () => {
   const ev = (lines: string[], extra: Partial<Parameters<typeof evaluatePlay>[0]> = {}) => evaluatePlay({ signals: parseSignals(lines.join("\n")), today: TODAY, ...extra });
 
-  it("is Hot with two different signals in 90 days, Warm with one, Nurture with none", () => {
-    expect(ev([line("A1.S1", "2026-11-03"), line("A1.S5", "2026-10-01", "Acquisition")])).toMatchObject({ level: "hot", play: "A1", job: "redlining" });
+  it("is Super hot with two different signals in 90 days, Warm with one, Nurture with none", () => {
+    expect(ev([line("A1.S1", "2026-11-03"), line("A1.S5", "2026-10-01", "Acquisition")])).toMatchObject({ level: "super_hot", play: "A1", job: "redlining" });
     expect(ev([line("A1.S1", "2026-11-03")])).toMatchObject({ level: "warm", play: "A1" });
     expect(ev([])).toMatchObject({ level: "nurture", play: null });
   });
-  it("counts signals across plays: a new CFO plus a contract manager role is Hot, led by redlining (the Inflexion case)", () => {
+  it("counts signals across plays: a new CFO plus a contract manager role is Super hot, led by redlining (the Inflexion case)", () => {
     const r = ev([line("E2", "2026-08-12", "New CFO started"), line("A1.S1", "2026-11-03", "Hiring a Contract Manager")]);
-    expect(r).toMatchObject({ level: "hot", play: "A1", signalCount: 2 });
+    expect(r).toMatchObject({ level: "super_hot", play: "A1", signalCount: 2 });
     expect(r.reasons[1]).toMatch(/Also points to Renewals/);
-    // Two days later the CFO signal is 91 days old and drops out.
-    expect(evaluatePlay({ signals: parseSignals([line("E2", "2026-08-12"), line("A1.S1", "2026-11-03")].join("\n")), today: "2026-11-11" })).toMatchObject({ level: "warm", signalCount: 1 });
+    // Two days later the CFO signal is 91 days old: still inside 180 days, so Hot instead of Super hot.
+    expect(evaluatePlay({ signals: parseSignals([line("E2", "2026-08-12"), line("A1.S1", "2026-11-03")].join("\n")), today: "2026-11-11" })).toMatchObject({ level: "hot", signalCount: 1, signalCount180: 2 });
   });
   it("counts one note tagged with several IDs once (real data: 'A1.S7/A2.S2: cost cuts')", () => {
     const one = ev(["A1.S7/A2.S2: voluntary buyouts for most of 61K staff (bloomberg.com, 2026-10-20)"]);
     expect(one).toMatchObject({ level: "warm", signalCount: 1 });
     const two = ev(["A1.S7/A2.S2: voluntary buyouts for most of 61K staff (bloomberg.com, 2026-10-20)", line("A1.S1", "2026-11-03", "Hiring a Contract Manager")]);
-    expect(two).toMatchObject({ level: "hot", signalCount: 2 });
+    expect(two).toMatchObject({ level: "super_hot", signalCount: 2 });
   });
   it("counts two posts of one signal type once, even on different dates", () => {
     expect(ev([line("A1.S1", "2026-11-03", "Contract Manager role"), line("A1.S1", "2026-11-05", "Contract Analyst role")]).signalCount).toBe(1);
   });
-  it("counts day 90 and drops day 91", () => {
+  it("counts day 90 fully, then ages a signal to day 180, then it is history", () => {
     expect(ev([line("A2.S1", "2026-08-11")]).level).toBe("warm");
-    expect(ev([line("A2.S1", "2026-08-10")]).level).toBe("nurture");
-    expect(FRESH_DAYS).toBe(90);
+    expect(ev([line("A2.S1", "2026-08-10")])).toMatchObject({ level: "nurture", cooling: true });
+    expect(ev([line("A2.S1", "2026-05-13")])).toMatchObject({ level: "nurture", cooling: true }); // 180 days
+    expect(ev([line("A2.S1", "2026-05-12")])).toMatchObject({ level: "nurture", cooling: false }); // 181 days
+    expect([FRESH_DAYS, AGING_DAYS]).toEqual([90, 180]);
+  });
+  it("is Hot, not Super hot, when two signals fall inside 180 days but only one inside 90, or both are aging", () => {
+    expect(ev([line("A1.S1", "2026-11-03"), line("A1.S5", "2026-06-20", "Acquisition")])).toMatchObject({ level: "hot", signalCount: 1, signalCount180: 2, play: "A1" });
+    const r = ev([line("A1.S7", "2026-08-05", "Restructuring"), line("A1.S5", "2026-07-31", "Acquisition")]);
+    expect(r).toMatchObject({ level: "hot", signalCount: 0, signalCount180: 2, play: "A1" });
+    expect(r.aging).toHaveLength(2);
+    expect(r.reasons[0]).toMatch(/older than 90 days, so this is Hot, not Super hot/);
+  });
+  it("starts super hot accounts within 24 hours and hot within 48", () => {
+    expect(START_WITHIN_HOURS).toEqual({ super_hot: 24, hot: 48 });
   });
   it("counts each different signal once, and a repeat of the same ID never makes it Hot", () => {
     expect(ev([line("A1.S1", "2026-11-03", "Role one"), line("A1.S1", "2026-11-05", "Role two")]).level).toBe("warm");
@@ -89,7 +101,7 @@ describe("the gate", () => {
     expect(r.ignored).toHaveLength(4);
   });
   it("lets account events count for the plays they feed", () => {
-    expect(ev([line("E1", "2026-10-20", "PE buyout"), line("E2", "2026-10-25", "New CFO")])).toMatchObject({ level: "hot", play: "A2" });
+    expect(ev([line("E1", "2026-10-20", "PE buyout"), line("E2", "2026-10-25", "New CFO")])).toMatchObject({ level: "super_hot", play: "A2" });
     expect(ev([line("E4", "2026-10-20", "ERP finished")])).toMatchObject({ level: "warm", play: "A1" });
   });
   it("picks the play with the most direct signals, then the most signals, then the owner's note, then the plays' order", () => {
@@ -104,10 +116,12 @@ describe("the gate", () => {
     expect(ev([line("A1.S1", "2026-11-03")], { notFit: true })).toMatchObject({ level: "not_fit", play: null });
   });
   it("puts an account with only an old signal in Nurture and says which play it pointed to", () => {
-    const r = playForAccount({ signals: "A1.S1: Hiring a contract manager (themuse.com, 2025-11-13)", outreach_angle: null }, TODAY);
-    expect(r.level).toBe("nurture");
-    expect(r.pointsTo).toBe("A1");
-    expect(r.reasons[0]).toMatch(/No signal in the last 90 days/);
+    const old = playForAccount({ signals: "A1.S1: Hiring a contract manager (themuse.com, 2025-11-13)", outreach_angle: null }, TODAY);
+    expect(old).toMatchObject({ level: "nurture", pointsTo: "A1", cooling: false });
+    expect(old.reasons[0]).toMatch(/No signal in the last 90 days/);
+    // Inside 180 days it is Cooling: not live, but not cold either.
+    const cooling = playForAccount({ signals: "A1.S1: Hiring a contract manager (themuse.com, 2026-07-15)", outreach_angle: null }, TODAY);
+    expect(cooling).toMatchObject({ level: "nurture", pointsTo: "A1", cooling: true });
   });
   it("never counts a fit fact like 15K employees, however fresh (the Intuitive case)", () => {
     const r = ev([line("A3.S6", "2026-11-05", "~15K employees, medtech")]);
@@ -120,10 +134,14 @@ describe("the gate", () => {
 
 describe("what Claude is told", () => {
   it("marks which signals count and why the others don't", () => {
-    const r = playForAccount({ signals: [line("A1.S1", "2026-11-03"), line("A1.S2", "2026-01-01", "Old"), "A1.S4 | Undated | x | |"].join("\n"), outreach_angle: null }, TODAY);
+    const r = playForAccount({ signals: [line("A1.S1", "2026-11-03"), line("A1.S2", "2025-01-01", "Old"), "A1.S4 | Undated | x | |"].join("\n"), outreach_angle: null }, TODAY);
     const { play, signals } = playPayload(r);
     expect(play).toMatchObject({ code: "A1", job: "redlining", level: "warm" });
-    expect(signals.map((s) => [s.id, s.counts, s.why_not ?? null])).toEqual([["A1.S1", true, null], ["A1.S2", false, "older than 90 days: history, not a trigger"], ["A1.S4", false, "undated"]]);
+    expect(signals.map((s) => [s.id, s.counts, s.why_not ?? null])).toEqual([["A1.S1", true, null], ["A1.S2", false, "older than 180 days: history, not a trigger"], ["A1.S4", false, "undated"]]);
+    // A signal 91 to 180 days old counts, and says so.
+    const aging = playPayload(playForAccount({ signals: [line("A1.S1", "2026-11-03"), line("A1.S5", "2026-07-01", "Acquisition")].join("\n"), outreach_angle: null }, TODAY));
+    expect(aging.play?.level).toBe("hot");
+    expect(aging.signals.find((s) => s.id === "A1.S5")).toMatchObject({ counts: true, note: expect.stringMatching(/counts toward Hot/) });
   });
   it("adds only the matched play's kit to the system prompt", () => {
     const sys = campaignSystem("SKILL TEXT", "A3");

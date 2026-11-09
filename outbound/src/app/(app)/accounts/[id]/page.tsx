@@ -171,7 +171,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           panels={{
             plan: (
               <>
-                <WhyThisPlan result={playResult} draftPlay={(campaign?.play as string | null) ?? null} />
+                <WhyThisPlan result={playResult} draftPlay={(campaign?.play as string | null) ?? null} startBy={a.start_by as unknown as string | null} today={today} />
                 {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}
                 {pending && campaign?.status !== "draft" ? null : !campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
                   <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} level={playResult.level} pointsTo={playResult.pointsTo} />
