@@ -11,8 +11,9 @@ import type { ParsedSignal } from "./signals";
  *   Nurture  none fresh
  *   Not a fit  a disqualifier already applies (archived, no-fit)
  *
- * The level counts the whole account: every different fresh signal, whichever
- * play it points to, counts once. The play is chosen separately, by the most
+ * The level counts the whole account: every different fresh signal event,
+ * whichever play it points to, counts once. One note tagged with two IDs
+ * ("A1.S7/A2.S2: cost cuts") is one event, not two. The play is chosen separately, by the most
  * direct signals. So a new CFO (renewals) plus a new contract manager role
  * (redlining) make the account Hot, led by redlining. Undated, expired,
  * unlisted and fit-fact signals are listed but never counted.
@@ -74,11 +75,25 @@ export function evaluatePlay(input: { signals: readonly ParsedSignal[]; today: I
   fresh.sort((a, b) => (a.ageDays ?? 0) - (b.ageDays ?? 0));
   stale.sort((a, b) => (a.ageDays ?? 0) - (b.ageDays ?? 0));
 
+  // An event is one dated note, however many signal IDs it was tagged with.
+  const eventKey = (s: EvaluatedSignal) => `${s.seenOn}|${s.evidence.toLowerCase().slice(0, 120)}`;
+  // Two posts of the same signal type are one signal, not two.
+  const sameKind = (s: EvaluatedSignal) => s.id;
   const counts = Object.fromEntries(PLAY_CODES.map((c) => [c, { distinct: 0, direct: 0 }])) as PlayResult["counts"];
   for (const c of PLAY_CODES) {
-    const ids = new Map<string, EvaluatedSignal>();
-    for (const s of fresh) if (s.plays.includes(c) && !ids.has(s.id)) ids.set(s.id, s);
-    counts[c] = { distinct: ids.size, direct: [...ids.values()].filter((s) => s.kind === "Direct").length };
+    const events = new Map<string, EvaluatedSignal[]>();
+    for (const s of fresh) if (s.plays.includes(c)) events.set(eventKey(s), [...(events.get(eventKey(s)) ?? []), s]);
+    // Within a play, a signal type already counted by another event doesn't count again.
+    const types = new Set<string>();
+    let distinct = 0, direct = 0;
+    for (const group of events.values()) {
+      const fresher = group.filter((s) => !types.has(sameKind(s)));
+      if (!fresher.length) continue;
+      fresher.forEach((s) => types.add(sameKind(s)));
+      distinct++;
+      if (fresher.some((s) => s.kind === "Direct")) direct++;
+    }
+    counts[c] = { distinct, direct };
   }
   const dated = evaluated.filter((s) => s.seenOn && !s.expired && !s.fact && s.plays.length).map((s) => s.seenOn!).sort();
   const lastSignalOn = dated[dated.length - 1] ?? null;
@@ -87,7 +102,18 @@ export function evaluatePlay(input: { signals: readonly ParsedSignal[]; today: I
   const best = [...PLAY_CODES].filter((c) => counts[c].distinct > 0).sort((a, b) => { const ra = rank(a), rb = rank(b); for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return rb[i] - ra[i]; return 0; })[0] ?? null;
 
   const reasons: string[] = [];
-  const signalCount = new Set(fresh.map((s) => s.id)).size;
+  // Account-wide count: group by event, freshest first. An event counts only if it brings a signal
+  // type not already counted, so one note tagged twice is one signal, and two posts of one type are one.
+  const byEvent = new Map<string, EvaluatedSignal[]>();
+  for (const s of fresh) byEvent.set(eventKey(s), [...(byEvent.get(eventKey(s)) ?? []), s]);
+  const counted = new Set<string>();
+  let signalCount = 0;
+  for (const group of byEvent.values()) {
+    if (group.some((s) => !counted.has(s.id))) {
+      signalCount++;
+      group.forEach((s) => counted.add(s.id));
+    }
+  }
   if (input.notFit) return { play: null, job: null, level: "not_fit", pointsTo: null, counts, signalCount, fresh, stale, facts, ignored, lastSignalOn, reasons: ["The account is marked no-fit or archived."] };
 
   // Which play the older signals point to, so Nurture can say what it would be.

@@ -26,6 +26,10 @@ describe("parseSignals", () => {
     expect(s.map((x) => [x.id, x.seenOn, x.confidence, x.undated])).toEqual([["A1.S1", "2026-11-03", "confirmed", false], ["E2", "2026-10-21", "likely", false], ["A3.S4", null, "likely", true]]);
     expect(s[0].url).toBe("https://example.com/x");
   });
+  it("accepts several IDs on one pipe line for one event", () => {
+    const s = parseSignals("A1.S7/A2.S2 | 2026-10-20 | Voluntary buyouts for most of 61K staff | https://example.com/x | Confirmed");
+    expect(s.map((x) => [x.id, x.seenOn])).toEqual([["A1.S7", "2026-10-20"], ["A2.S2", "2026-10-20"]]);
+  });
   it("marks expired posts and counts the same line once", () => {
     const s = parseSignals([line("A1.S1", "2026-11-03", "Job post (expired)"), line("A1.S1", "2026-11-03", "Job post (expired)")].join("\n"));
     expect(s).toHaveLength(1);
@@ -61,6 +65,15 @@ describe("the gate", () => {
     expect(r.reasons[1]).toMatch(/Also points to Renewals/);
     // Two days later the CFO signal is 91 days old and drops out.
     expect(evaluatePlay({ signals: parseSignals([line("E2", "2026-08-12"), line("A1.S1", "2026-11-03")].join("\n")), today: "2026-11-11" })).toMatchObject({ level: "warm", signalCount: 1 });
+  });
+  it("counts one note tagged with several IDs once (real data: 'A1.S7/A2.S2: cost cuts')", () => {
+    const one = ev(["A1.S7/A2.S2: voluntary buyouts for most of 61K staff (bloomberg.com, 2026-10-20)"]);
+    expect(one).toMatchObject({ level: "warm", signalCount: 1 });
+    const two = ev(["A1.S7/A2.S2: voluntary buyouts for most of 61K staff (bloomberg.com, 2026-10-20)", line("A1.S1", "2026-11-03", "Hiring a Contract Manager")]);
+    expect(two).toMatchObject({ level: "hot", signalCount: 2 });
+  });
+  it("counts two posts of one signal type once, even on different dates", () => {
+    expect(ev([line("A1.S1", "2026-11-03", "Contract Manager role"), line("A1.S1", "2026-11-05", "Contract Analyst role")]).signalCount).toBe(1);
   });
   it("counts day 90 and drops day 91", () => {
     expect(ev([line("A2.S1", "2026-08-11")]).level).toBe("warm");

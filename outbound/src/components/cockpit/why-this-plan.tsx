@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import type { PlayResult } from "@/lib/playbook/gate";
 import { LEVEL_LABEL } from "@/lib/playbook/gate";
-import { PLAY_NAME } from "@/lib/playbook/catalog";
+import { PLAY_NAME, PLAY_SHORT, PLAY_CODES } from "@/lib/playbook/catalog";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
@@ -52,6 +52,19 @@ export function WhyThisPlan({ result, draftPlay }: { result: PlayResult; draftPl
         {result.level === "nurture" ? <li className="text-ink-500">No sequence is drafted until a signal lands. You can still draft one.</li> : null}
         {mismatch ? <li className="text-amber-800">The draft leads with a different play than the signals point to.</li> : null}
       </ul>
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs" aria-label="Plays considered">
+        <span className="text-ink-400">Plays considered</span>
+        {PLAY_CODES.map((c) => {
+          const n = result.counts[c].distinct;
+          const lead = result.play === c;
+          const factOnly = n === 0 && result.facts.some((f) => f.plays.includes(c));
+          return (
+            <span key={c} className={cn("rounded-full px-2.5 py-1 font-medium ring-1", lead ? "bg-brand-50 text-brand-700 ring-brand-200" : n ? "bg-white text-ink-700 ring-line" : "bg-canvas text-ink-400 ring-line")}>
+              {PLAY_SHORT[c]} · {n ? `${n} signal${n === 1 ? "" : "s"}` : factOnly ? "fit fact only" : "none"}{lead ? " · leading" : ""}
+            </span>
+          );
+        })}
+      </div>
       {rows.length ? (
         <div className="mt-3 overflow-x-auto rounded-xl border border-line">
           <table className="w-full min-w-[560px] text-sm">

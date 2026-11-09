@@ -6,8 +6,10 @@ import { Wand2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export function GenerateCard({ accountId, canGenerate, usableContacts, lastError, level }: { accountId: string; canGenerate: boolean; usableContacts: number; lastError?: string | null; level?: string }) {
+export function GenerateCard({ accountId, canGenerate, usableContacts, lastError, level, pointsTo }: { accountId: string; canGenerate: boolean; usableContacts: number; lastError?: string | null; level?: string; pointsTo?: string | null }) {
   const nurture = level === "nurture";
+  const needsPick = nurture && !pointsTo;
+  const [pick, setPick] = useState("");
   const router = useRouter();
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,7 +18,7 @@ export function GenerateCard({ accountId, canGenerate, usableContacts, lastError
   async function generate() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/accounts/${accountId}/generate`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ownerNotes: notes || undefined, force: nurture || undefined }) });
+    const res = await fetch(`/api/accounts/${accountId}/generate`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ownerNotes: notes || undefined, force: nurture || undefined, play: needsPick ? pick || undefined : undefined }) });
     const data = await res.json().catch(() => ({ ok: false, error: "No response" }));
     setBusy(false);
     if (!data.ok) return setError(data.error ?? "Generation failed");
@@ -46,7 +48,18 @@ export function GenerateCard({ accountId, canGenerate, usableContacts, lastError
               className="mt-1 w-full rounded-xl border border-line px-3 py-2 text-sm outline-none focus:border-brand-300"
             />
           </label>
-          <Button onClick={generate} disabled={busy || usableContacts === 0}>
+          {needsPick ? (
+            <label className="md:w-52">
+              <span className="text-xs font-medium text-ink-500">Which play?</span>
+              <select id="draft-play" value={pick} onChange={(e) => setPick(e.target.value)} className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm">
+                <option value="">Choose one</option>
+                <option value="A1">Redlining</option>
+                <option value="A2">Renewals</option>
+                <option value="A3">Guided buying</option>
+              </select>
+            </label>
+          ) : null}
+          <Button onClick={generate} disabled={busy || usableContacts === 0 || (needsPick && !pick)}>
             <Wand2 size={16} />{busy ? "Sending to Claude..." : nurture ? "Draft anyway" : "Generate campaign"}
           </Button>
         </div>

@@ -36,20 +36,21 @@ function clean(s: string) {
   return s.replace(/\s+/g, " ").trim().slice(0, MAX_EVIDENCE);
 }
 
-function pipeLine(line: string): ParsedSignal | null {
+/** One pipe line. The first field may hold several IDs for one event ("A1.S7/A2.S2"): each becomes a signal sharing the same note. */
+function pipeLine(line: string): ParsedSignal[] | null {
   const parts = line.split("|").map((p) => p.trim());
   if (parts.length < 3) return null;
-  const rawId = parts[0].toUpperCase() === "NEW" ? "NEW" : SIGNAL_ID_RE.test(parts[0]) ? normalizeSignalId(parts[0].match(SIGNAL_ID_RE)![0]) : null;
-  if (!rawId) return null;
+  const ids = parts[0].toUpperCase() === "NEW" ? ["NEW"] : [...parts[0].matchAll(new RegExp(SIGNAL_ID_RE.source, "gi"))].map((m) => normalizeSignalId(m[0]));
+  if (!ids.length) return null;
   const dateText = parts[1];
   const seenOn = isIsoDate(dateText) ? dateText : null;
   const evidence = clean(parts[2]);
   const url = (parts[3] && URL_RE.exec(parts[3])?.[0]) || URL_RE.exec(evidence)?.[0] || null;
   const conf = confidenceOf(parts[4] ?? "");
-  return {
-    id: rawId, seenOn, undated: !seenOn, expired: /\bexpired\b/i.test(`${parts[4] ?? ""} ${evidence}`),
+  return [...new Set(ids)].map((id) => ({
+    id, seenOn, undated: !seenOn, expired: /\bexpired\b/i.test(`${parts[4] ?? ""} ${evidence}`),
     evidence, url, confidence: conf, legacy: false, raw: line.trim(),
-  };
+  }));
 }
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -99,7 +100,7 @@ export function parseSignals(text: string | null | undefined): ParsedSignal[] {
   for (const line of t.split(/\r?\n/)) {
     if (!line.trim()) continue;
     const p = line.includes("|") ? pipeLine(line) : null;
-    if (p) out.push(p);
+    if (p) out.push(...p);
     else free.push(line);
   }
   if (free.length) out.push(...legacyText(free.join("\n")));

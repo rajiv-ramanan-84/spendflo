@@ -7,7 +7,7 @@ import { validateCampaign, type ValidatedCampaign } from "@/lib/claude/validate"
 import { logActivity } from "@/lib/activity/log";
 import { playForAccount, playPayload } from "@/lib/playbook/payload";
 import type { PlayResult } from "@/lib/playbook/gate";
-import { PLAY_JOB, PLAY_SHORT } from "@/lib/playbook/catalog";
+import { PLAY_JOB, PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
 import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, type PlanningContext } from "./context";
 
 /**
@@ -50,7 +50,7 @@ type Prepared = {
 /** Everything up to the Claude call: checks, planning window, payload. Shared by live and overnight drafts. */
 export async function prepareGenerate(
   db: SupabaseClient,
-  opts: { accountId: string; ownerNotes?: string | null; refIds?: string[] },
+  opts: { accountId: string; ownerNotes?: string | null; refIds?: string[]; forcePlay?: PlayCode | null },
 ): Promise<{ ok: true; prep: Prepared } | { ok: false; error: string; retryable: false }> {
   const p = await loadPlanningContext(db);
   if (!p.skill.text) return { ok: false, error: "No campaign skill is set. Upload it in Settings > Claude.", retryable: false };
@@ -73,7 +73,9 @@ export async function prepareGenerate(
 
   // Overnight drafts reuse the refs Claude saw when the batch was sent.
   const refs = contactRefs(opts.refIds ?? contacts.map((c) => c.id));
-  const play = playForAccount(account as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, p.today);
+  const evaluated = playForAccount(account as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, p.today);
+  // No signal points anywhere: a person picks the play, so Claude never gets all three.
+  const play: PlayResult = opts.forcePlay && !evaluated.play ? { ...evaluated, pointsTo: opts.forcePlay } : evaluated;
   const pp = playPayload(play);
   const payload = buildGeneratePayload({
     play: pp.play,
@@ -153,7 +155,7 @@ export async function finishGenerate(db: SupabaseClient, prep: Prepared, data: C
 
 export async function generateCampaign(
   db: SupabaseClient,
-  opts: { accountId: string; requestedBy: string | null; ownerNotes?: string | null; callId?: string },
+  opts: { accountId: string; requestedBy: string | null; ownerNotes?: string | null; callId?: string; forcePlay?: PlayCode | null },
 ): Promise<GenerateResult> {
   const ready = await prepareGenerate(db, opts);
   if (!ready.ok) return { ok: false, error: ready.error, callId: null, retryable: false };
