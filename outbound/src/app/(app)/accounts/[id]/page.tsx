@@ -25,6 +25,8 @@ import { AttackPlanCard } from "@/components/cockpit/attack-plan";
 import { AccountTabs } from "@/components/cockpit/account-tabs";
 import { ActivityFeed, type ActivityItem } from "@/components/cockpit/activity-feed";
 import { fmtDate } from "@/lib/format";
+import { playForAccount } from "@/lib/playbook/payload";
+import { LevelChip, WhyThisPlan } from "@/components/cockpit/why-this-plan";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   // Where tracks waiting on a trigger will land, and any that can no longer start.
   const today = todayIn();
   const calCtx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  const playResult = playForAccount(a as unknown as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, today);
   const firstNames = new Map(contacts.map((c) => [c.id, firstName(c.full_name)]));
   const projections = projectTriggeredTracks(tracks, firstNames, calCtx);
   const fullNames = new Map(contacts.map((c) => [c.id, c.full_name]));
@@ -128,6 +131,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-600">
               <span>Tier {a.tier ?? "–"}</span><span className="text-ink-300">·</span><span>{a.icp_verdict?.replace("_", "-").toUpperCase()}</span>
+              <span className="text-ink-300">·</span><LevelChip level={playResult.level} />
               <span className="text-ink-300">·</span><span className="text-ink-400">{a.sheet_account_id}</span>
             </div>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">{a.name}</h1>
@@ -167,9 +171,10 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           panels={{
             plan: (
               <>
+                <WhyThisPlan result={playResult} draftPlay={(campaign?.play as string | null) ?? null} startBy={a.start_by as unknown as string | null} today={today} />
                 {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}
                 {pending && campaign?.status !== "draft" ? null : !campaign || ["closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? (
-                  <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} />
+                  <GenerateCard accountId={a.id} canGenerate={canEdit && !a.archived} usableContacts={usable.length} lastError={lastError} level={playResult.level} pointsTo={playResult.pointsTo} />
                 ) : campaign.status === "draft" ? (
                   <ReviewPanel
                     campaignId={campaign.id}

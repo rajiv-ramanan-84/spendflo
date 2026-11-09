@@ -29,6 +29,28 @@ out("01-database.sql", [
 // 2. Schedules, with the two values to fill in.
 out("02-schedules.sql", read("supabase/schedule.sql"));
 
+// For a database that is already live: everything added since the first install, safe to paste any number
+// of times. Every statement checks first, so it does not matter which of these you have already run.
+out("03-catch-up.sql", [
+  "-- CATCH-UP FOR AN EXISTING DATABASE. Paste the whole file into the Supabase SQL Editor and click Run.",
+  "-- Safe to run more than once: it skips anything already in place. Covers every change after the first install:",
+  "--   batch drafts, Claude spend controls, contact finder, shared mailboxes, nurture, dated signals, play and level, four levels.",
+  "-- (If you have never installed, run 01-database.sql instead.)",
+  "",
+  read("supabase/migrations/20261106000006_claude_batches.sql"),
+  read("supabase/migrations/20261106000007_claude_spend_controls.sql"),
+  read("supabase/migrations/20261106000008_find_contacts.sql"),
+  read("supabase/migrations/20261106000009_mailboxes.sql"),
+  read("supabase/migrations/20261108000010_nurture.sql"),
+  read("supabase/migrations/20261109000011_signals_play.sql"),
+  read("supabase/migrations/20261109000012_super_hot.sql"),
+  "notify pgrst, 'reload schema';",
+  "",
+  "-- The campaign skill, rewritten around the three plays. Adds a new skill version only if the text changed.",
+  "-- If you edited the skill in Settings, copy your edits across afterwards: Settings > Claude skill keeps every version.",
+  read("supabase/seed_skill.sql"),
+].join("\n"));
+
 // 3. Slack app, created from a manifest in one paste.
 out("slack-app-manifest.yaml", `display_information:
   name: Outbound Command Center

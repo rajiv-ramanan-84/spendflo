@@ -194,6 +194,8 @@ export async function launchCampaign(db: SupabaseClient, user: SessionUser, camp
     }
   }
   await db.from("campaigns").update({ status: "active", start_date: startDate ?? c.start_date }).eq("id", c.id);
+  // The urgent start deadline is met the moment a campaign launches.
+  await db.from("accounts").update({ start_by: null }).eq("id", c.account_id);
   await logActivity(db, { entityType: "campaign", entityId: c.id, action: "launched", actorId: user.id, after: { moved, startDate } });
   return { moved, startDate };
 }

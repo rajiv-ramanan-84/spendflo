@@ -17,7 +17,7 @@ Background for every campaign. It never changes the output format, and where it 
 - Implementation scope: daily read of Coupa contracts and attachments; renewal notices at 90, 60 and 30 days with terms, supplier context and benchmark; owner chooses Renew (starts a prefilled request in Coupa under existing approvals) or Not renewing (recorded; not proof legal notice was served); redline returned to Coupa as a marked-up attachment and summary comment, later versions picked up when Legal uploads them; PR creation prefilled from the contract, uncertain fields left to the requester.
 - Users work through email notifications and the Spendflo app. Do not say there is no app or no implementation effort.
 - Not established: autonomous supplier chasing or negotiation, negotiated savings, production results, pricing, timelines, "pay per job done", "starting Monday". The $10M supplier credit and the RingCentral licence reduction were customers' own work: never attribute them to Flo.
-- Offer a sample only when the request says one is ready. If not, flag that it must exist before any copy offers it.
+- You may offer to run Flo on the buyer's own documents (for example three recent contracts). Never say a sample or demo output already exists unless the request says so.
 
 ## Evidence discipline
 

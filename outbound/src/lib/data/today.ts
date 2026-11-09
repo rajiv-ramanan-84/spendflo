@@ -54,6 +54,9 @@ export type ReplyCard = {
   suggested_next_step: string | null;
 };
 
+/** A super hot or hot account whose first activity is due: shown first on Tasks. */
+export type UrgentCard = { id: string; name: string; tier: string | null; level: "super_hot" | "hot"; play: string | null; startBy: string; signals: number };
+
 export type FocusCard = { id: string; name: string; tier: string | null; score: number; reasons: string[]; pinned: boolean; nextAction: string | null; nextStepId: string | null; campaignStatus: string | null };
 
 const TIER_RANK: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
@@ -166,6 +169,12 @@ export async function loadToday(db: SupabaseClient, opts: { userId: string | nul
     10,
   );
 
+  // Accounts that must start now: super hot within 24 hours, hot within 48. Cleared the moment a campaign launches.
+  let urgentQ = db.from("accounts").select("id, name, tier, play, play_points_to, play_level, start_by, play_signal_count").eq("archived", false).is("deleted_at", null).not("start_by", "is", null).in("play_level", ["super_hot", "hot"]).order("start_by").limit(30);
+  if (opts.scope === "mine" && opts.userId) urgentQ = urgentQ.eq("owner_id", opts.userId);
+  const { data: urgentRows } = await urgentQ;
+  const urgent: UrgentCard[] = (urgentRows ?? []).map((a) => ({ id: a.id, name: a.name, tier: a.tier, level: a.play_level as "super_hot" | "hot", play: (a.play ?? a.play_points_to) as string | null, startBy: a.start_by as string, signals: a.play_signal_count ?? 0 }));
+
   // Header strip
   let doneQ = db.from("steps").select("id", { count: "exact", head: true }).eq("status", "done").gte("completed_at", `${today}T00:00:00`);
   if (opts.scope === "mine" && opts.userId) doneQ = doneQ.eq("completed_by", opts.userId);
@@ -174,6 +183,7 @@ export async function loadToday(db: SupabaseClient, opts: { userId: string | nul
   return {
     steps,
     replies,
+    urgent,
     focus,
     header: {
       dueToday: steps.filter((s) => s.bucket === "today" && s.state !== "waiting").length,

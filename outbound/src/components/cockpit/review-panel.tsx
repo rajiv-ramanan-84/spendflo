@@ -85,7 +85,10 @@ export function ReviewPanel(p: Props) {
           <div className="text-xs font-semibold uppercase tracking-wider text-brand-600">Draft for review</div>
           <h2 className="mt-1 text-lg font-semibold">{p.name}</h2>
           <p className="mt-1 text-sm text-ink-700">{p.objective}</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-500">{p.rationale}</p>
+          <details className="mt-2 text-sm">
+            <summary className="cursor-pointer text-ink-500 hover:text-ink-900">Claude&apos;s full reasoning</summary>
+            <p className="mt-2 leading-relaxed text-ink-500">{p.rationale}</p>
+          </details>
           {p.mainWeakness ? (
             <p className="mt-2 text-sm text-ink-500">
               <span className="font-medium text-ink-700">Likely reply: {p.likelyReply}.</span> Main weakness: {p.mainWeakness}

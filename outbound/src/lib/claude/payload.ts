@@ -58,7 +58,13 @@ export type GenerateInput = {
   caps: Caps;
   approvedProofPoints: string[];
   ownerNotes: string | null;
+  /** The matched play and each signal with its date and age. The app has already applied the gate. */
+  play?: PayloadPlay | null;
+  signals?: PayloadSignal[];
 };
+
+export type PayloadPlay = { code: string; job: string; name: string; level: string; why: string[]; points_to: string | null };
+export type PayloadSignal = { id: string; name: string; type: string; seen_on: string | null; age_days: number | null; counts: boolean; why_not?: string; note?: string; confidence: string | null; evidence: string; source: string | null };
 
 /** Custom sheet columns that are research worth passing on. Everything else stays home. */
 const USEFUL_CUSTOM = /why|signal|fit|target|procurement lead|sales nav|notes|agent/i;
@@ -70,7 +76,9 @@ export function buildGeneratePayload(i: GenerateInput) {
     today: i.today,
     campaign_start_date: i.campaignStartDate,
     valid_working_dates: i.validWorkingDates,
-    account: { ...i.account, custom_fields: undefined, research_notes: custom },
+    account: { ...i.account, custom_fields: undefined, research_notes: custom, ...(i.signals ? { signals: undefined } : {}) },
+    play: i.play ?? undefined,
+    signals: i.signals,
     contacts: i.contacts.map((c) => ({
       contact_id: c.contact_id,
       name: c.name,

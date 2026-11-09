@@ -42,7 +42,7 @@ export const TrackSchema = z.object({
 export const CampaignSchema = z.object({
   campaign_name: z.string(),
   objective: z.string(),
-  job: z.enum(["redlining", "renewals", "sweep", "ap", "other"]),
+  job: z.enum(["redlining", "renewals", "guided_buying", "other"]),
   icp_profile: z.enum(["A", "B", "C"]),
   angle: z.string(),
   rationale: z.string(),

@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown, Pin } from "lucide-react";
-import type { FocusCard, ReplyCard } from "@/lib/data/today";
+import type { FocusCard, ReplyCard, UrgentCard } from "@/lib/data/today";
+import { LevelChip } from "@/components/cockpit/why-this-plan";
+import { PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
+import { fmtDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -44,6 +47,34 @@ export function RepliesStrip({ replies }: { replies: ReplyCard[] }) {
           {all ? "Show fewer" : `Show all ${replies.length}`}
         </button>
       ) : null}
+    </section>
+  );
+}
+
+/** Super hot and hot accounts waiting for a plan, soonest deadline first. Super hot starts within 24 hours, hot within 48. */
+export function UrgentStrip({ urgent, today }: { urgent: UrgentCard[]; today: string }) {
+  if (!urgent.length) return null;
+  const when = (d: string) => (d < today ? { text: `Overdue since ${fmtDate(d)}`, late: true } : d === today ? { text: "Start today", late: false } : { text: `Start by ${fmtDate(d)}`, late: false });
+  return (
+    <section className="mb-4 overflow-hidden rounded-2xl border border-brand-200 bg-brand-50/60" aria-label="Start now">
+      <div className="px-4 pt-3 text-xs font-semibold uppercase tracking-wider text-brand-700">{urgent.length} account{urgent.length === 1 ? "" : "s"} to start now</div>
+      <ul className="divide-y divide-brand-100">
+        {urgent.map((u) => {
+          const w = when(u.startBy);
+          return (
+            <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+              <LevelChip level={u.level} />
+              <div className="min-w-0 flex-1">
+                <span className="font-medium">{u.name}</span>
+                {u.tier ? <span className="ml-2 rounded bg-white px-1.5 text-[11px] font-semibold text-ink-500">{u.tier}</span> : null}
+                <span className="ml-2 text-sm text-ink-500">{u.play ? PLAY_SHORT[u.play as PlayCode] : ""} · {u.signals} signal{u.signals === 1 ? "" : "s"}</span>
+              </div>
+              <span className={w.late ? "text-sm font-semibold text-red-700" : "text-sm font-medium text-ink-700"}>{w.text}</span>
+              <Link href={`/accounts/${u.id}`}><Button variant="secondary" className="px-3 py-1.5">Open plan</Button></Link>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

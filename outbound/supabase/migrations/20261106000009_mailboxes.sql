@@ -15,10 +15,12 @@ create table if not exists mailboxes (
 );
 alter table mailboxes enable row level security;
 alter table mailboxes force row level security;
+drop policy if exists mailboxes_read_active on mailboxes;
 create policy mailboxes_read_active on mailboxes for select to authenticated using (app.is_active_user());
 -- The token never leaves the server: authenticated users see every column but the token.
 revoke all on mailboxes from authenticated;
 grant select (id, email, writes_as_user_id, google_token_status, connected_by, connected_at, created_at, updated_at) on mailboxes to authenticated;
+drop trigger if exists mailboxes_updated_at on mailboxes;
 create trigger mailboxes_updated_at before update on mailboxes for each row execute function set_updated_at();
 
 alter table users add column if not exists send_mailbox_id uuid references mailboxes (id) on delete set null;

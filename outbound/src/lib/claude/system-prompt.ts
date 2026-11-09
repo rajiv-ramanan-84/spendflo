@@ -1,12 +1,18 @@
 import { APP_NOTES, OUTBOUND_BRIEF } from "./prompt-extras.generated";
+import { kitFor, PLAYBOOK_INTRO } from "@/lib/playbook/kit";
+import { PLAY_CODES, type PlayCode } from "@/lib/playbook/catalog";
 
 /**
  * What Claude reads before every request. The team's skill comes first and is
  * theirs to edit; the app's notes and the outbound brief follow, so an edit
  * to the skill can never drop them. Stable text, so it caches.
  */
-export function campaignSystem(skillText: string): string {
-  return `${skillText.trim()}\n\n${APP_NOTES}\n\n${OUTBOUND_BRIEF}\n`;
+export function campaignSystem(skillText: string, play?: PlayCode | "all" | null): string {
+  const base = `${skillText.trim()}\n\n${APP_NOTES}\n\n${OUTBOUND_BRIEF}\n`;
+  if (!play) return base;
+  // No play matched yet (a Nurture draft with no signals): give Claude all three so it can choose and say why.
+  const kits = play === "all" ? PLAY_CODES.map((c) => kitFor(c)).join("\n\n---\n\n") : kitFor(play);
+  return `${base}\n${PLAYBOOK_INTRO}\n\n${kits}\n`;
 }
 
 /**

@@ -7,7 +7,7 @@ import { loadToday } from "@/lib/data/today";
 import { listUsers } from "@/lib/data/queries";
 import { PageHeader } from "@/components/ui/page-header";
 import { TasksWorkspace } from "@/components/tasks/tasks-workspace";
-import { FocusStrip, RepliesStrip } from "@/components/tasks/today-extras";
+import { FocusStrip, RepliesStrip, UrgentStrip } from "@/components/tasks/today-extras";
 import { fromQuery } from "@/lib/tasks/view";
 import { cn } from "@/lib/cn";
 
@@ -42,6 +42,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         </div>
       </div>
       <RepliesStrip replies={data.replies} />
+      <UrgentStrip urgent={data.urgent} today={today} />
       <FocusStrip focus={data.focus} />
       <TasksWorkspace tasks={data.steps} users={users.filter((u) => u.active)} me={user.id} today={today} doneToday={data.header.doneToday} scope={scope} initial={fromQuery(sp)} />
     </>
