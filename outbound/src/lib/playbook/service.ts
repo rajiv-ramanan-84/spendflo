@@ -49,7 +49,7 @@ export async function refreshPlays(db: SupabaseClient, opts: { accountIds?: stri
     if (r.level === "hot") tally.hot++; else if (r.level === "warm") tally.warm++; else if (r.level === "nurture") tally.nurture++; else tally.notFit++;
     const { error: upErr } = await db.from("accounts").update({
       play: r.play, play_level: r.level, play_points_to: r.pointsTo, play_reasons: r.reasons,
-      play_signal_count: r.play ? r.counts[r.play].distinct : 0, last_signal_on: r.lastSignalOn, play_computed_at: now,
+      play_signal_count: r.signalCount, last_signal_on: r.lastSignalOn, play_computed_at: now,
     }).eq("id", a.id);
     if (upErr) throw new Error(`Play refresh could not save ${a.id}: ${upErr.message}`);
   }

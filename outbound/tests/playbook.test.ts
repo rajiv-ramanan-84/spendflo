@@ -55,6 +55,13 @@ describe("the gate", () => {
     expect(ev([line("A1.S1", "2026-11-03")])).toMatchObject({ level: "warm", play: "A1" });
     expect(ev([])).toMatchObject({ level: "nurture", play: null });
   });
+  it("counts signals across plays: a new CFO plus a contract manager role is Hot, led by redlining (the Inflexion case)", () => {
+    const r = ev([line("E2", "2026-08-12", "New CFO started"), line("A1.S1", "2026-11-03", "Hiring a Contract Manager")]);
+    expect(r).toMatchObject({ level: "hot", play: "A1", signalCount: 2 });
+    expect(r.reasons[1]).toMatch(/Also points to Renewals/);
+    // Two days later the CFO signal is 91 days old and drops out.
+    expect(evaluatePlay({ signals: parseSignals([line("E2", "2026-08-12"), line("A1.S1", "2026-11-03")].join("\n")), today: "2026-11-11" })).toMatchObject({ level: "warm", signalCount: 1 });
+  });
   it("counts day 90 and drops day 91", () => {
     expect(ev([line("A2.S1", "2026-08-11")]).level).toBe("warm");
     expect(ev([line("A2.S1", "2026-08-10")]).level).toBe("nurture");

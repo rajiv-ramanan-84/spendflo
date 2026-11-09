@@ -11,8 +11,11 @@ import type { ParsedSignal } from "./signals";
  *   Nurture  none fresh
  *   Not a fit  a disqualifier already applies (archived, no-fit)
  *
- * Each different signal ID counts once, even if seen twice. Undated, expired
- * and unknown signals are listed but never counted.
+ * The level counts the whole account: every different fresh signal, whichever
+ * play it points to, counts once. The play is chosen separately, by the most
+ * direct signals. So a new CFO (renewals) plus a new contract manager role
+ * (redlining) make the account Hot, led by redlining. Undated, expired,
+ * unlisted and fit-fact signals are listed but never counted.
  */
 
 export const FRESH_DAYS = 90;
@@ -27,6 +30,8 @@ export type PlayResult = {
   /** What the account would be if it had a fresh signal: the play its last signals pointed to. */
   pointsTo: PlayCode | null;
   counts: Record<PlayCode, { distinct: number; direct: number }>;
+  /** Different fresh signals on the whole account. This sets the level. */
+  signalCount: number;
   fresh: EvaluatedSignal[];
   stale: EvaluatedSignal[];
   /** Fit facts (employee count and the like): shown, never counted. */
@@ -82,7 +87,8 @@ export function evaluatePlay(input: { signals: readonly ParsedSignal[]; today: I
   const best = [...PLAY_CODES].filter((c) => counts[c].distinct > 0).sort((a, b) => { const ra = rank(a), rb = rank(b); for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return rb[i] - ra[i]; return 0; })[0] ?? null;
 
   const reasons: string[] = [];
-  if (input.notFit) return { play: null, job: null, level: "not_fit", pointsTo: null, counts, fresh, stale, facts, ignored, lastSignalOn, reasons: ["The account is marked no-fit or archived."] };
+  const signalCount = new Set(fresh.map((s) => s.id)).size;
+  if (input.notFit) return { play: null, job: null, level: "not_fit", pointsTo: null, counts, signalCount, fresh, stale, facts, ignored, lastSignalOn, reasons: ["The account is marked no-fit or archived."] };
 
   // Which play the older signals point to, so Nurture can say what it would be.
   const stalePlay = [...PLAY_CODES].map((c) => ({ c, n: stale.filter((s) => s.plays.includes(c)).length })).sort((a, b) => b.n - a.n)[0];
@@ -92,14 +98,14 @@ export function evaluatePlay(input: { signals: readonly ParsedSignal[]; today: I
   if (!best) {
     reasons.push(stale.length ? `No signal in the last ${FRESH_DAYS} days. The newest is ${stale[0].ageDays} days old (${stale[0].id}).` : `No dated signal yet.`);
     if (ignored.length) reasons.push(`${ignored.length} signal${ignored.length === 1 ? "" : "s"} can't count: undated, expired or not on the list.`);
-    return { play: null, job: null, level: "nurture", pointsTo, counts, fresh, stale, facts, ignored, lastSignalOn, reasons };
+    return { play: null, job: null, level: "nurture", pointsTo, counts, signalCount, fresh, stale, facts, ignored, lastSignalOn, reasons };
   }
-  const n = counts[best].distinct;
-  const ids = [...new Set(fresh.filter((s) => s.plays.includes(best)).map((s) => s.id))];
-  reasons.push(`${n} different signal${n === 1 ? "" : "s"} in the last ${FRESH_DAYS} days for ${PLAY_SHORT[best]}: ${ids.join(", ")}.`);
+  const n = signalCount;
+  const ids = [...new Set(fresh.map((s) => s.id))];
+  reasons.push(`${n} different signal${n === 1 ? "" : "s"} in the last ${FRESH_DAYS} days: ${ids.join(", ")}.`);
   const others = PLAY_CODES.filter((c) => c !== best && counts[c].distinct > 0);
-  if (others.length) reasons.push(`Also points to ${others.map((c) => `${PLAY_SHORT[c]} (${counts[c].distinct})`).join(", ")}. ${PLAY_SHORT[best]} has the most direct signals${tie === best ? " and matches the owner's note" : ""}.`);
-  return { play: best, job: PLAY_JOB[best], level: n >= 2 ? "hot" : "warm", pointsTo: best, counts, fresh, stale, facts, ignored, lastSignalOn, reasons };
+  reasons.push(`Leading with ${PLAY_SHORT[best]}${others.length ? `: it has the most direct signals${tie === best ? " and matches the owner's note" : ""}. Also points to ${others.map((c) => `${PLAY_SHORT[c]} (${counts[c].distinct})`).join(", ")}, which can shape a secondary track` : ""}.`);
+  return { play: best, job: PLAY_JOB[best], level: n >= 2 ? "hot" : "warm", pointsTo: best, counts, signalCount, fresh, stale, facts, ignored, lastSignalOn, reasons };
 }
 
 export const jobForPlay = (c: PlayCode) => PLAY_JOB[c];

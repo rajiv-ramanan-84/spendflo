@@ -39,6 +39,7 @@ export const PLAYBOOK_INTRO = [
   "",
   "- The app has already matched this account to a play and a level from its dated signals. Follow the playbook for that play. It replaces the job table, the ICP profile rule and the sweep and intake guidance in the skill.",
   "- The three jobs are redlining, renewals and guided_buying. Set `job` to the play's job. If the evidence clearly points elsewhere, set the job you believe in, say why in the rationale and add a flag.",
+  "- Other counting signals on the account can shape a secondary track even when they point to another play. For example, a new CFO is a good opening line for the economic buyer track on a redlining plan.",
   "- Only signals marked counts: true are triggers. Cite the signal and its date in the first touch and the rationale. Never present an old or undated signal as current.",
   "- Level hot: full multi-contact plan. Level warm: a 4-touch track per contact. Level nurture: no live trigger, so write a short, low-key sequence of 3 touches and flag that there is no live signal.",
   "- The message kit below shows the pattern, the tone and the claims that are safe. Write original copy for each contact from their role and the signal. Do not paste the examples.",
