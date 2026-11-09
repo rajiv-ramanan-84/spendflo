@@ -1,6 +1,61 @@
--- Update for an existing database: nurture status, dated signals, play and level, and the new campaign skill.
--- Paste the whole file into the Supabase SQL Editor and run it once. Run 01-database.sql first if you have never installed.
+-- CATCH-UP FOR AN EXISTING DATABASE. Paste the whole file into the Supabase SQL Editor and click Run.
+-- Safe to run more than once: it skips anything already in place. Covers every change after the first install:
+--   batch drafts, Claude spend controls, contact finder, shared mailboxes, nurture, dated signals, play and level, four levels.
+-- (If you have never installed, run 01-database.sql instead.)
 
+-- Overnight drafts go through the Message Batches API at half price.
+-- batch_id links a queued call to its batch; batch_context keeps the contact
+-- refs Claude saw (c1, c2...) so results map back even if contacts change.
+alter table claude_calls add column if not exists batch_id text;
+alter table claude_calls add column if not exists batch_context jsonb;
+create index if not exists claude_calls_batch_id_idx on claude_calls (batch_id) where batch_id is not null;
+-- Claude spend controls.
+-- auto_draft: which new accounts a sheet sync drafts on its own.
+--   'off' = only when someone clicks Generate (default), 'a' = Tier A, 'ab' = Tier A and B.
+-- claude_monthly_budget_usd: drafts and re-plans pause once this month's
+--   Claude spend reaches it. Reply sorting keeps running.
+alter table app_settings add column if not exists auto_draft text not null default 'off' check (auto_draft in ('off', 'a', 'ab'));
+alter table app_settings add column if not exists claude_monthly_budget_usd numeric(10, 2) not null default 50 check (claude_monthly_budget_usd >= 0);
+-- Claude web search for missing contacts is recorded like any other call,
+-- so it shows in Claude spend and counts against the monthly budget.
+alter type claude_call_type add value if not exists 'find_contacts';
+-- Shared sending mailboxes (e.g. sid@spendflo.com run by Mouli, written as Sid).
+-- A mailbox is not a person and cannot sign in. People sign in as themselves;
+-- users.send_mailbox_id says which mailbox their accounts' emails go out from
+-- (null = their own Gmail). writes_as_user_id is whose name and voice the copy uses.
+create table if not exists mailboxes (
+  id uuid primary key default gen_random_uuid(),
+  email citext not null unique,
+  writes_as_user_id uuid not null references users (id),
+  google_refresh_token_enc text,
+  google_token_status google_token_status not null default 'missing',
+  connected_by uuid references users (id),
+  connected_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table mailboxes enable row level security;
+alter table mailboxes force row level security;
+drop policy if exists mailboxes_read_active on mailboxes;
+create policy mailboxes_read_active on mailboxes for select to authenticated using (app.is_active_user());
+-- The token never leaves the server: authenticated users see every column but the token.
+revoke all on mailboxes from authenticated;
+grant select (id, email, writes_as_user_id, google_token_status, connected_by, connected_at, created_at, updated_at) on mailboxes to authenticated;
+drop trigger if exists mailboxes_updated_at on mailboxes;
+create trigger mailboxes_updated_at before update on mailboxes for each row execute function set_updated_at();
+
+alter table users add column if not exists send_mailbox_id uuid references mailboxes (id) on delete set null;
+-- Readable like the other non-secret user columns (tokens stay hidden).
+grant select (send_mailbox_id) on users to authenticated;
+
+-- Every step on an account is now sent by the account owner (from their mailbox).
+-- Move open steps and tracks that were assigned to someone else onto the owner.
+update steps s set assignee_id = c.owner_id
+from campaigns c
+where s.campaign_id = c.id and s.status in ('upcoming', 'due', 'overdue') and s.assignee_id is distinct from c.owner_id;
+update contact_tracks t set assignee_id = c.owner_id
+from campaigns c
+where t.campaign_id = c.id and t.status in ('not_started', 'active', 'paused') and t.assignee_id is distinct from c.owner_id;
 -- Nurture: people held back on purpose at an account. Their steps stay saved
 -- without dates until someone makes them active from the attack plan.
 alter type track_status add value if not exists 'nurture';
@@ -8,7 +63,7 @@ alter type track_status add value if not exists 'nurture';
 -- The Signals cell holds one line per signal: ID | date | evidence | link | confidence.
 -- The sync keeps this table equal to the cell; the gate reads it.
 
-create table account_signals (
+create table if not exists account_signals (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references accounts (id) on delete cascade,
   signal_id text not null,                 -- A1.S1, E2, NEW or UNTAGGED
@@ -23,11 +78,13 @@ create table account_signals (
   updated_at timestamptz not null default now(),
   unique (account_id, line_key)
 );
-create index account_signals_account_idx on account_signals (account_id, seen_on desc);
+create index if not exists account_signals_account_idx on account_signals (account_id, seen_on desc);
+drop trigger if exists account_signals_updated_at on account_signals;
 create trigger account_signals_updated_at before update on account_signals for each row execute function set_updated_at();
 
 alter table account_signals enable row level security;
 alter table account_signals force row level security;
+drop policy if exists account_signals_read_active on account_signals;
 create policy account_signals_read_active on account_signals for select to authenticated using (app.is_active_user());
 
 alter table accounts

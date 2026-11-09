@@ -29,11 +29,18 @@ out("01-database.sql", [
 // 2. Schedules, with the two values to fill in.
 out("02-schedules.sql", read("supabase/schedule.sql"));
 
-// For a database that is already live: only what changed since the first install. Safe to paste once, in order.
-out("03-update-playbook.sql", [
-  "-- Update for an existing database: nurture status, dated signals, play and level, and the new campaign skill.",
-  "-- Paste the whole file into the Supabase SQL Editor and run it once. Run 01-database.sql first if you have never installed.",
+// For a database that is already live: everything added since the first install, safe to paste any number
+// of times. Every statement checks first, so it does not matter which of these you have already run.
+out("03-catch-up.sql", [
+  "-- CATCH-UP FOR AN EXISTING DATABASE. Paste the whole file into the Supabase SQL Editor and click Run.",
+  "-- Safe to run more than once: it skips anything already in place. Covers every change after the first install:",
+  "--   batch drafts, Claude spend controls, contact finder, shared mailboxes, nurture, dated signals, play and level, four levels.",
+  "-- (If you have never installed, run 01-database.sql instead.)",
   "",
+  read("supabase/migrations/20261106000006_claude_batches.sql"),
+  read("supabase/migrations/20261106000007_claude_spend_controls.sql"),
+  read("supabase/migrations/20261106000008_find_contacts.sql"),
+  read("supabase/migrations/20261106000009_mailboxes.sql"),
   read("supabase/migrations/20261108000010_nurture.sql"),
   read("supabase/migrations/20261109000011_signals_play.sql"),
   read("supabase/migrations/20261109000012_super_hot.sql"),

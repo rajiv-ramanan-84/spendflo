@@ -2,7 +2,7 @@
 -- The Signals cell holds one line per signal: ID | date | evidence | link | confidence.
 -- The sync keeps this table equal to the cell; the gate reads it.
 
-create table account_signals (
+create table if not exists account_signals (
   id uuid primary key default gen_random_uuid(),
   account_id uuid not null references accounts (id) on delete cascade,
   signal_id text not null,                 -- A1.S1, E2, NEW or UNTAGGED
@@ -17,11 +17,13 @@ create table account_signals (
   updated_at timestamptz not null default now(),
   unique (account_id, line_key)
 );
-create index account_signals_account_idx on account_signals (account_id, seen_on desc);
+create index if not exists account_signals_account_idx on account_signals (account_id, seen_on desc);
+drop trigger if exists account_signals_updated_at on account_signals;
 create trigger account_signals_updated_at before update on account_signals for each row execute function set_updated_at();
 
 alter table account_signals enable row level security;
 alter table account_signals force row level security;
+drop policy if exists account_signals_read_active on account_signals;
 create policy account_signals_read_active on account_signals for select to authenticated using (app.is_active_user());
 
 alter table accounts
