@@ -9,6 +9,8 @@ import { CAMPAIGN_STATUS_LABEL, fmtDate, firstName } from "@/lib/format";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { LevelChip } from "@/components/cockpit/why-this-plan";
+import { PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
 
 type Filter = "all" | "mine" | "unassigned" | "not_started" | "draft" | "live" | "replied" | "archived";
 
@@ -41,6 +43,8 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
   const [filter, setFilter] = useState<Filter>(me && accounts.some((a) => a.owner_id === me) ? "mine" : "all");
   const [tier, setTier] = useState<string>("all");
   const [owner, setOwner] = useState<string>("all");
+  const [level, setLevel] = useState<string>("all");
+  const [play, setPlay] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [assignTo, setAssignTo] = useState<string>("");
@@ -75,10 +79,12 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       if (filter === "replied" && !(a.campaign_status === "responded" || a.campaign_status === "meeting_booked")) return false;
       if (tier !== "all" && a.tier !== tier) return false;
       if (owner !== "all" && a.owner_id !== owner) return false;
+      if (level !== "all" && a.play_level !== level) return false;
+      if (play !== "all" && (a.play ?? a.play_points_to) !== play) return false;
       if (q && !`${a.name} ${a.domain ?? ""} ${a.sheet_account_id}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [accounts, filter, tier, owner, query, me]);
+  }, [accounts, filter, tier, owner, level, play, query, me]);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
@@ -115,6 +121,16 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
             <option value="all">All tiers</option>
             {["A", "B", "C", "D"].map((t) => <option key={t} value={t}>Tier {t}</option>)}
           </select>
+          <select value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
+            <option value="all">All levels</option>
+            <option value="hot">Hot</option>
+            <option value="warm">Warm</option>
+            <option value="nurture">Nurture</option>
+          </select>
+          <select value={play} onChange={(e) => setPlay(e.target.value)} aria-label="Play" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
+            <option value="all">All plays</option>
+            {(["A1", "A2", "A3"] as const).map((c) => <option key={c} value={c}>{PLAY_SHORT[c]}</option>)}
+          </select>
           <select value={owner} onChange={(e) => setOwner(e.target.value)} className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
             <option value="all">Any owner</option>
             {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -140,7 +156,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       {message ? <div className="border-b border-line px-4 py-2 text-sm text-ink-700">{message}</div> : null}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="text-left text-xs font-medium uppercase tracking-wide text-ink-400">
               {canAssign ? (
@@ -150,6 +166,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
               ) : null}
               <th className="px-4 py-3">Account</th>
               <th className="px-2 py-3">Tier</th>
+              <th className="px-2 py-3">Play</th>
               <th className="px-2 py-3">Owner</th>
               <th className="px-2 py-3">Engaged</th>
               <th className="px-2 py-3">Campaign</th>
@@ -182,6 +199,14 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
                   </td>
                   <td className="px-2 py-3"><span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-700">{a.tier ?? "–"}</span></td>
                   <td className="px-2 py-3">
+                    {a.play_level ? (
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="inline-flex items-center gap-1.5"><LevelChip level={a.play_level} /><span className="text-xs text-ink-700">{(a.play ?? a.play_points_to) ? PLAY_SHORT[(a.play ?? a.play_points_to) as PlayCode] : ""}</span></span>
+                        <span className="text-[11px] text-ink-400">{a.play_level === "nurture" ? (a.last_signal_on ? `Last signal ${fmtDate(a.last_signal_on)}` : "No signal yet") : a.play_level === "not_fit" ? "" : `${a.play_signal_count} signal${a.play_signal_count === 1 ? "" : "s"}`}</span>
+                      </div>
+                    ) : <span className="text-ink-400">–</span>}
+                  </td>
+                  <td className="px-2 py-3">
                     {o ? (
                       <span className="inline-flex items-center gap-2"><Avatar name={o.u.name} index={o.i} size={22} />{firstName(o.u.name)}</span>
                     ) : <span className="text-ink-400">Unassigned</span>}
@@ -195,7 +220,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
               );
             })}
             {!rows.length ? (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-500">No accounts match these filters.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-500">No accounts match these filters.</td></tr>
             ) : null}
           </tbody>
         </table>

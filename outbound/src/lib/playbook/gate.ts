@@ -1,0 +1,106 @@
+import type { IsoDate } from "@/lib/calendar/dates";
+import { JOB_PLAY, PLAY_CODES, PLAY_JOB, PLAY_SHORT, signalDef, type Job, type PlayCode } from "./catalog";
+import type { ParsedSignal } from "./signals";
+
+/**
+ * The gate (Wedge doc): work an account when it fits and shows two different
+ * signals within 90 days. Pure.
+ *
+ *   Hot      two or more different signals in 90 days for the play
+ *   Warm     one
+ *   Nurture  none fresh
+ *   Not a fit  a disqualifier already applies (archived, no-fit)
+ *
+ * Each different signal ID counts once, even if seen twice. Undated, expired
+ * and unknown signals are listed but never counted.
+ */
+
+export const FRESH_DAYS = 90;
+export type Level = "hot" | "warm" | "nurture" | "not_fit";
+export const LEVEL_LABEL: Record<Level, string> = { hot: "Hot", warm: "Warm", nurture: "Nurture", not_fit: "Not a fit" };
+
+export type EvaluatedSignal = ParsedSignal & { name: string; kind: "Direct" | "Context" | "Unknown"; plays: PlayCode[]; ageDays: number | null; fact: boolean };
+export type PlayResult = {
+  play: PlayCode | null;
+  job: Job | null;
+  level: Level;
+  /** What the account would be if it had a fresh signal: the play its last signals pointed to. */
+  pointsTo: PlayCode | null;
+  counts: Record<PlayCode, { distinct: number; direct: number }>;
+  fresh: EvaluatedSignal[];
+  stale: EvaluatedSignal[];
+  /** Fit facts (employee count and the like): shown, never counted. */
+  facts: EvaluatedSignal[];
+  ignored: EvaluatedSignal[];
+  lastSignalOn: IsoDate | null;
+  reasons: string[];
+};
+
+export function daysBetween(from: IsoDate, to: IsoDate): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
+}
+
+/** The owner's outreach angle note breaks a tie between plays. */
+export function angleToPlay(note: string | null | undefined): PlayCode | null {
+  const t = (note ?? "").toLowerCase();
+  if (/redlin|contract review|supplier paper/.test(t)) return "A1";
+  if (/renewal/.test(t)) return "A2";
+  if (/guided buying|catalog|requester|maverick|off-catalog/.test(t)) return "A3";
+  return null;
+}
+
+export function evaluatePlay(input: { signals: readonly ParsedSignal[]; today: IsoDate; angleNote?: string | null; notFit?: boolean }): PlayResult {
+  const { today } = input;
+  const evaluated: EvaluatedSignal[] = input.signals.map((s) => {
+    const def = signalDef(s.id);
+    return { ...s, name: def?.name ?? (s.id === "NEW" ? "New signal (not on the list)" : "Untagged note"), kind: def?.kind ?? "Unknown", plays: def?.feeds ?? [], ageDays: s.seenOn ? daysBetween(s.seenOn, today) : null, fact: !!def?.fact };
+  });
+
+  const fresh: EvaluatedSignal[] = [];
+  const stale: EvaluatedSignal[] = [];
+  const ignored: EvaluatedSignal[] = [];
+  const facts: EvaluatedSignal[] = [];
+  for (const s of evaluated) {
+    if (s.fact) facts.push(s);
+    else if (!s.plays.length || s.expired || s.ageDays === null || s.ageDays < 0) ignored.push(s);
+    else if (s.ageDays <= FRESH_DAYS) fresh.push(s);
+    else stale.push(s);
+  }
+  fresh.sort((a, b) => (a.ageDays ?? 0) - (b.ageDays ?? 0));
+  stale.sort((a, b) => (a.ageDays ?? 0) - (b.ageDays ?? 0));
+
+  const counts = Object.fromEntries(PLAY_CODES.map((c) => [c, { distinct: 0, direct: 0 }])) as PlayResult["counts"];
+  for (const c of PLAY_CODES) {
+    const ids = new Map<string, EvaluatedSignal>();
+    for (const s of fresh) if (s.plays.includes(c) && !ids.has(s.id)) ids.set(s.id, s);
+    counts[c] = { distinct: ids.size, direct: [...ids.values()].filter((s) => s.kind === "Direct").length };
+  }
+  const dated = evaluated.filter((s) => s.seenOn && !s.expired && !s.fact && s.plays.length).map((s) => s.seenOn!).sort();
+  const lastSignalOn = dated[dated.length - 1] ?? null;
+  const tie = angleToPlay(input.angleNote);
+  const rank = (c: PlayCode) => [counts[c].direct, counts[c].distinct, tie === c ? 1 : 0, -PLAY_CODES.indexOf(c)];
+  const best = [...PLAY_CODES].filter((c) => counts[c].distinct > 0).sort((a, b) => { const ra = rank(a), rb = rank(b); for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return rb[i] - ra[i]; return 0; })[0] ?? null;
+
+  const reasons: string[] = [];
+  if (input.notFit) return { play: null, job: null, level: "not_fit", pointsTo: null, counts, fresh, stale, facts, ignored, lastSignalOn, reasons: ["The account is marked no-fit or archived."] };
+
+  // Which play the older signals point to, so Nurture can say what it would be.
+  const stalePlay = [...PLAY_CODES].map((c) => ({ c, n: stale.filter((s) => s.plays.includes(c)).length })).sort((a, b) => b.n - a.n)[0];
+  const factPlay = facts.flatMap((f) => f.plays)[0] ?? null;
+  const pointsTo: PlayCode | null = best ?? (stalePlay && stalePlay.n > 0 ? stalePlay.c : tie ?? factPlay);
+
+  if (!best) {
+    reasons.push(stale.length ? `No signal in the last ${FRESH_DAYS} days. The newest is ${stale[0].ageDays} days old (${stale[0].id}).` : `No dated signal yet.`);
+    if (ignored.length) reasons.push(`${ignored.length} signal${ignored.length === 1 ? "" : "s"} can't count: undated, expired or not on the list.`);
+    return { play: null, job: null, level: "nurture", pointsTo, counts, fresh, stale, facts, ignored, lastSignalOn, reasons };
+  }
+  const n = counts[best].distinct;
+  const ids = [...new Set(fresh.filter((s) => s.plays.includes(best)).map((s) => s.id))];
+  reasons.push(`${n} different signal${n === 1 ? "" : "s"} in the last ${FRESH_DAYS} days for ${PLAY_SHORT[best]}: ${ids.join(", ")}.`);
+  const others = PLAY_CODES.filter((c) => c !== best && counts[c].distinct > 0);
+  if (others.length) reasons.push(`Also points to ${others.map((c) => `${PLAY_SHORT[c]} (${counts[c].distinct})`).join(", ")}. ${PLAY_SHORT[best]} has the most direct signals${tie === best ? " and matches the owner's note" : ""}.`);
+  return { play: best, job: PLAY_JOB[best], level: n >= 2 ? "hot" : "warm", pointsTo: best, counts, fresh, stale, facts, ignored, lastSignalOn, reasons };
+}
+
+export const jobForPlay = (c: PlayCode) => PLAY_JOB[c];
+export const playForJob = (j: string | null | undefined): PlayCode | null => (j && j in JOB_PLAY ? JOB_PLAY[j as Job] : null);

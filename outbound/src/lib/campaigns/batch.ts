@@ -85,7 +85,7 @@ export async function submitDraftBatch(db: SupabaseClient, opts: { onlyIds?: str
       continue;
     }
     const { prep } = ready;
-    requests.push({ custom_id: q.id, params: requestParams("generate_campaign", prep.model, prep.p.skill.text, prep.payload, format) });
+    requests.push({ custom_id: q.id, params: requestParams("generate_campaign", prep.model, prep.p.skill.text, prep.payload, format, prep.play.play ?? prep.play.pointsTo ?? "all") });
     context.set(q.id, { refIds: [...prep.refs.toId.values()], model: prep.model, skillVersionId: prep.p.skill.id, ownerNotes });
   }
   if (!requests.length) return { submitted: 0, skipped, batchId: null };

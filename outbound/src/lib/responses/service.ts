@@ -257,7 +257,8 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
     ownerNextStep: d.ownerNextStep, scope: d.scope,
   });
   const model = account.tier === "A" ? p.settings.tier_a_model : p.settings.default_model;
-  const res = await callClaude({ kind: "replan_campaign", model, skillText: p.skill.text, payload, schema: CampaignSchema });
+  // Re-plans keep the play the draft was written for, so the same kit guides the new steps.
+  const res = await callClaude({ kind: "replan_campaign", model, skillText: p.skill.text, payload, schema: CampaignSchema, play: (c.play as "A1" | "A2" | "A3" | null) ?? null });
   await db.from("claude_calls").insert({ call_type: "replan_campaign", account_id: c.account_id, campaign_id: c.id, model: res.model, status: res.ok ? "ok" : "failed", attempts: res.attempts, input_tokens: res.usage?.input ?? null, output_tokens: res.usage?.output ?? null, cost_usd: res.usage?.costUsd ?? null, error: res.ok ? null : res.message, raw_output: res.rawText, requested_by: user.id });
   if (!res.ok) throw new ActionError(res.message, 502);
 

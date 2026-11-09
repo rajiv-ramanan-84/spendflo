@@ -1,0 +1,1461 @@
+{
+  "version": "2026-11-09",
+  "plays": [
+    {
+      "id": "redlining",
+      "tab": "Redlining",
+      "agent": "A1",
+      "status": "From your docs",
+      "name": "Contract review and redlining",
+      "sells": "Cycle time to PO, not legal tooling",
+      "promise": "Flo reads supplier paper against your playbook, marks what changed and what the supplier left out, and sends only the deviations to a person. Clean contracts never reach legal.",
+      "glance": {
+        "lead": "Profile B: manufacturers on Coupa or Ariba. Also A and C.",
+        "econ": "VP Procurement or CPO (B), CFO (A), GC plus AI lead (C)",
+        "deal": "A $40K to $100K · B $75K to $250K · C $150K+",
+        "proof": "Spendflo case study only, small"
+      },
+      "pull": {
+        "project": [
+          "Cut contract approval time so procurement meets its SLA.",
+          "Legal or contract manager bandwidth chokes, lead times grow, and it reaches the CFO, CEO, CLO, CPO and General Counsel. That volume of complaints is why it is unavoidable."
+        ],
+        "unavoidable": [
+          "AI is a board-level mandate and contract review is the chosen first use case.",
+          "Workload rose as AI clauses and complex commercials arrived.",
+          "Procurement wants to solve it without depending on legal.",
+          "Tariffs and supply chain changes force continuous contract review in manufacturing."
+        ],
+        "options": [
+          "Hire more in legal",
+          "Hire more contract managers",
+          "Hire procurement people with contract experience",
+          "Buy a contract review tool",
+          "Use Claude",
+          "Use external law firms"
+        ],
+        "limits": [
+          "Legal is expensive to hire and train, and the G&A budget won't stretch.",
+          "Contract manager talent is scarce and expensive.",
+          "Coupa, Ariba and SAP contract modules are weak: limited OCR, manual entry, manual obligation tracking.",
+          "Review tools cut redlining time but not the approval SLA: manual handoffs remain and procurement has no CLM access.",
+          "Claude is not tied to the procurement process, not multiplayer, and can't measure outcomes.",
+          "Law firms are costly, with many handoffs and lost context."
+        ]
+      },
+      "fit": {
+        "musts": [
+          "Procurement, strategic sourcing or supply chain leader (Director, VP, Head or CPO)",
+          "A contract manager or contract team",
+          "Coupa or Ariba used for contract approval",
+          "A Coupa admin",
+          "Procurement leads a contract team plus a small legal team",
+          "No intake and orchestration software in place (confirm: it weakens fit)"
+        ],
+        "dq": [
+          "No playbook and no willingness to build one. Ask on call one.",
+          "Under 200 active contracts",
+          "A CLM migration in the next two quarters",
+          "Contract work owned 100% by outside counsel"
+        ],
+        "shape": [
+          "A procurement or contract team doing legal-adjacent work without being in legal",
+          "A recent event that added volume without headcount: acquisition, new parent legal team, new business unit",
+          "A named owner measured on cycle time or savings, not legal risk alone"
+        ],
+        "src": "s"
+      },
+      "signals": [
+        [
+          "S1",
+          "Contract hiring",
+          "Open roles involving supplier contracts, redlining or approval SLAs",
+          "Daily",
+          "Direct"
+        ],
+        [
+          "S2",
+          "Contract pain",
+          "Explicit references to backlog, turnaround, manual review or delays",
+          "Daily",
+          "Direct"
+        ],
+        [
+          "S3",
+          "Procurement transformation",
+          "Coupa expansion, procurement redesign, shared services",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S4",
+          "Legal capacity",
+          "Legal ops hiring, contract specialists, outside counsel pressure",
+          "Weekly",
+          "Direct"
+        ],
+        [
+          "S5",
+          "M&A",
+          "Acquisitions, divestitures, integration activity",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S6",
+          "Contract technology",
+          "CLM rollout, migration, replacement or integration. Read both ways: a migration in flight is a disqualifier; a CLM plus an AI program lead points to Play C",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S7",
+          "Efficiency pressure",
+          "Hiring freezes, restructuring, headcount productivity targets",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S8",
+          "Supplier renegotiation",
+          "Tariffs, supplier consolidation, contract repricing",
+          "Weekly",
+          "Context"
+        ]
+      ],
+      "combos": [
+        [
+          "A1.S1",
+          "A1.S5",
+          "Hiring a contract manager after an acquisition"
+        ],
+        [
+          "A1.S3",
+          "A1.S2",
+          "Coupa expansion plus contract delay language in a job post"
+        ],
+        [
+          "A1.S8",
+          "A1.S1",
+          "Tariff renegotiation plus contract hiring"
+        ]
+      ],
+      "buyers": [
+        {
+          "w": 1,
+          "role": "Procurement leader",
+          "t": "Director, VP or Head of",
+          "shape": "lead",
+          "care": "Cycle time, capacity, not being the bottleneck",
+          "line": "Your team reviews deviations, not 60 pages.",
+          "src": "w"
+        },
+        {
+          "w": 1,
+          "role": "Contract manager, CLM owner or Coupa admin",
+          "t": "System owner, starts first",
+          "shape": "system",
+          "care": "Bandwidth, adoption, no new tool for users",
+          "line": "Flo marks what the supplier changed and what they left out. Coupa stays the source of truth.",
+          "src": "w"
+        },
+        {
+          "w": 2,
+          "role": "Champion",
+          "t": "Legal ops or AI program lead (C), head of procurement ops",
+          "shape": "champion",
+          "care": "Strategic projects, internal credit",
+          "line": "Ask who owns first-pass review, not for a meeting.",
+          "src": "w"
+        },
+        {
+          "w": 3,
+          "role": "Economic buyer",
+          "t": "VP Procurement or CPO (B), CFO (A), GC plus AI lead (C)",
+          "shape": "buyer",
+          "care": "Spend under contract sooner, terms that hold",
+          "line": "Every contract waiting in review is spend you can't control yet.",
+          "src": "w"
+        },
+        {
+          "w": 3,
+          "role": "Legal or GC",
+          "t": "After business relevance, never first",
+          "shape": null,
+          "care": "Consistency, risk, audit",
+          "line": "Lawyers keep the final call. Flo escalates with the clause and rule cited.",
+          "src": "w"
+        }
+      ],
+      "emails": [
+        {
+          "label": "Email 1: after an acquisition or new parent",
+          "sig": "A1.S5",
+          "src": "w",
+          "subject": "supplier paper after [acquirer]",
+          "body": "[Name], since the [acquirer] deal, I'd expect the new legal team wants eyes on more supplier contracts. Supplier paper is where that hurts: every one is different, and the work is spotting what changed and what they left out. Flo reads it against your redlining guidelines and sends your team only the deviations, inside Coupa. Worth 20 minutes to run it on three of your recent supplier contracts?"
+        },
+        {
+          "label": "Email 1: hiring a contract manager",
+          "sig": "A1.S1 · A1.S4",
+          "src": "d",
+          "subject": "supplier paper volume",
+          "body": "[Name], saw [Company] is hiring a [contract manager]. That usually means supplier paper has outgrown the team, and every contract needs a fresh read to spot what changed and what the supplier left out. Flo reads supplier paper against your guidelines and sends your team only the deviations, inside Coupa. Worth 20 minutes to run it on three recent supplier contracts?"
+        },
+        {
+          "label": "Email 1: tariff or supplier repricing",
+          "sig": "A1.S8",
+          "src": "d",
+          "subject": "supplier terms after tariffs",
+          "body": "[Name], saw [Company] flag tariff exposure on the last earnings call. When supplier pricing is renegotiated, every supplier sends back different paper, and someone has to find what moved and what was dropped. Flo reads each one against your guidelines and sends your team only the deviations. Open to running it on three recent supplier contracts?"
+        },
+        {
+          "label": "Email 1: existing CLM (Play C)",
+          "sig": "A1.S6",
+          "src": "w",
+          "subject": "a first pass on top of [Ironclad]",
+          "body": "[Name], most teams on [Ironclad] I speak with still review supplier paper line by line. Flo sits on top of it, checks each contract against your playbook, and routes only the deviations to a lawyer with the clause and rule cited. Nothing leaves [Ironclad], and it can run in your own cloud. Would a pilot on one contract type in Q1 be worth a conversation?"
+        },
+        {
+          "label": "Economic buyer email (founder-sent)",
+          "sig": "Starts on a reply or at Hot",
+          "src": "d",
+          "subject": "contracts waiting in review",
+          "body": "[Name], [one line on the signal, for example: saw the Coupa rollout reach [sites]]. Every contract waiting in review is spend you can't control yet. Flo reads supplier paper against your guidelines and sends only the deviations to your team, with the clause cited. Would it be useful to see it on three of your own contracts?"
+        },
+        {
+          "label": "Email 2: new angle, business terms",
+          "sig": "Day 8",
+          "src": "d",
+          "subject": "price and renewal caps",
+          "body": "[Name], one thing legal tools tend to miss on supplier paper: the business terms. Flo checks price escalators, renewal caps and payment terms against what you paid this supplier before, not just the legal clauses. Does your team check those on every contract, or only when someone remembers?"
+        },
+        {
+          "label": "Email 3: ask for a pointer",
+          "sig": "Day 14",
+          "src": "d",
+          "subject": "wrong person?",
+          "body": "[Name], I may have the wrong person. Who owns first-pass review of supplier paper at [Company]? A name is plenty, and I'll stop there."
+        }
+      ],
+      "li": {
+        "connect": "Hi [Name], I work with contract teams at manufacturers on Coupa. Saw [Company]'s [signal, for example: new Coupa rollout]. Would be good to connect.",
+        "message": "Thanks for connecting, [Name]. Contract teams on Coupa often tell me their own template is fine but supplier paper eats the week. Is that how it works for you, or way off?"
+      },
+      "call": {
+        "opener": "Hi [Name], it's [Rep] from Spendflo. We haven't spoken. Can I take 30 seconds on why I called, and you tell me if it's worth another minute?",
+        "prop": "I work with contract teams at manufacturers on Coupa. They tell me their own template is fine, but supplier paper eats the week. Is that fair for your team, or way off?",
+        "close": "Roughly how many contracts a month come in on supplier paper, and when does legal step in?",
+        "off": "Good to hear. Do you have a redlining playbook your team works from, and who keeps it current?",
+        "src": "w"
+      },
+      "objections": [
+        [
+          "Coupa (or Ironclad) already has AI agents.",
+          "Makes sense to use what you own. When it flags a deviation, does it know what you pay that supplier and what the market pays?",
+          "w"
+        ],
+        [
+          "Legal won't let AI touch contracts.",
+          "Fair. What would legal need to see to trust a first pass? Most start with a read-only month where every redline is reviewed.",
+          "w"
+        ],
+        [
+          "We don't have a playbook.",
+          "Most teams don't on day one. Would it help if Flo drafted one from your last 12 months of signed contracts, for legal to approve?",
+          "w"
+        ],
+        [
+          "Not a priority right now.",
+          "Understood. Is that because contract review is under control, or because nobody has had time to look?",
+          "w"
+        ],
+        [
+          "Security will take months.",
+          "Usually true. Could we start the review now, in parallel, so a pilot can begin when the window opens?",
+          "w"
+        ]
+      ],
+      "discovery": [
+        "How many contracts a month come in on supplier paper?",
+        "Who reviews them, and when does legal step in?",
+        "Do you have a playbook or redlining guidelines, and who owns updates?",
+        "What is your average cycle time today?",
+        "What would make a 30-day pilot a clear yes?",
+        "Who signs off on AI vendors, and how long does that take?"
+      ],
+      "rivals": [
+        [
+          "Suites going agentic: Coupa Navi, SAP Ariba, Workday",
+          "Already installed. \"We already have agents.\"",
+          "Works inside one suite. Many run the basic tier.",
+          "Coupa's agents see Coupa. Flo sees your PDFs, your POs and the market price.",
+          "w"
+        ],
+        [
+          "CLM with AI: Ironclad, Sirion, Icertis, Agiloft",
+          "Own the repository and the legal buyer.",
+          "Legal-first. No spend or price context. Value stops at signature.",
+          "Keep your CLM. Flo is the procurement layer on top that your lawyers don't have to babysit.",
+          "w"
+        ],
+        [
+          "Legal AI review: LegalOn, Spellbook, Luminance",
+          "Fast to buy. Word add-in. Attorney-built playbooks.",
+          "No supplier history, spend, or renewal and PO loop.",
+          "Flo redlines business terms with numbers behind them, then carries them into renewals and POs.",
+          "w"
+        ],
+        [
+          "Agentic procurement: Lio",
+          "Checks contracts inside Coupa.",
+          "Contracts are a side feature.",
+          "Watch Lio in Coupa accounts. Same slot we want.",
+          "w"
+        ]
+      ],
+      "proof": {
+        "can": [
+          "Spendflo case study, as a range, only if approved for external use: legal review from 40 to 29 days, 20 to 25 hours per contract down to 7 to 8",
+          "\"We're implementing this for a Coupa customer\"",
+          "The shape of the outcome: first pass on supplier paper, deviations only, clause cited"
+        ],
+        "never": [
+          "Names of calls or pilots: Datavant, Steelcase, Tesco, Thermos, Boston University, SC Johnson",
+          "Extraction or redlining confidence figures",
+          "Demo figures (synthetic)",
+          "Competitor figures as ours",
+          "\"Live\" or \"proven\""
+        ]
+      },
+      "pilot": {
+        "rule": "30-day internship on their own contracts before full price: read-only, one job, every action reviewed, a small fixed fee, no new integration. From day 31, paid per unit of work, with autonomy earned through accuracy.",
+        "need": [
+          "12 months of one contract type",
+          "The playbook or redlining guidelines"
+        ],
+        "get": [
+          "Every new contract of that type first-passed",
+          "An issue list and a redline"
+        ],
+        "pass": [
+          "First-pass rate",
+          "Escalation rate",
+          "Redline acceptance rate",
+          "Average review time"
+        ],
+        "src": "w"
+      },
+      "landmines": [
+        "No playbook owner (Tesco couldn't name one). Ask on call one.",
+        "AI governance is the long pole. Start the review in week one.",
+        "Write-back is not a given. Confirm read-only vs write-back before scoping.",
+        "Buyer drift: redlining pulls the deal toward legal. Keep a procurement owner on every opportunity.",
+        "Data questions come early. Send the AI policy and security pack before call two.",
+        "Over-promising scope: sell one agent well, run two sprints, then expand.",
+        "Demo numbers are not customer numbers.",
+        "References are thin."
+      ],
+      "flags": [
+        "An intake or orchestration tool may be deployed (Zip, Tonkean, Omnea)",
+        "A CLM migration is in flight",
+        "No playbook owner known",
+        "Every signal is older than 90 days",
+        "Legal is the first contact in the plan"
+      ]
+    },
+    {
+      "id": "renewals",
+      "tab": "Renewals",
+      "agent": "A2",
+      "status": "From your docs",
+      "name": "Renewal intelligence",
+      "sells": "Savings and no surprise auto-renewals",
+      "promise": "Flo watches every notice window, builds the renewal brief before anyone asks, and logs every dollar saved. The alert is a commodity. The brief, the benchmark and the savings ledger are the product.",
+      "glance": {
+        "lead": "Profile A: PE-backed mid-market, $100M to $1B",
+        "econ": "CFO or VP Finance (A). PE operating partner on reply.",
+        "deal": "A $40K to $100K, 2 to 6 week sales cycle",
+        "proof": "No named reference yet. Thermos asked for one."
+      },
+      "pull": {
+        "project": [
+          "Renewals are not negotiated well, or at all, or not acted on early enough.",
+          "How do I save money and stop leakage at renewal?"
+        ],
+        "unavoidable": [
+          "Missed the notice period on a large renewal.",
+          "A surprise price increase on a renewed contract."
+        ],
+        "options": [
+          "Hire more procurement operations",
+          "SaaS management tools",
+          "Intake and orchestration tools",
+          "Outsource to Tropic or Vertice",
+          "Outsource to a BPO",
+          "AI procurement tools (Rivio, Lio)"
+        ],
+        "limits": [
+          "Hiring procurement ops adds budget and training and still leaves the renewal context gap. A renewal is about ten manual steps.",
+          "SaaS management tools notify and show usage but don't own the work, negotiate, or remember benchmarks.",
+          "Intake and orchestration tools remind. They don't negotiate with suppliers.",
+          "Tropic, Vertice and BPOs add coordination and lose context over time.",
+          "AI procurement tools have no SaaS benchmarks."
+        ]
+      },
+      "fit": {
+        "musts": [
+          "A procurement operations team",
+          "PR to PO process on an ERP or a suite such as Coupa",
+          "A VP, Director or Chief of procurement",
+          "Revenue to procurement FTE ratio of $100M per FTE as a minimum threshold (as written; confirm the direction)",
+          "High volume of software contracts: price increases and notice periods",
+          "A Coupa admin"
+        ],
+        "dq": [
+          "Under 200 active contracts (no renewal pain worth paying for)"
+        ],
+        "shape": [
+          "PE-backed or PE-owned with a value-creation plan",
+          "A named owner measured on savings",
+          "Contracts as PDFs in Drive or DocuSign, with no captured notice date"
+        ],
+        "src": "s"
+      },
+      "signals": [
+        [
+          "S1",
+          "Renewal hiring",
+          "Roles with explicit renewal duties: \"manages renewal calendar\", \"contract renewals\", a Category Manager who owns vendor renewals",
+          "Daily",
+          "Direct"
+        ],
+        [
+          "S2",
+          "Cost savings mandate",
+          "CFO or CPO announces a cost reduction target, synergy program or savings commitment",
+          "Daily",
+          "Direct"
+        ],
+        [
+          "S3",
+          "Category management buildout",
+          "New Category Manager hires across SaaS, tech, facilities or MRO: fragmented renewal ownership being consolidated",
+          "Daily",
+          "Context"
+        ],
+        [
+          "S4",
+          "SaaS rationalization",
+          "ITAM or SAM hiring, tech stack consolidation, shadow IT cleanup",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S5",
+          "New procurement leader",
+          "New CPO, VP Procurement or Head of Indirect: the first 90 days surface missed renewals",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S6",
+          "M&A integration",
+          "Post-acquisition supplier consolidation: duplicate vendor contracts renewing at misaligned dates",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S7",
+          "Renewal pain",
+          "Public references to auto-renewal surprises, unbudgeted spend spikes, uplift shock",
+          "Weekly",
+          "Direct"
+        ],
+        [
+          "S8",
+          "Vendor consolidation program",
+          "Supplier rationalization or a preferred vendor program launch",
+          "Weekly",
+          "Context"
+        ]
+      ],
+      "combos": [
+        [
+          "A2.S5",
+          "A2.S2",
+          "New procurement leader plus a savings mandate"
+        ],
+        [
+          "A2.S1",
+          "A2.S4",
+          "Renewal hiring plus SaaS rationalization"
+        ],
+        [
+          "A2.S6",
+          "A2.S7",
+          "Post-deal integration plus renewal pain"
+        ]
+      ],
+      "buyers": [
+        {
+          "w": 1,
+          "role": "Head of procurement or category manager",
+          "t": "Owns renewals",
+          "shape": "lead",
+          "care": "Not walking in blind, not chasing dates",
+          "line": "You walk in with the history, the usage and the market price.",
+          "src": "w"
+        },
+        {
+          "w": 1,
+          "role": "Procurement ops or Coupa admin",
+          "t": "System owner, starts first",
+          "shape": "system",
+          "care": "Ownership of the calendar, no new tool for users",
+          "line": "Coupa stays the source of truth. Flo reads where your contracts already live.",
+          "src": "d"
+        },
+        {
+          "w": 2,
+          "role": "ITAM or SAM owner",
+          "t": "When SaaS rationalization is the signal",
+          "shape": "champion",
+          "care": "Untracked SaaS renewals",
+          "line": "Ask who owns the renewal calendar.",
+          "src": "d"
+        },
+        {
+          "w": 3,
+          "role": "CFO or VP Finance",
+          "t": "Economic buyer",
+          "shape": "buyer",
+          "care": "Savings, no surprise auto-renewals, board reporting",
+          "line": "Every dollar saved lands in one ledger your board can read.",
+          "src": "w"
+        },
+        {
+          "w": 3,
+          "role": "PE operating partner",
+          "t": "On reply, PE-backed accounts",
+          "shape": null,
+          "care": "Portfolio savings, speed",
+          "line": "Renewals across the portfolio become a tracked savings line, without adding headcount.",
+          "src": "w"
+        }
+      ],
+      "emails": [
+        {
+          "label": "Email 1: after a buyout, to the CFO",
+          "sig": "Wedge: new PE owner",
+          "src": "w",
+          "subject": "renewals after the buyout",
+          "body": "[Name], congrats on the [PE firm] deal. After a buyout, most CFOs I talk to find contracts auto-renewing before anyone read the notice clause, and savings nobody can report. Flo watches every notice window, builds the renewal brief with market pricing, and logs each saving in one ledger. Worth a look at what it finds in your next 90 days of renewals?"
+        },
+        {
+          "label": "Email 1: hiring, to the head of procurement",
+          "sig": "A2.S1 · A2.S3",
+          "src": "w",
+          "subject": "rebuilding last year's renewal",
+          "body": "[Name], noticed you're hiring a [procurement analyst] for a team that runs [spend] in spend. That usually means renewals get rebuilt from Slack threads and old PDFs a week before the notice date. Flo watches every notice window and hands you the brief at 60 days: history, usage, market price and clause changes. Open to seeing it on your own upcoming renewals?"
+        },
+        {
+          "label": "Email 1: savings mandate",
+          "sig": "A2.S2",
+          "src": "d",
+          "subject": "renewals and the savings target",
+          "body": "[Name], saw [Company] committed to a [cost target / synergy program]. Renewals are usually where savings leak first: notice dates nobody tracked, uplifts nobody challenged. Flo watches every notice window and builds the renewal brief with market pricing before you ask. Worth a look at your next 90 days of renewals?"
+        },
+        {
+          "label": "Email 1: new procurement leader",
+          "sig": "A2.S5",
+          "src": "d",
+          "subject": "your first 90 days",
+          "body": "[Name], congrats on the [VP Procurement] role at [Company]. The first 90 days usually turn up renewals that auto-renewed before anyone read the notice clause. Flo watches every notice window and builds the renewal brief with market pricing before you ask. Worth a look at what it finds in your next 90 days of renewals?"
+        },
+        {
+          "label": "Email 2: new angle, proof the notice went out",
+          "sig": "Day 8",
+          "src": "d",
+          "subject": "cancelled but still renewed",
+          "body": "[Name], one way renewals go wrong: a contract gets cancelled in a portal, the vendor is never told, and it renews anyway. Flo doesn't close a cancellation until there is proof the notice went out. Has a renewal slipped that way for your team?"
+        },
+        {
+          "label": "Email 3: ask for a pointer",
+          "sig": "Day 14",
+          "src": "d",
+          "subject": "who owns renewals?",
+          "body": "[Name], I may have the wrong person. Who owns the renewal calendar at [Company]? A name is plenty, and I'll stop there."
+        }
+      ],
+      "li": {
+        "connect": "Hi [Name], I talk with procurement leads about how they prepare renewals ahead of notice dates. Given [signal, for example: your new role], would be good to connect.",
+        "message": "Thanks for connecting, [Name]. Something I hear from procurement leads on small teams: the hardest part of a renewal is rebuilding where they left off last year. Is that how it works for you, or do you have it nailed down?"
+      },
+      "call": {
+        "opener": "Hi [Name], it's [Rep] from Spendflo. We haven't spoken. Can I take 30 seconds on why I called, and you tell me if it's worth another minute?",
+        "prop": "I work with procurement leads on small teams. They tell me the hardest part of a renewal is rebuilding where they left off last year. Is that how it works for you, or do you have it nailed down? (For a CFO: \"They tell me renewals slip through on notice dates nobody tracked, and the savings never reach the board pack. Is that close for you, or way off?\")",
+        "close": "When did a renewal last slip through, and who tracks the notice dates today?",
+        "off": "Good. How do you report savings, and to whom?",
+        "src": "w"
+      },
+      "objections": [
+        [
+          "We use Tropic (or Vertice) for renewals.",
+          "Good team for software. What happens with your non-software renewals, and with the redlining on each renewal?",
+          "w"
+        ],
+        [
+          "Our CLM or Coupa already sends renewal alerts.",
+          "Alerts are useful. After the alert, who builds the brief, checks the price against the market and tracks that the notice went out?",
+          "d"
+        ],
+        [
+          "Not a priority right now.",
+          "Understood. Is that because renewals are under control, or because nobody has had time to look?",
+          "w"
+        ],
+        [
+          "Security will take months.",
+          "Usually true. Could we start the review now, in parallel, so a pilot can begin when the window opens?",
+          "w"
+        ],
+        [
+          "Legal won't let AI touch contracts.",
+          "Fair. What would legal need to see to trust it? Most start read-only, with every action reviewed.",
+          "w"
+        ]
+      ],
+      "discovery": [
+        "How many active contracts, and where do they live?",
+        "Who tracks notice dates today?",
+        "When did a renewal last slip through?",
+        "How do you report savings, and to whom?",
+        "What would make a 30-day pilot a clear yes?",
+        "Who signs off on AI vendors, and how long does that take?"
+      ],
+      "rivals": [
+        [
+          "SaaS renewal and negotiation: Tropic, Vertice with Vendr, Zylo, Torii",
+          "Deep SaaS benchmarks plus human negotiators.",
+          "Software-centric. Thinner outside SaaS.",
+          "All spend, plus redlining and renewals in one loop, written back to the system you already own.",
+          "w"
+        ],
+        [
+          "Intake orchestration: Zip, Omnea",
+          "Own the request front door.",
+          "Need to be the front door first.",
+          "No replatforming. Flo works with whatever intake you have.",
+          "w"
+        ],
+        [
+          "CLM renewal alerts: Ironclad, Sirion, Icertis",
+          "Alerts and dashboards inside the CLM.",
+          "Alerts remind. They don't build the brief or check the price.",
+          "Alerts tell you a date. Flo builds the brief and checks the price.",
+          "d"
+        ],
+        [
+          "Suites: Coupa Obligation Tracking Agent",
+          "Tracks obligations inside Coupa.",
+          "One suite only.",
+          "Coupa tracks what it holds. Flo reads your PDFs and brings market price.",
+          "d"
+        ]
+      ],
+      "proof": {
+        "can": [
+          "The shape of the outcome: notice windows watched, the brief at 60 days, savings in one ledger",
+          "\"We're implementing this for a Coupa customer\"",
+          "Renewal notices at 90, 60 and 30 days, owner chooses Renew or Not renewing"
+        ],
+        "never": [
+          "Autonomous negotiation or signature execution (the Sales playbook describes it as the vision; outbound does not claim it)",
+          "Datavant's 6% savings target or any named customer",
+          "Tropic's $85M or other competitor figures as ours",
+          "Demo savings figures (synthetic)",
+          "\"Live\" or \"proven\""
+        ]
+      },
+      "pilot": {
+        "rule": "30-day internship on their own contracts before full price: read-only, one job, every action reviewed, a small fixed fee, no new integration.",
+        "need": [
+          "Read access to where contracts live",
+          "The supplier master"
+        ],
+        "get": [
+          "Renewal calendar and notice deadlines",
+          "3 full renewal briefs",
+          "A ranked list of savings opportunities in the next 120 days"
+        ],
+        "pass": [
+          "Renewals caught that were not on anyone's list",
+          "Savings identified"
+        ],
+        "src": "w"
+      },
+      "landmines": [
+        "No reference customer yet. Thermos asked for one on renewals. Name it before scaling.",
+        "Benchmark depth is thinner on rate-card spend such as BPO and labor. Say so.",
+        "A cancellation is not closed until there is proof the vendor was told.",
+        "Write-back is not a given. Confirm read-only vs write-back.",
+        "AI governance is the long pole. Start the review in week one.",
+        "Demo savings numbers are synthetic."
+      ],
+      "flags": [
+        "No named owner of the renewal calendar",
+        "Under 200 active contracts",
+        "Every signal is older than 90 days",
+        "Copy implies autonomous negotiation",
+        "No approved reference"
+      ]
+    },
+    {
+      "id": "guided-buying",
+      "tab": "Guided buying",
+      "agent": "A3",
+      "status": "Draft",
+      "value": {
+        "headline": "Make the right way to buy the easy way.",
+        "sub": "Procurement stops being the help desk. Requesters get the right answer, what the company already owns, and a prefilled request, in the tool they already use. More spend lands on the contracts your team negotiated.",
+        "caveat": "Outcomes are what the play is built to move, not results we have proven. In outbound, describe the shape, never a number. Structure follows your value framework: one dollar, one method, hard savings kept apart from capacity.",
+        "outcomes": [
+          {
+            "n": "Outcome 1",
+            "name": "Off-contract spend redirected",
+            "say": "\"Requesters buy what we negotiated, without us chasing them.\"",
+            "mech": "Flo answers the request, checks the supplier master and contracts, and steers the requester to the approved catalog item or supplier before the purchase is made. The requester still submits and approvals stay in Coupa.",
+            "hard": "Spend moved from the off-contract rate to the contract rate.",
+            "avoid": "Duplicate or overlapping purchases caught before they start.",
+            "proof": "12 months of requests, POs and invoices from Coupa, with off-contract spend by category as the baseline. Compare before and after.",
+            "price": "% of spend redirected. Internal, not for outbound. Unit price still open.",
+            "cpo": "Enforces what I negotiated.",
+            "cfo": "Fewer unbudgeted surprises."
+          },
+          {
+            "n": "Outcome 2",
+            "name": "Procurement capacity released",
+            "say": "\"My team negotiates and sources instead of answering the same questions.\"",
+            "mech": "Flo answers repeat \"how do I buy this\" questions where requesters already ask. Procurement approves every answer in month one, then only the unusual ones.",
+            "hard": "None by default. Hours back are capacity, and become money only if procurement headcount, overtime, contractor or BPO spend moves.",
+            "avoid": "An extra hire or outside help not needed as request volume grows.",
+            "proof": "3 to 6 months of requester questions from the help desk, Teams or email: volume, repeat share, minutes per answer. Count the intake stage only, never one blended cycle time.",
+            "price": "Per request guided. Internal, not for outbound. Unit price still open.",
+            "cpo": "My team stops answering the same ten questions.",
+            "cfo": "Request growth absorbed without adding procurement headcount."
+          }
+        ],
+        "why": [
+          [
+            "The AI mandate",
+            "A procurement assistant is a natural first AI deployment: many people use it every day. It reads as a customer support chatbot for procurement."
+          ],
+          [
+            "Low procurement NPS",
+            "Requesters don't know the process and can't see where their request is. A fast, right answer is the quickest visible improvement."
+          ],
+          [
+            "Return on the suite",
+            "A Coupa rollout earns its return when people use it. Guided buying speeds adoption without training every requester."
+          ],
+          [
+            "Policy pressure",
+            "No PO, no pay pushes requesters into procurement's inbox. The questions arrive before the purchase, which is when guided buying helps."
+          ]
+        ],
+        "how": [
+          [
+            "Ask",
+            "A requester asks in Coupa, Slack, Teams or email."
+          ],
+          [
+            "Clarify",
+            "Flo asks why they need it, so the right purchase is made, not just any purchase."
+          ],
+          [
+            "Check what you own",
+            "Flo searches the supplier master and contracts for an existing supplier or tool."
+          ],
+          [
+            "Lay out options",
+            "Inside the company and outside, with context on the alternatives."
+          ],
+          [
+            "Start the request",
+            "Flo helps start it with fields prefilled. Anything uncertain stays with the requester. Approvals stay as they are today."
+          ]
+        ],
+        "ba": [
+          [
+            "Requester",
+            "Emails procurement and waits, or buys outside the process.",
+            "Asks in Slack, Teams or Coupa. Gets an answer, what the company already owns, and a prefilled request."
+          ],
+          [
+            "Procurement operations",
+            "Answers the same questions all day.",
+            "Reviews exceptions. Spends the time on sourcing and negotiation."
+          ],
+          [
+            "Coupa admin",
+            "Can't see why requesters skip the catalog.",
+            "Sees which questions and catalog gaps drive off-catalog buying."
+          ],
+          [
+            "Accounts payable",
+            "Chases invoices that arrive without a PO.",
+            "Fewer arrive, because the request is raised before the purchase."
+          ],
+          [
+            "CPO",
+            "Spend under management stalls. The team is seen as slow.",
+            "More spend lands on negotiated contracts, and requesters get a quick answer."
+          ]
+        ],
+        "lenses": [
+          [
+            "Financial",
+            [
+              "Hard: off-contract spend redirected to contract pricing",
+              "Avoidance: duplicate purchases caught",
+              "Capacity: hours back, not savings until something on the P&L moves",
+              "Baseline owned by finance. Show the number at 50% of assumed adoption."
+            ]
+          ],
+          [
+            "Capability",
+            [
+              "Procurement moves from answering to negotiating and strategic sourcing",
+              "People keep the judgment step. Flo prepares the answer.",
+              "Requesters learn the process by using it"
+            ]
+          ],
+          [
+            "Risk",
+            [
+              "Reduced: fewer non-compliant purchases and non-PO invoices",
+              "Introduced: a wrong answer, a wrong supplier or coding, chat tool data access",
+              "Control: procurement approves every answer in month one. A request is not an approval. Flo never approves spend."
+            ]
+          ],
+          [
+            "Auditability",
+            [
+              "Every answer logged: the question, sources checked, the answer, who approved it, any edit",
+              "Month 1: recommend, with approval on every answer",
+              "Later: act with review on low-risk repeat questions. Never on approvals."
+            ]
+          ]
+        ],
+        "ladder": {
+          "line": "Make the right way to buy the easy way, inside Coupa, Slack or Teams.",
+          "spoken": "Most procurement teams I talk to spend their day answering the same how-do-I-buy-this questions, and some purchases still go around the process. Flo answers requesters in Coupa, Slack or Teams, checks what you already own, and helps them start a request with the fields prefilled. The team gets time back for sourcing, and more spend lands on the contracts you negotiated.",
+          "by": [
+            [
+              "Head of procurement operations",
+              "Your team stops being the help desk."
+            ],
+            [
+              "Coupa admin",
+              "Coupa stays where people buy. Flo gets them to the right item first."
+            ],
+            [
+              "CPO or VP Procurement",
+              "Buying the right way becomes the easy way, and what you negotiated gets used."
+            ],
+            [
+              "CFO",
+              "Fewer purchases outside contract, and nobody buys what you already own."
+            ],
+            [
+              "AI initiative lead",
+              "A first AI deployment that people use every day."
+            ]
+          ]
+        },
+        "model": [
+          [
+            "Off-contract spend (hard savings)",
+            "Annual off-contract spend by category × (off-contract rate minus contract rate) × share Flo redirects",
+            "Coupa POs and invoices, 12 months. Contract price lists."
+          ],
+          [
+            "Duplicates (cost avoidance)",
+            "Overlapping suppliers or tools found in the supplier master × annual cost of the avoided purchase",
+            "Supplier master and spend, 12 months"
+          ],
+          [
+            "Capacity (not savings)",
+            "Requests per month × repeat share × minutes per answer",
+            "Help desk, Teams or email, 3 to 6 months"
+          ]
+        ],
+        "modelNote": "Hours back are capacity. They become money only if procurement headcount, overtime, contractor or BPO spend moves. Cycle time is counted stage by stage: this play moves the intake stage only.",
+        "gaps": [
+          "No proof yet: no reference and no numbers. Name a design partner before scaling.",
+          "Confirm before claiming: that Flo suggests GL coding. Say \"prefilled\" until it is confirmed.",
+          "The off-contract baseline has to exist, or be built from 12 months of Coupa data, before we promise a delta.",
+          "The unit price is still open (Wedge doc open decision)."
+        ]
+      },
+      "name": "Guided buying",
+      "sells": "Spend on contract, procurement time back",
+      "promise": "Make the right way to buy the easy way. Flo answers requesters where they already ask, checks what you already own, and helps them start a compliant request, so procurement stops being the help desk and more spend lands on the contracts your team negotiated.",
+      "glance": {
+        "lead": "Large Coupa customer, 10,000+ requestors (proxy), often mid-rollout",
+        "econ": "VP Procurement or CPO (drafted)",
+        "deal": "Not defined yet",
+        "proof": "None approved. Copy describes the shape only."
+      },
+      "pull": {
+        "project": [
+          "Increase spend under management. End users want an easy way to buy.",
+          "Procurement answers the same questions again and again after a new PO process, a new suite or a new solution, instead of negotiating or driving strategic sourcing.",
+          "Reduce non-compliant purchases."
+        ],
+        "unavoidable": [
+          "AI initiatives: a customer support chatbot for procurement is a natural first deployment.",
+          "Procurement's NPS is low because end users don't know the process and have no visibility.",
+          "A new suite needs adoption to earn its multi-million investment. Guided buying speeds that ROI."
+        ],
+        "options": [
+          "Hire more procurement operations",
+          "An in-house help desk",
+          "The suite's own help desk or guided buying",
+          "ITSM ticketing",
+          "Intake and orchestration",
+          "CLM or mail management"
+        ],
+        "limits": [
+          "More people means more manual touchpoints, more cost, and quality dropping as the team grows.",
+          "A help desk answers the question but doesn't guide the requester to raise a purchase request, and can't deflect duplicate suppliers or overlapping software.",
+          "ITSM and CLM don't create the purchase request, have no supplier master, and can't set the right GL coding. Horizontal search such as Glean can't run purchase request or sourcing workflows.",
+          "Intake and orchestration means adopting a new platform and changing how every end user asks.",
+          "Guided buying embeds in Coupa, Slack, Teams or email, with no change to the PR to PO process."
+        ]
+      },
+      "fit": {
+        "musts": [
+          "A procurement excellence function",
+          "Uses Coupa",
+          "A public AI initiative",
+          "Large company: 10,000+ requestors",
+          "A new S2P implementation",
+          "A Coupa admin team"
+        ],
+        "dq": [
+          "No Coupa or other P2P suite to sit inside",
+          "A company-wide intake platform already chosen for all requests (confirm)",
+          "Nobody owns catalogs or requester answers",
+          "A small requester population (validate the threshold; the playbook uses 10,000+ as the strong-fit proxy)"
+        ],
+        "shape": [
+          "A high volume of purchase requests",
+          "A PO process, suite or solution introduced recently",
+          "Procurement spending its time answering the same questions",
+          "Internal complaints about the process and visibility"
+        ],
+        "src": "d"
+      },
+      "signals": [
+        [
+          "S1",
+          "Catalog hiring",
+          "Roles configuring Coupa catalogs, guided buying workflows or punchout: \"catalog steward\", \"catalog data administrator\", Coupa catalog admin",
+          "Daily",
+          "Direct"
+        ],
+        [
+          "S2",
+          "Coupa go-live or expansion",
+          "New Coupa implementation or rollout to more sites, geographies or business units. The first 6 to 18 months are peak friction",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S3",
+          "Procurement helpdesk",
+          "Helpdesk or service desk roles fielding employee procurement requests",
+          "Daily",
+          "Direct"
+        ],
+        [
+          "S4",
+          "Compliance gap",
+          "References to maverick spend, off-catalog buying, spend under management targets or non-PO invoice exceptions",
+          "Weekly",
+          "Direct"
+        ],
+        [
+          "S5",
+          "No PO No Pay enforcement",
+          "A policy rollout, enforcement push or AP audit finding on invoices without a PO",
+          "Weekly",
+          "Direct"
+        ],
+        [
+          "S6",
+          "Requester scale",
+          "10,000+ employees in a complex industry. A proxy when \"10k+ requestors\" can't be confirmed",
+          "Monthly",
+          "Context"
+        ],
+        [
+          "S7",
+          "Multi-site or geo expansion",
+          "New countries or business units added to an existing Coupa instance",
+          "Weekly",
+          "Context"
+        ],
+        [
+          "S8",
+          "P2P system change",
+          "Moving from legacy ERP purchasing to Coupa, or from P2P to full S2P",
+          "Weekly",
+          "Context"
+        ]
+      ],
+      "combos": [
+        [
+          "A3.S2",
+          "A3.S1",
+          "Coupa go-live plus catalog hiring"
+        ],
+        [
+          "A3.S5",
+          "A3.S4",
+          "No PO No Pay push plus compliance gap language"
+        ],
+        [
+          "A3.S8",
+          "A3.S6",
+          "P2P system change at a 10,000+ employee company"
+        ]
+      ],
+      "buyers": [
+        {
+          "w": 1,
+          "role": "Head of procurement operations or procurement excellence",
+          "t": "Champion for this play",
+          "shape": "lead",
+          "care": "Repeat questions, capacity, requester experience",
+          "line": "Flo answers the repeat \"how do I buy this\" questions where requesters already ask, so your team spends the day on sourcing.",
+          "src": "d"
+        },
+        {
+          "w": 1,
+          "role": "Coupa admin or catalog owner",
+          "t": "System owner, starts first",
+          "shape": "system",
+          "care": "Catalog adoption, no new tool for requesters",
+          "line": "Coupa stays where people buy. Flo points them to the right catalog item or an existing supplier first, and shows you where the catalog has gaps.",
+          "src": "d"
+        },
+        {
+          "w": 2,
+          "role": "AI initiative or transformation lead",
+          "t": "When the AI initiative is public",
+          "shape": "champion",
+          "care": "A practical first AI deployment people use daily",
+          "line": "A procurement assistant inside Coupa, Slack or Teams.",
+          "src": "d"
+        },
+        {
+          "w": 2,
+          "role": "Help desk or shared services lead",
+          "t": "When S3 is the signal",
+          "shape": "champion",
+          "care": "Request volume, deflection",
+          "line": "Ask who answers requester questions today.",
+          "src": "d"
+        },
+        {
+          "w": 3,
+          "role": "VP Procurement or CPO",
+          "t": "Economic buyer (drafted), founder-sent",
+          "shape": "buyer",
+          "care": "Spend under management, NPS with requesters",
+          "line": "Buying the right way becomes the easy way, and what you negotiated gets used. Your team stops being the help desk.",
+          "src": "d"
+        }
+      ],
+      "emails": [
+        {
+          "label": "Email 1: catalog or helpdesk hiring",
+          "sig": "A3.S1 · A3.S3",
+          "src": "d",
+          "subject": "answering the same requests",
+          "body": "[Name], saw [Company] is hiring a [catalog steward / procurement helpdesk analyst]. That usually means procurement answers the same \"how do I buy this\" questions all day, and some purchases still skip the catalog. Flo answers requesters in Coupa, Slack or Teams, checks your supplier master for what you already own, and helps them start a request with the fields prefilled. Open to seeing it on your five most repeated requests?"
+        },
+        {
+          "label": "Email 1: Coupa go-live or expansion",
+          "sig": "A3.S2 · S7 · S8",
+          "src": "d",
+          "subject": "after the Coupa rollout",
+          "body": "[Name], with [Company] rolling Coupa out to [site / region / business unit], I'd expect the first months to be about getting requesters to use it. Every new group asks procurement the same questions, and some buy outside the process. Flo sits inside Coupa, Slack or Teams, answers what to buy and how, and points people to what you already have before they raise a new request. Would it help to see it on one business unit's requests?"
+        },
+        {
+          "label": "Email 1: No PO No Pay or compliance push",
+          "sig": "A3.S4 · A3.S5",
+          "src": "d",
+          "subject": "no PO, no pay",
+          "body": "[Name], noticed [Company]'s push on no PO, no pay. Enforcement usually lands on procurement as a wave of \"how do I get a PO fast\" questions, and invoices still arrive without one. Flo meets requesters before they buy, checks for existing suppliers, and walks them into a compliant request in the tools they already use. Worth 20 minutes to see how that works on your top few spend categories?"
+        },
+        {
+          "label": "Economic buyer email (founder-sent)",
+          "sig": "Starts on a reply or at Hot",
+          "src": "d",
+          "subject": "procurement as the help desk",
+          "body": "[Name], with [Company]'s [Coupa rollout / AI initiative], more requesters will be asking procurement how to buy things, and every purchase that skips your contracts works against what your team negotiated. Flo answers requesters in Coupa, Slack or Teams, steers them to what you already have on contract, and helps them start a compliant request. Worth a look at how it would handle one business unit's questions?"
+        },
+        {
+          "label": "Email 2: new angle, duplicate buying",
+          "sig": "Day 8",
+          "src": "d",
+          "subject": "already owned",
+          "body": "[Name], one more angle on requester questions: the same software gets bought twice when nobody can see what the company already owns. Flo checks your supplier master when someone asks to buy, so the first answer can be \"you already have this\". Does duplicate buying show up for your team, or is that handled?"
+        },
+        {
+          "label": "Email 3: ask for a pointer",
+          "sig": "Day 14",
+          "src": "d",
+          "subject": "who owns requester answers?",
+          "body": "[Name], I may be pointing at the wrong person. Who owns how requesters get answers and buy inside Coupa at [Company]? A name is plenty, and I'll stop there."
+        }
+      ],
+      "li": {
+        "connect": "Hi [Name], I follow how procurement teams handle requester questions around Coupa. Your work on [catalog / guided buying / procurement excellence] at [Company] caught my eye. Would be glad to connect.",
+        "message": "Thanks for connecting, [Name]. After a Coupa rollout, I keep hearing that requesters ask procurement the same questions, and some purchases still skip the catalog. Is that close for you, or way off?"
+      },
+      "call": {
+        "opener": "Hi [Name], it's [Rep] from Spendflo. We haven't spoken. Can I take 30 seconds on why I called, and you tell me if it's worth another minute?",
+        "prop": "I work with procurement leads at large companies on Coupa. They tell me their team spends the day answering the same \"how do I buy this\" questions, and some purchases still go around the catalog. Is that close for you, or way off?",
+        "close": "Which questions come up most, and where do requesters ask today: email, Teams, a help desk?",
+        "off": "Understood. What is working for you today: the catalog, a help desk, something else?",
+        "src": "d"
+      },
+      "objections": [
+        [
+          "We already have a help desk or ITSM.",
+          "Makes sense to use what you have. When someone asks \"can I buy this\", does it check your supplier master for what you already own and help them raise the request?",
+          "d"
+        ],
+        [
+          "Our suite already has guided buying.",
+          "Good to use what you own. Where does it stop for a requester: does it answer and start the request, or point to the catalog?",
+          "d"
+        ],
+        [
+          "Requesters won't change how they ask.",
+          "Fair. Where do they ask today: email, Teams, a ticket? The aim is to be there, not to move them.",
+          "d"
+        ],
+        [
+          "We're mid-rollout. Not the time.",
+          "Understood. Is it because the catalog isn't settled, or because the team is stretched? Questions usually peak right after go-live.",
+          "d"
+        ],
+        [
+          "We use an intake and orchestration tool.",
+          "Good front door for new requests. Do requesters still ask questions before they get there, and does it check what you already own?",
+          "d"
+        ],
+        [
+          "Security will take months.",
+          "Usually true. Could we start the review now, in parallel, so a pilot can begin when the window opens?",
+          "w"
+        ]
+      ],
+      "discovery": [
+        "How many requesters, and which sites or business units are on Coupa today?",
+        "Where do requesters ask for help: email, Teams, a help desk?",
+        "Which questions come up most?",
+        "What share of purchases go through the catalog, and how do you measure it?",
+        "When did duplicate software or a duplicate supplier last get bought?",
+        "Who owns catalogs, and who answers requester questions?",
+        "What would make a 30-day pilot a clear yes?",
+        "Who signs off on AI vendors, and how long does that take?"
+      ],
+      "rivals": [
+        [
+          "In-house help desk or ITSM",
+          "Already running.",
+          "Answers but doesn't start the request. No supplier master, so no duplicate catch and no coding.",
+          "A help desk answers. Flo answers, checks what you already own, and starts the request.",
+          "d"
+        ],
+        [
+          "Intake and orchestration: Zip, Omnea",
+          "Own the request front door.",
+          "A new platform. Every end user changes how they ask.",
+          "No new front door. Flo meets requesters in Coupa, Slack, Teams or email.",
+          "d"
+        ],
+        [
+          "Horizontal search: Glean",
+          "Finds documents everywhere.",
+          "Can't run purchase request or sourcing workflows.",
+          "Search finds a document. Flo starts the request.",
+          "d"
+        ],
+        [
+          "Hiring more procurement ops",
+          "Familiar and controllable.",
+          "More manual touchpoints and cost. Quality drops as the team grows.",
+          "Add capacity without adding a help desk.",
+          "d"
+        ],
+        [
+          "The suite's own guided buying (Coupa)",
+          "Already installed.",
+          "Not in your PULL yet. Needs research before we position against it.",
+          "To be written.",
+          "d"
+        ]
+      ],
+      "proof": {
+        "can": [
+          "The shape of the outcome: repeat questions answered where people ask, existing suppliers surfaced first, requests started with fields prefilled",
+          "\"Uncertain fields are left to the requester\"",
+          "Guided buying embeds in Coupa, Slack, Teams or email with no change to PR to PO"
+        ],
+        "never": [
+          "Any result number, deflection rate or NPS claim",
+          "Any customer name",
+          "That Flo approves spend or moves money",
+          "\"Live\" or \"proven\""
+        ]
+      },
+      "pilot": {
+        "rule": "Drafted to match the 30-day internship: read-only, one business unit, every answer reviewed by procurement before a requester sees it, a small fixed fee, no new integration.",
+        "need": [
+          "Read access to Coupa catalogs, the supplier master and request history",
+          "3 to 6 months of requester questions from the help desk, Teams or email",
+          "One business unit and a named catalog owner"
+        ],
+        "get": [
+          "Flo drafting answers in one channel for one business unit, approved by procurement first",
+          "A ranked list of repeat questions",
+          "Duplicate or overlapping suppliers found in the supplier master",
+          "Requests started with fields prefilled"
+        ],
+        "pass": [
+          "Share of repeat questions answered without procurement",
+          "Share of requests started through the guided flow instead of off-catalog",
+          "Duplicates caught",
+          "Requester satisfaction"
+        ],
+        "src": "d"
+      },
+      "landmines": [
+        "No catalog owner or answer owner. Nobody to approve the answers.",
+        "A wrong answer in front of a requester. Procurement approves every answer in month one.",
+        "Slack or Teams access needs a security review. Start it in week one.",
+        "The suite's implementation partner may own catalog setup. Involve them.",
+        "An intake platform may already be chosen. Position as the layer in front, not a replacement.",
+        "Say \"prefilled\", not \"creates the request\": uncertain fields stay with the requester.",
+        "Proof gap: no reference and no numbers."
+      ],
+      "flags": [
+        "No catalog or answer owner named",
+        "Requester count unconfirmed",
+        "An intake or orchestration tool is deployed",
+        "Coupa modules unknown",
+        "Every signal is older than 90 days",
+        "Copy claims more than a prefilled request"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "id": "E1",
+      "name": "New PE owner or funding round",
+      "find": "A private equity acquisition, new majority owner, funding round or stated value-creation plan",
+      "look": "PitchBook, press, LinkedIn company updates",
+      "freq": "Weekly",
+      "kind": "Context",
+      "feeds": [
+        "A2"
+      ],
+      "src": "w"
+    },
+    {
+      "id": "E2",
+      "name": "New CFO",
+      "find": "A new CFO named or started",
+      "look": "LinkedIn job changes, press releases, SEC 8-K",
+      "freq": "Weekly",
+      "kind": "Context",
+      "feeds": [
+        "A2"
+      ],
+      "src": "w"
+    },
+    {
+      "id": "E3",
+      "name": "Public AI initiative",
+      "find": "An announced AI program, or an AI leader or program lead hired",
+      "look": "Press, earnings calls, LinkedIn posts, job posts",
+      "freq": "Weekly",
+      "kind": "Context",
+      "feeds": [
+        "A1",
+        "A3"
+      ],
+      "src": "s"
+    },
+    {
+      "id": "E4",
+      "name": "ERP or S/4 program ended",
+      "find": "An ERP or S/4 program cancelled, paused or finished: bandwidth freed",
+      "look": "News, LinkedIn posts, job posts that disappear",
+      "freq": "Weekly",
+      "kind": "Context",
+      "feeds": [
+        "A1"
+      ],
+      "src": "w"
+    },
+    {
+      "id": "E5",
+      "name": "Small legal team at scale",
+      "find": "A legal team of 1 to 3 at a company over $200M revenue",
+      "look": "LinkedIn people search",
+      "freq": "Monthly",
+      "kind": "Context",
+      "feeds": [
+        "A1"
+      ],
+      "src": "w"
+    },
+    {
+      "id": "E6",
+      "name": "Software sprawl or fast growth",
+      "find": "100+ software vendors, recent funding or fast headcount growth",
+      "look": "BuiltWith, funding news, LinkedIn headcount",
+      "freq": "Weekly",
+      "kind": "Context",
+      "feeds": [
+        "A2"
+      ],
+      "src": "w"
+    },
+    {
+      "id": "E7",
+      "name": "Buyer intent on alternatives",
+      "find": "Active research on renewal tools, contract review or CLM, or intake tools",
+      "look": "G2 buyer intent, Bombora, website visits",
+      "freq": "Daily",
+      "kind": "Direct",
+      "feeds": [
+        "A1",
+        "A2",
+        "A3"
+      ],
+      "src": "w"
+    },
+    {
+      "id": "E8",
+      "name": "New General Counsel or CLO",
+      "find": "A new GC or Chief Legal Officer",
+      "look": "LinkedIn job changes, press releases, SEC 8-K",
+      "freq": "Weekly",
+      "kind": "Context",
+      "feeds": [
+        "A1"
+      ],
+      "src": "d"
+    }
+  ],
+  "shapes": {
+    "lead": {
+      "name": "Lead track",
+      "note": "6 touches over 14 working days",
+      "t": [
+        [
+          1,
+          "c"
+        ],
+        [
+          3,
+          "e"
+        ],
+        [
+          6,
+          "m"
+        ],
+        [
+          8,
+          "e"
+        ],
+        [
+          11,
+          "p"
+        ],
+        [
+          14,
+          "e"
+        ]
+      ]
+    },
+    "system": {
+      "name": "System owner track",
+      "note": "5 touches, practical angle, starts first",
+      "t": [
+        [
+          1,
+          "c"
+        ],
+        [
+          3,
+          "e"
+        ],
+        [
+          6,
+          "m"
+        ],
+        [
+          9,
+          "p"
+        ],
+        [
+          12,
+          "e"
+        ]
+      ]
+    },
+    "champion": {
+      "name": "Champion track",
+      "note": "2 touches, asks for a pointer",
+      "t": [
+        [
+          1,
+          "c"
+        ],
+        [
+          4,
+          "e"
+        ]
+      ]
+    },
+    "buyer": {
+      "name": "Economic buyer track",
+      "note": "3 touches, founder-sent, starts on a reply or at Hot",
+      "t": [
+        [
+          1,
+          "e"
+        ],
+        [
+          4,
+          "c"
+        ],
+        [
+          8,
+          "e"
+        ]
+      ]
+    }
+  }
+}

@@ -5,6 +5,9 @@ import { buildGeneratePayload, type PayloadAccount, contactRefs, namesForRefs } 
 import { CampaignSchema, type CampaignOutput } from "@/lib/claude/schemas";
 import { validateCampaign, type ValidatedCampaign } from "@/lib/claude/validate";
 import { logActivity } from "@/lib/activity/log";
+import { playForAccount, playPayload } from "@/lib/playbook/payload";
+import type { PlayResult } from "@/lib/playbook/gate";
+import { PLAY_JOB, PLAY_SHORT } from "@/lib/playbook/catalog";
 import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, type PlanningContext } from "./context";
 
 /**
@@ -40,6 +43,8 @@ type Prepared = {
   model: string;
   refs: ReturnType<typeof contactRefs>;
   payload: ReturnType<typeof buildGeneratePayload>;
+  /** The play and level the signals earned, applied before Claude is called. */
+  play: PlayResult;
 };
 
 /** Everything up to the Claude call: checks, planning window, payload. Shared by live and overnight drafts. */
@@ -68,7 +73,11 @@ export async function prepareGenerate(
 
   // Overnight drafts reuse the refs Claude saw when the batch was sent.
   const refs = contactRefs(opts.refIds ?? contacts.map((c) => c.id));
+  const play = playForAccount(account as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, p.today);
+  const pp = playPayload(play);
   const payload = buildGeneratePayload({
+    play: pp.play,
+    signals: pp.signals,
     today: p.today,
     campaignStartDate: win.start,
     validWorkingDates: win.validWorkingDates,
@@ -95,7 +104,7 @@ export async function prepareGenerate(
     approvedProofPoints: p.proofPoints,
     ownerNotes: opts.ownerNotes ?? null,
   });
-  return { ok: true, prep: { p, account, contacts, drafts: (open ?? []).filter((c) => c.status === "draft").map((c) => c.id), owner, win, touches, model, refs, payload } };
+  return { ok: true, prep: { p, account, contacts, drafts: (open ?? []).filter((c) => c.status === "draft").map((c) => c.id), owner, win, touches, model, refs, payload, play } };
 }
 
 /** Validates Claude's plan against the calendar and caps, then saves it as a Draft. */
@@ -132,7 +141,11 @@ export async function finishGenerate(db: SupabaseClient, prep: Prepared, data: C
   const nm = <T extends string | null>(t: T) => namesForRefs(t, refs.toId, names) as T;
   const output = { ...data, rationale: nm(data.rationale), review: { ...data.review, likely_reply: nm(data.review.likely_reply), main_weakness: nm(data.review.main_weakness) } };
   const readable = { ...validated, blocking: validated.blocking.map((b) => ({ ...b, text: nm(b.text) })), notes: validated.notes.map((n) => ({ ...n, text: nm(n.text) })), tracks: validated.tracks.map((t) => ({ ...t, rationale: nm(t.rationale), goal: nm(t.goal) })) };
-  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: meta.model, p, createdBy: meta.requestedBy });
+  // Vetting the draft against the gate: say so when Claude's job disagrees with the signals, or when there is no live trigger.
+  const pr = prep.play;
+  if (pr.play && data.job !== PLAY_JOB[pr.play]) readable.blocking.push({ text: `The signals point to ${PLAY_SHORT[pr.play]}, but this draft leads with ${data.job.replace("_", " ")}. Check which one you want to test.` });
+  if (pr.level === "nurture") readable.blocking.push({ text: pr.stale.length ? `No signal in the last 90 days (the newest is ${pr.stale[0].ageDays} days old). This draft has no live trigger.` : "No dated signal on this account. This draft has no live trigger." });
+  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: meta.model, p, createdBy: meta.requestedBy, play: pr.play ?? pr.pointsTo, level: pr.level });
   await db.from("claude_calls").update({ campaign_id: campaignId }).eq("id", meta.callId);
   await logActivity(db, { entityType: "campaign", entityId: campaignId, action: "draft_generated", actorId: meta.requestedBy, after: { model: meta.model, blocking: validated.blocking.length } });
   return { campaignId, blocking: validated.blocking.length, notes: validated.notes.length };
@@ -148,7 +161,7 @@ export async function generateCampaign(
 
   const callId = await startCall(db, opts.callId, { account_id: prep.account.id, model: prep.model, skill_version_id: prep.p.skill.id, requested_by: opts.requestedBy });
   const started = Date.now();
-  const res = await callClaude({ kind: "generate_campaign", model: prep.model, skillText: prep.p.skill.text, payload: prep.payload, schema: CampaignSchema });
+  const res = await callClaude({ kind: "generate_campaign", model: prep.model, skillText: prep.p.skill.text, payload: prep.payload, schema: CampaignSchema, play: prep.play.play ?? prep.play.pointsTo ?? "all" });
   await finishCall(db, callId, res, Date.now() - started);
   if (!res.ok) return { ok: false, error: res.message, callId, retryable: res.reason !== "refusal" };
 
@@ -207,7 +220,7 @@ export type ReviewFlag = { id: string; text: string; contactId?: string; sequenc
 
 export async function saveDraft(
   db: SupabaseClient,
-  d: { accountId: string; ownerId: string; startDate: string; output: CampaignOutput; validated: ValidatedCampaign; payload: unknown; model: string; p: PlanningContext; createdBy: string | null },
+  d: { accountId: string; ownerId: string; startDate: string; output: CampaignOutput; validated: ValidatedCampaign; payload: unknown; model: string; p: PlanningContext; createdBy: string | null; play?: string | null; level?: string | null },
 ): Promise<string> {
   const flags: ReviewFlag[] = d.validated.blocking.map((b, i) => ({ id: `f${i + 1}`, ...b }));
   const { data: campaign, error } = await db.from("campaigns").insert({
@@ -217,6 +230,8 @@ export async function saveDraft(
     objective: d.output.objective,
     angle: d.output.angle,
     job: d.output.job,
+    play: d.play ?? null,
+    play_level: d.level ?? null,
     icp_profile: d.output.icp_profile,
     rationale: d.output.rationale,
     discovery_questions: d.output.discovery_questions,

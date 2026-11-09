@@ -1,3 +1,4 @@
+import { refreshPlays } from "@/lib/playbook/service";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, todayIn, type IsoDate } from "@/lib/calendar/dates";
@@ -93,6 +94,8 @@ export async function runDailyRefresh(db: SupabaseClient) {
   const today = todayIn();
   await refreshStepStatuses(db, today);
   const closed = await autoCloseFinishedCampaigns(db, today);
+  // Signals age out of the 90 day window on their own, so levels are recomputed every morning.
+  const plays = await refreshPlays(db, { today });
   const scored = await refreshPriorities(db);
-  return { today, closed, scored };
+  return { today, closed, scored, plays };
 }

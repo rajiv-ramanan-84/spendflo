@@ -25,6 +25,11 @@ export type AccountRow = {
   last_touch: string | null;
   contacts_engaged: number;
   contacts_total: number;
+  play: string | null;
+  play_level: string | null;
+  play_points_to: string | null;
+  play_signal_count: number;
+  last_signal_on: string | null;
 };
 
 async function q<T>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>): Promise<T> {
@@ -48,7 +53,7 @@ export async function listUsers(db: SupabaseClient): Promise<UserLite[]> {
 }
 
 export async function listAccounts(db: SupabaseClient, opts: { includeArchived?: boolean } = {}): Promise<AccountRow[]> {
-  let a = db.from("accounts").select("id, sheet_account_id, name, domain, tier, icp_verdict, owner_id, archived, priority_score, priority_reasons, sheet_owner_hint").is("deleted_at", null);
+  let a = db.from("accounts").select("id, sheet_account_id, name, domain, tier, icp_verdict, owner_id, archived, priority_score, priority_reasons, sheet_owner_hint, play, play_level, play_points_to, play_signal_count, last_signal_on").is("deleted_at", null);
   if (!opts.includeArchived) a = a.eq("archived", false);
   const [accounts, rollup] = await Promise.all([
     q<Omit<AccountRow, "campaign_status" | "next_step_date" | "last_touch" | "contacts_engaged" | "contacts_total">[]>(a.order("tier").order("name")),

@@ -3,6 +3,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 import { USER_PREAMBLE } from "./payload";
 import { campaignSystem, classifySystem } from "./system-prompt";
+import type { PlayCode } from "@/lib/playbook/catalog";
 
 /**
  * One Claude call with the skill as a cached system prompt and the output
@@ -57,11 +58,11 @@ const MAX_TOKENS: Record<CallKind, number> = {
 };
 
 /** The request body for one call, shared by live calls and the overnight batch. */
-export function requestParams(kind: CallKind, model: string, skillText: string, payload: unknown, format: ReturnType<typeof zodOutputFormat>) {
+export function requestParams(kind: CallKind, model: string, skillText: string, payload: unknown, format: ReturnType<typeof zodOutputFormat>, play?: PlayCode | "all" | null) {
   return {
     model,
     max_tokens: MAX_TOKENS[kind],
-    system: [{ type: "text" as const, text: kind === "classify_reply" ? classifySystem(skillText) : campaignSystem(skillText), cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
+    system: [{ type: "text" as const, text: kind === "classify_reply" ? classifySystem(skillText) : campaignSystem(skillText, play), cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
     output_config: { effort: EFFORT[kind], format },
     messages: [{ role: "user" as const, content: `${USER_PREAMBLE}\n\n${JSON.stringify(payload)}` }],
   };
@@ -73,6 +74,7 @@ export async function callClaude<S extends z.ZodType>(opts: {
   skillText: string;
   payload: unknown;
   schema: S;
+  play?: PlayCode | "all" | null;
 }): Promise<ClaudeCallResult<z.infer<S>>> {
   const { kind, skillText, payload, schema } = opts;
   const model = kind === "classify_reply" ? CLASSIFY_MODEL : opts.model;
@@ -85,7 +87,7 @@ export async function callClaude<S extends z.ZodType>(opts: {
       // Streaming keeps long campaign generations clear of HTTP timeouts.
       // Sonnet and Opus fall back to another model if a safety check declines;
       // Haiku has no server-side fallback, so it goes without.
-      const params = requestParams(kind, model, skillText, payload, format);
+      const params = requestParams(kind, model, skillText, payload, format, opts.play);
       const stream = model.startsWith("claude-haiku")
         ? anthropic().beta.messages.stream(params)
         : anthropic().beta.messages.stream({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" });

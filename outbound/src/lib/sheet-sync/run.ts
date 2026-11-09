@@ -1,3 +1,4 @@
+import { refreshPlays } from "@/lib/playbook/service";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -174,14 +175,20 @@ async function applyPlan(db: SupabaseClient, plan: SyncPlan, personaByKey: Map<s
 
   await syncDataQuality(db, plan.dq);
 
+  // Dated signals and the play each account earned. Runs before auto-draft so only live accounts get drafted.
+  await refreshPlays(db, { accountIds: plan.accounts.map((a) => accountUuid.get(a.sheetAccountId)).filter((x): x is string => !!x) });
+
   // Auto-draft new accounts only if Settings > Claude spend says so (off by
   // default: Claude writes when someone clicks Generate). Nothing launches without the owner.
   const { data: settings } = await db.from("app_settings").select("auto_draft").maybeSingle();
   const mode = (settings?.auto_draft as string | undefined) ?? "off";
   const tiers = mode === "ab" ? ["A", "B"] : mode === "a" ? ["A"] : [];
   const tierOf = new Map(plan.accounts.map((a) => [a.sheetAccountId, a.tier]));
+  // Only accounts with a live signal (Hot or Warm) are drafted overnight. Nurture waits for a signal.
+  const { data: levels } = await db.from("accounts").select("id, play_level").in("id", plan.autoDraft.map((sid) => accountUuid.get(sid)).filter((x): x is string => !!x));
+  const live = new Set((levels ?? []).filter((l) => l.play_level === "hot" || l.play_level === "warm").map((l) => l.id));
   const queued = plan.autoDraft
-    .filter((sid) => tiers.includes(tierOf.get(sid) ?? ""))
+    .filter((sid) => tiers.includes(tierOf.get(sid) ?? "") && live.has(accountUuid.get(sid) ?? ""))
     .map((sid) => ({ call_type: "generate_campaign", account_id: accountUuid.get(sid), status: "queued" }));
   if (queued.length) {
     const { error } = await db.from("claude_calls").insert(queued);

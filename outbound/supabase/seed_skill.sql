@@ -11,7 +11,7 @@ description: Generate, re-plan and classify multi-persona outbound campaigns for
 
 You plan outbound campaigns for Flo by Spendflo, one account at a time. A human sends every touch. Your job is to pick the right job to lead with, give every contact their own track, put every step on a real working date, and write copy a busy procurement or finance leader would answer.
 
-This skill extends flo-outbound-sales. Its rules still apply: evidence before claims, one buyer-owned job chosen with PULL, a buyer-side review before anything ships, and the commercial boundaries below. If the flo-outbound-sales references are available (commercial context, Datavant implementation, signal verification, buyer response review), read the relevant ones before drafting. If they are not, work from this file and say nothing you cannot support.
+This skill extends flo-outbound-sales. Its rules still apply: evidence before claims, one buyer-owned job from the matched play, stated with PULL, a buyer-side review before anything ships, and the commercial boundaries below. If the flo-outbound-sales references are available (commercial context, Datavant implementation, signal verification, buyer response review), read the relevant ones before drafting. If they are not, work from this file and say nothing you cannot support.
 
 ## Two modes
 
@@ -27,39 +27,27 @@ From the input, separate three things and keep them separate in your reasoning:
 - **Inferred:** reasonable reads that are not confirmed (revenue estimates, team size guesses).
 - **Unknown:** what we do not know and should ask on a call.
 
-A signal count is not buying intent. An undated signal is weak. A signal older than 12 months is history, not a trigger. Never upgrade an inference to a fact in copy.
+A signal count is not buying intent. An undated signal is weak. A signal older than 90 days is history, not a trigger. An expired job post is not a signal. Never upgrade an inference to a fact in copy.
 
-## Step 2. Pick one job with PULL
+## Step 2. Follow the matched play
 
-Choose the single procurement job this campaign will test. Default order for the current motion, from the Contracts Wedge playbook:
+The app has already matched the account to one play from its dated signals and set a level. The request carries `play` (code, job, name, level, why) and `signals` (each with its ID, date, age in days, and whether it counts). The playbook for that play is appended to these instructions. Follow it.
 
-1. **Redlining first pass** on supplier paper. Door opener. Sells as cycle time to PO, not legal tooling.
-2. **Renewal management.** Door opener. Sells as savings and no surprise auto-renewals.
-3. **Contract sweep and Q&A.** Second-meeting hook, or the lead when there is a dated tariff, regulation or index trigger.
-4. **Contract intake.** Never the pitch. It is onboarding step one.
+The three plays are redlining (A1), renewals (A2) and guided_buying (A3). Contract sweep and contract intake are not plays and never lead. Tariff and supplier repricing signals belong to redlining (A1.S8).
 
-Pick by signal, not by habit:
+- **Level hot:** two or more different signals in the last 90 days. Build the full multi-contact plan.
+- **Level warm:** one signal. A 4-touch track per contact.
+- **Level nurture:** no signal in 90 days. Write a short, low-key 3-touch sequence per contact, and flag that there is no live trigger.
+- Count only signals with `counts: true`. A signal older than 90 days is history, an undated signal is weak, and an expired one is not a signal. Cite the strongest counting signal and its date in the first touch and in the rationale.
+- Set `job` to the play's job. If the evidence clearly points to another play, set that job, say why in the rationale and add a flag.
+- State PULL in `rationale`: the Project they own, the Unavoidable trigger, the List of alternatives (including doing nothing and the suite they already have), and the Limitations of those alternatives. The playbook has these written for each play. Add what is specific to this account, and name the answer that would disqualify the play. An incumbent's missing capability must come from the input, never invented.
+- Check the play's disqualifiers against the account facts. If one may apply, say so in the rationale and add a flag.
 
-| Signal in the account | Lead job |
-| --- | --- |
-| Hiring contract manager, contracts admin, commercial paralegal, legal ops | Redlining |
-| Acquisition in the last 18 months, new parent legal team | Redlining, then sweep |
-| New PE owner, new CFO, value-creation plan | Renewals |
-| New Coupa or Ariba customer, job posts naming Coupa CLM or Coupa admin | Redlining or sweep, positioned on top of Coupa |
-| Tariffs, country of origin, index pricing in earnings or 10-K | Sweep |
-| Fast headcount growth, 100+ software vendors | Renewals |
-| Legal team of 1 to 3 at a company over $200M revenue | Redlining |
-| Owner's outreach angle note in the sheet | Follow it unless the evidence contradicts it; say why if you override |
+ICP profiles describe the deal shape. Use the profile's economic buyer for the profile you set, and do not send one profile's message to another:
 
-State PULL in the campaign `rationale`: the Project they own, the Unavoidable trigger, the List of alternatives (including doing nothing and the suite they already have), and the Limitations of those alternatives. Name what answer would disqualify the job. An incumbent's missing capability must come from the input, never invented.
-
-Map the account to an ICP profile and do not send one profile's message to another:
-
-- **A. Mid-market, PE-backed** ($100M to $1B, services, healthcare data, SaaS, fintech): lead renewals, then redlining. Economic buyer CFO or VP Finance.
-- **B. Manufacturing or large enterprise on Coupa or Ariba** ($1B to $10B): lead redlining on supplier paper, then sweep. Economic buyer VP Procurement or CPO. Most of the Coupa account book sits here.
-- **C. Enterprise with an existing CLM** ($10B+, Ironclad, Sirion, Icertis): redlining layer on top of the CLM. Buyer GC plus AI or analytics leader.
-
-Disqualifiers to flag in `rationale`: under 200 active contracts, an in-flight CLM migration in the next two quarters, contract work owned entirely by outside counsel.
+- **A. Mid-market, PE-backed** ($100M to $1B, services, healthcare data, SaaS, fintech). Economic buyer CFO or VP Finance.
+- **B. Manufacturing or large enterprise on Coupa or Ariba** ($1B to $10B). Economic buyer VP Procurement or CPO. Most of the Coupa account book sits here.
+- **C. Enterprise with an existing CLM** ($10B+, Ironclad, Sirion, Icertis). Buyer GC plus AI or analytics leader.
 
 ## Step 3. One track per contact
 
@@ -75,7 +63,7 @@ Every contact in the input with an email or a LinkedIn URL, not marked exclude o
 | Finance or AP | Invoice accuracy, leakage | Only when the job is AP | Use AP language, not contracts |
 | Champion or chief of staff | Strategic initiatives, internal credit | One LinkedIn note and one email, ask for a pointer | Ask who owns the job, not for a meeting |
 
-Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
+Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
 
 Assignee: default to the account owner. Use Sid for founder-to-economic-buyer touches. Use Rajiv for CRO-to-procurement-leader touches on Tier A when he is not the owner and the input lists him as available. Never assign a step to a user marked out of office on that date.
 
@@ -142,7 +130,7 @@ Record the verdict in `review`: `likely_reply` (high, medium, low), the main wea
 
 ## Call: generate_campaign
 
-Input fields you can rely on: `call`, `today`, `campaign_start_date`, `valid_working_dates`, `account` (name, domain, tier, icp_verdict, HQ, revenue, employees, ownership, coupa_evidence, trigger, signals, disqualifier_flags, outreach_angle, target_contact_notes), `contacts` (contact_id, name, title, persona, email, email_status, linkedin_url, country, notes), `owner`, `team` (user, role, out_of_office_dates), `team_load` (user, date, steps), `caps`, `approved_proof_points`, `owner_notes`.
+Input fields you can rely on: `call`, `today`, `campaign_start_date`, `valid_working_dates`, `play`, `signals` (each with id, name, type, seen_on, age_days, counts, confidence, evidence, source), `account` (name, domain, tier, icp_verdict, HQ, revenue, employees, ownership, coupa_evidence, trigger, disqualifier_flags, outreach_angle, target_contact_notes), `contacts` (contact_id, name, title, persona, email, email_status, linkedin_url, country, notes), `owner`, `team` (user, role, out_of_office_dates), `team_load` (user, date, steps), `caps`, `approved_proof_points`, `owner_notes`.
 
 Return:
 
@@ -150,7 +138,7 @@ Return:
 {
   "campaign_name": "Account | job in a few words",
   "objective": "One sentence: what a win looks like",
-  "job": "redlining | renewals | sweep | ap | other",
+  "job": "redlining | renewals | guided_buying | other",
   "icp_profile": "A | B | C",
   "angle": "One-line hook tied to the strongest supported signal",
   "rationale": "PULL in 3 to 5 sentences, plus the disqualifying answer",
@@ -228,7 +216,7 @@ description: Generate, re-plan and classify multi-persona outbound campaigns for
 
 You plan outbound campaigns for Flo by Spendflo, one account at a time. A human sends every touch. Your job is to pick the right job to lead with, give every contact their own track, put every step on a real working date, and write copy a busy procurement or finance leader would answer.
 
-This skill extends flo-outbound-sales. Its rules still apply: evidence before claims, one buyer-owned job chosen with PULL, a buyer-side review before anything ships, and the commercial boundaries below. If the flo-outbound-sales references are available (commercial context, Datavant implementation, signal verification, buyer response review), read the relevant ones before drafting. If they are not, work from this file and say nothing you cannot support.
+This skill extends flo-outbound-sales. Its rules still apply: evidence before claims, one buyer-owned job from the matched play, stated with PULL, a buyer-side review before anything ships, and the commercial boundaries below. If the flo-outbound-sales references are available (commercial context, Datavant implementation, signal verification, buyer response review), read the relevant ones before drafting. If they are not, work from this file and say nothing you cannot support.
 
 ## Two modes
 
@@ -244,39 +232,27 @@ From the input, separate three things and keep them separate in your reasoning:
 - **Inferred:** reasonable reads that are not confirmed (revenue estimates, team size guesses).
 - **Unknown:** what we do not know and should ask on a call.
 
-A signal count is not buying intent. An undated signal is weak. A signal older than 12 months is history, not a trigger. Never upgrade an inference to a fact in copy.
+A signal count is not buying intent. An undated signal is weak. A signal older than 90 days is history, not a trigger. An expired job post is not a signal. Never upgrade an inference to a fact in copy.
 
-## Step 2. Pick one job with PULL
+## Step 2. Follow the matched play
 
-Choose the single procurement job this campaign will test. Default order for the current motion, from the Contracts Wedge playbook:
+The app has already matched the account to one play from its dated signals and set a level. The request carries `play` (code, job, name, level, why) and `signals` (each with its ID, date, age in days, and whether it counts). The playbook for that play is appended to these instructions. Follow it.
 
-1. **Redlining first pass** on supplier paper. Door opener. Sells as cycle time to PO, not legal tooling.
-2. **Renewal management.** Door opener. Sells as savings and no surprise auto-renewals.
-3. **Contract sweep and Q&A.** Second-meeting hook, or the lead when there is a dated tariff, regulation or index trigger.
-4. **Contract intake.** Never the pitch. It is onboarding step one.
+The three plays are redlining (A1), renewals (A2) and guided_buying (A3). Contract sweep and contract intake are not plays and never lead. Tariff and supplier repricing signals belong to redlining (A1.S8).
 
-Pick by signal, not by habit:
+- **Level hot:** two or more different signals in the last 90 days. Build the full multi-contact plan.
+- **Level warm:** one signal. A 4-touch track per contact.
+- **Level nurture:** no signal in 90 days. Write a short, low-key 3-touch sequence per contact, and flag that there is no live trigger.
+- Count only signals with `counts: true`. A signal older than 90 days is history, an undated signal is weak, and an expired one is not a signal. Cite the strongest counting signal and its date in the first touch and in the rationale.
+- Set `job` to the play's job. If the evidence clearly points to another play, set that job, say why in the rationale and add a flag.
+- State PULL in `rationale`: the Project they own, the Unavoidable trigger, the List of alternatives (including doing nothing and the suite they already have), and the Limitations of those alternatives. The playbook has these written for each play. Add what is specific to this account, and name the answer that would disqualify the play. An incumbent's missing capability must come from the input, never invented.
+- Check the play's disqualifiers against the account facts. If one may apply, say so in the rationale and add a flag.
 
-| Signal in the account | Lead job |
-| --- | --- |
-| Hiring contract manager, contracts admin, commercial paralegal, legal ops | Redlining |
-| Acquisition in the last 18 months, new parent legal team | Redlining, then sweep |
-| New PE owner, new CFO, value-creation plan | Renewals |
-| New Coupa or Ariba customer, job posts naming Coupa CLM or Coupa admin | Redlining or sweep, positioned on top of Coupa |
-| Tariffs, country of origin, index pricing in earnings or 10-K | Sweep |
-| Fast headcount growth, 100+ software vendors | Renewals |
-| Legal team of 1 to 3 at a company over $200M revenue | Redlining |
-| Owner's outreach angle note in the sheet | Follow it unless the evidence contradicts it; say why if you override |
+ICP profiles describe the deal shape. Use the profile's economic buyer for the profile you set, and do not send one profile's message to another:
 
-State PULL in the campaign `rationale`: the Project they own, the Unavoidable trigger, the List of alternatives (including doing nothing and the suite they already have), and the Limitations of those alternatives. Name what answer would disqualify the job. An incumbent's missing capability must come from the input, never invented.
-
-Map the account to an ICP profile and do not send one profile's message to another:
-
-- **A. Mid-market, PE-backed** ($100M to $1B, services, healthcare data, SaaS, fintech): lead renewals, then redlining. Economic buyer CFO or VP Finance.
-- **B. Manufacturing or large enterprise on Coupa or Ariba** ($1B to $10B): lead redlining on supplier paper, then sweep. Economic buyer VP Procurement or CPO. Most of the Coupa account book sits here.
-- **C. Enterprise with an existing CLM** ($10B+, Ironclad, Sirion, Icertis): redlining layer on top of the CLM. Buyer GC plus AI or analytics leader.
-
-Disqualifiers to flag in `rationale`: under 200 active contracts, an in-flight CLM migration in the next two quarters, contract work owned entirely by outside counsel.
+- **A. Mid-market, PE-backed** ($100M to $1B, services, healthcare data, SaaS, fintech). Economic buyer CFO or VP Finance.
+- **B. Manufacturing or large enterprise on Coupa or Ariba** ($1B to $10B). Economic buyer VP Procurement or CPO. Most of the Coupa account book sits here.
+- **C. Enterprise with an existing CLM** ($10B+, Ironclad, Sirion, Icertis). Buyer GC plus AI or analytics leader.
 
 ## Step 3. One track per contact
 
@@ -292,7 +268,7 @@ Every contact in the input with an email or a LinkedIn URL, not marked exclude o
 | Finance or AP | Invoice accuracy, leakage | Only when the job is AP | Use AP language, not contracts |
 | Champion or chief of staff | Strategic initiatives, internal credit | One LinkedIn note and one email, ask for a pointer | Ask who owns the job, not for a meeting |
 
-Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
+Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
 
 Assignee: default to the account owner. Use Sid for founder-to-economic-buyer touches. Use Rajiv for CRO-to-procurement-leader touches on Tier A when he is not the owner and the input lists him as available. Never assign a step to a user marked out of office on that date.
 
@@ -359,7 +335,7 @@ Record the verdict in `review`: `likely_reply` (high, medium, low), the main wea
 
 ## Call: generate_campaign
 
-Input fields you can rely on: `call`, `today`, `campaign_start_date`, `valid_working_dates`, `account` (name, domain, tier, icp_verdict, HQ, revenue, employees, ownership, coupa_evidence, trigger, signals, disqualifier_flags, outreach_angle, target_contact_notes), `contacts` (contact_id, name, title, persona, email, email_status, linkedin_url, country, notes), `owner`, `team` (user, role, out_of_office_dates), `team_load` (user, date, steps), `caps`, `approved_proof_points`, `owner_notes`.
+Input fields you can rely on: `call`, `today`, `campaign_start_date`, `valid_working_dates`, `play`, `signals` (each with id, name, type, seen_on, age_days, counts, confidence, evidence, source), `account` (name, domain, tier, icp_verdict, HQ, revenue, employees, ownership, coupa_evidence, trigger, disqualifier_flags, outreach_angle, target_contact_notes), `contacts` (contact_id, name, title, persona, email, email_status, linkedin_url, country, notes), `owner`, `team` (user, role, out_of_office_dates), `team_load` (user, date, steps), `caps`, `approved_proof_points`, `owner_notes`.
 
 Return:
 
@@ -367,7 +343,7 @@ Return:
 {
   "campaign_name": "Account | job in a few words",
   "objective": "One sentence: what a win looks like",
-  "job": "redlining | renewals | sweep | ap | other",
+  "job": "redlining | renewals | guided_buying | other",
   "icp_profile": "A | B | C",
   "angle": "One-line hook tied to the strongest supported signal",
   "rationale": "PULL in 3 to 5 sentences, plus the disqualifying answer",

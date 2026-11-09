@@ -29,6 +29,20 @@ out("01-database.sql", [
 // 2. Schedules, with the two values to fill in.
 out("02-schedules.sql", read("supabase/schedule.sql"));
 
+// For a database that is already live: only what changed since the first install. Safe to paste once, in order.
+out("03-update-playbook.sql", [
+  "-- Update for an existing database: nurture status, dated signals, play and level, and the new campaign skill.",
+  "-- Paste the whole file into the Supabase SQL Editor and run it once. Run 01-database.sql first if you have never installed.",
+  "",
+  read("supabase/migrations/20261108000010_nurture.sql"),
+  read("supabase/migrations/20261109000011_signals_play.sql"),
+  "notify pgrst, 'reload schema';",
+  "",
+  "-- The campaign skill, rewritten around the three plays. Adds a new skill version only if the text changed.",
+  "-- If you edited the skill in Settings, copy your edits across afterwards: Settings > Claude skill keeps every version.",
+  read("supabase/seed_skill.sql"),
+].join("\n"));
+
 // 3. Slack app, created from a manifest in one paste.
 out("slack-app-manifest.yaml", `display_information:
   name: Outbound Command Center
