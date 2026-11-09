@@ -34,6 +34,8 @@ export type AccountRow = {
   start_by: string | null;
   fit_level: string | null;
   fit_best_play: string | null;
+  /** Fit level for each play, for the chip beside the play being run. */
+  fit_by_play: Record<string, string>;
 };
 
 async function q<T>(p: PromiseLike<{ data: T | null; error: { message: string } | null }>): Promise<T> {
@@ -57,10 +59,10 @@ export async function listUsers(db: SupabaseClient): Promise<UserLite[]> {
 }
 
 export async function listAccounts(db: SupabaseClient, opts: { includeArchived?: boolean } = {}): Promise<AccountRow[]> {
-  let a = db.from("accounts").select("id, sheet_account_id, name, domain, tier, icp_verdict, owner_id, archived, priority_score, priority_reasons, sheet_owner_hint, play, play_level, play_points_to, play_signal_count, last_signal_on, play_cooling, start_by, fit_level, fit_best_play").is("deleted_at", null);
+  let a = db.from("accounts").select("id, sheet_account_id, name, domain, tier, icp_verdict, owner_id, archived, priority_score, priority_reasons, sheet_owner_hint, play, play_level, play_points_to, play_signal_count, last_signal_on, play_cooling, start_by, fit_level, fit_best_play, fit_scores").is("deleted_at", null);
   if (!opts.includeArchived) a = a.eq("archived", false);
   const [accounts, rollup] = await Promise.all([
-    q<Omit<AccountRow, "campaign_status" | "next_step_date" | "last_touch" | "contacts_engaged" | "contacts_total">[]>(a.order("tier").order("name")),
+    q<Array<Omit<AccountRow, "campaign_status" | "next_step_date" | "last_touch" | "contacts_engaged" | "contacts_total" | "fit_by_play"> & { fit_scores: Array<{ play: string; level: string }> | null }>>(a.order("tier").order("name")),
     q<Array<{ account_id: string; campaign_status: string | null; next_step_date: string | null; last_touch: string | null; contacts_engaged: number; contacts_total: number }>>(
       db.from("account_rollup").select("account_id, campaign_status, next_step_date, last_touch, contacts_engaged, contacts_total"),
     ),
@@ -68,8 +70,10 @@ export async function listAccounts(db: SupabaseClient, opts: { includeArchived?:
   const r = new Map(rollup.map((x) => [x.account_id, x]));
   return accounts.map((x) => {
     const y = r.get(x.id);
+    const { fit_scores, ...rest } = x;
     return {
-      ...x,
+      ...rest,
+      fit_by_play: Object.fromEntries((fit_scores ?? []).map((p) => [p.play, p.level])),
       priority_reasons: (x.priority_reasons as unknown as string[]) ?? [],
       campaign_status: y?.campaign_status ?? null,
       next_step_date: y?.next_step_date ?? null,
