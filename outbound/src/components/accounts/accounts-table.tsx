@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { LevelChip } from "@/components/cockpit/why-this-plan";
+import { GenerateDialog } from "@/components/accounts/generate-dialog";
 import { LaunchDialog } from "@/components/accounts/launch-dialog";
 import { FitChip } from "@/components/cockpit/fit-card";
 import { PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
@@ -57,6 +58,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   const userIndex = useMemo(() => new Map(users.map((u, i) => [u.id, { u, i }])), [users]);
 
@@ -171,6 +173,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-brand-50 px-4 py-2.5 text-sm">
           <span className="font-medium text-brand-700">{selected.size} selected</span>
+          <Button variant="secondary" className="px-3 py-1.5" onClick={() => setGenerating(true)}>Generate drafts</Button>
           <Button className="px-3 py-1.5" onClick={() => setLaunching(true)}>Launch campaigns</Button>
           {canAssign ? (
             <>
@@ -259,6 +262,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
           </tbody>
         </table>
       </div>
+      {generating ? <GenerateDialog accountIds={[...selected]} onClose={() => setGenerating(false)} onQueued={() => { setSelected(new Set()); router.refresh(); }} /> : null}
       {launching ? <LaunchDialog accountIds={[...selected]} onClose={() => setLaunching(false)} onLaunched={() => { setSelected(new Set()); router.refresh(); }} /> : null}
     </div>
   );
