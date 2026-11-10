@@ -1,3 +1,5 @@
+import { loadWritingRules } from "@/lib/writing/rules";
+import { writingForPayload, type WritingRules } from "@/lib/writing/compose";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addWorkingDays, defaultCampaignStart, listValidDates, nextValidDate, type CalendarContext } from "@/lib/calendar/working-calendar";
@@ -17,7 +19,14 @@ export type PlanningContext = {
   settings: { default_model: string; tier_a_model: string; priority_weights: Record<string, number>; email_word_flag: number; linkedin_connect_max_chars: number };
   skill: { id: string | null; text: string; version: number | null };
   proofPoints: string[];
+  writing: WritingRules;
 };
+
+/** The writing rules for one campaign: team rules, the voice of whoever's name the emails carry, and only the personas present. */
+export function writingFor(p: PlanningContext, owner: TeamUser, personas: Array<string | null>) {
+  const sender = p.users.find((u) => u.name === owner.writesAs) ?? owner;
+  return writingForPayload(p.writing, sender.id, owner.writesAs, personas);
+}
 
 export function userKey(u: { name: string; email: string }): string {
   return (u.name.split(/\s+/)[0] || u.email.split("@")[0]).toLowerCase();
@@ -58,6 +67,7 @@ export async function loadPlanningContext(db: SupabaseClient): Promise<PlanningC
       linkedin_connect_max_chars: rawCaps.linkedin_connect_max_chars ?? 300,
     },
     skill: { id: skill.data?.id ?? null, text: skill.data?.body ?? "", version: skill.data?.version_no ?? null },
+    writing: await loadWritingRules(db),
     proofPoints: proof.map((p) => [p.customer_name, p.text].filter(Boolean).join(": ")),
   };
 }

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 import { USER_PREAMBLE } from "./payload";
-import { campaignSystem, classifySystem } from "./system-prompt";
+import { campaignSystem, classifySystem, REWRITE_SYSTEM } from "./system-prompt";
 import type { PlayCode } from "@/lib/playbook/catalog";
 
 /**
@@ -47,7 +47,7 @@ const EFFORT: Record<CallKind, "low" | "medium" | "high"> = {
   generate_campaign: "high",
   replan_campaign: "high",
   classify_reply: "low",
-  rewrite: "low",
+  rewrite: "medium",
 };
 
 const MAX_TOKENS: Record<CallKind, number> = {
@@ -62,7 +62,7 @@ export function requestParams(kind: CallKind, model: string, skillText: string, 
   return {
     model,
     max_tokens: MAX_TOKENS[kind],
-    system: [{ type: "text" as const, text: kind === "classify_reply" ? classifySystem(skillText) : campaignSystem(skillText, play), cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
+    system: [{ type: "text" as const, text: kind === "classify_reply" ? classifySystem(skillText) : kind === "rewrite" ? REWRITE_SYSTEM : campaignSystem(skillText, play), cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
     output_config: { effort: EFFORT[kind], format },
     messages: [{ role: "user" as const, content: `${USER_PREAMBLE}\n\n${JSON.stringify(payload)}` }],
   };

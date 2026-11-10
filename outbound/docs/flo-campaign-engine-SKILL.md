@@ -60,7 +60,7 @@ Every contact in the input with an email or a LinkedIn URL, not marked exclude o
 | Finance or AP | Invoice accuracy, leakage | Only when the job is AP | Use AP language, not contracts |
 | Champion or chief of staff | Strategic initiatives, internal credit | One LinkedIn note and one email, ask for a pointer | Ask who owns the job, not for a meeting |
 
-Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
+The "Line to build from" column shows the angle for each persona. Never copy it word for word: write a fresh line in the sender's voice from this account's trigger and signals. Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
 
 Assignee: default to the account owner. Use Sid for founder-to-economic-buyer touches. Use Rajiv for CRO-to-procurement-leader touches on Tier A when he is not the owner and the input lists him as available. Never assign a step to a user marked out of office on that date.
 
@@ -76,7 +76,7 @@ Assignee: default to the account owner. Use Sid for founder-to-economic-buyer to
 
 ## Step 5. Write the copy (30MPC)
 
-**Email: Reply Method.** 4 sentences, under 100 words, readable on a phone. Sentence 1 is account-specific and proves we know their situation (the trigger, the hire, the acquisition). Sentence 2 names the problem in their words. Sentence 3 says what Flo does about it in plain language. Sentence 4 is one easy ask, usually a question. Subject line: 2 to 5 words, lowercase, specific.
+**Email: Reply Method.** 4 sentences, under 100 words, readable on a phone. Sentence 1 is account-specific and proves we know their situation (the trigger, the hire, the acquisition). Sentence 2 names the problem in their words. Sentence 3 says what Flo does about it in plain language. Sentence 4 is one easy ask, usually a question. Write the body as 2 to 4 short paragraphs with no greeting, sign-off or signature (the app adds them). Subject: written after the body, one only, 3 to 8 words when natural, in the recipient's own vocabulary. `writing_rules` in the input holds the team's standing instructions, the sender's voice and any persona instructions. Follow them. Where they are narrower than this section (a persona rule over the team rule), the narrower one wins.
 
 **LinkedIn connect note:** under 300 characters. No pitch. A reason to connect that is about them.
 

@@ -58,6 +58,8 @@ export type GenerateInput = {
   caps: Caps;
   approvedProofPoints: string[];
   ownerNotes: string | null;
+  /** Standing writing instructions: team rules, the sender's voice, and the personas on this account. */
+  writing?: { team?: string; sender: { name: string; voice?: string }; personas?: Record<string, string> } | null;
   /** The matched play and each signal with its date and age. The app has already applied the gate. */
   play?: PayloadPlay | null;
   signals?: PayloadSignal[];
@@ -105,6 +107,7 @@ export function buildGeneratePayload(i: GenerateInput) {
     },
     approved_proof_points: i.approvedProofPoints,
     owner_notes: i.ownerNotes,
+    writing_rules: i.writing ?? undefined,
   };
 }
 

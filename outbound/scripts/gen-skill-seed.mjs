@@ -26,6 +26,8 @@ const appNotes = [
   "- Write and sign every email and LinkedIn message as the owner's writes_as person from the team list. It can differ from the owner: a teammate may run a mailbox in a founder's name (Mouli writes as Sid). Sign with that person's first name and title, never the operator's.",
   "- The request includes play (the matched play and level) and signals (each with its ID, date, age in days and whether it counts). The app has applied the gate already. Use only signals marked counts: true as triggers, cite the signal and its date, and never present a stale or undated signal as current.",
   "- The PLAYBOOK section below replaces the job table, the ICP lead-job guidance and any sweep or intake guidance in the skill. The three jobs are redlining, renewals and guided_buying. Set job to the play's job. Level nurture means no live trigger: write a short, low-key 3-touch sequence and raise a flag.",
+  "- writing_rules (when present) holds the team's standing writing instructions, the sender's voice and instructions for personas on this account. Follow them for every email and LinkedIn message. A persona's instructions apply to that persona's track and refine the team rules; they never override the facts, the dates, the caps or the approved proof points.",
+  "- Email steps: body is 2 to 4 short paragraphs separated by a blank line, with no greeting, no sign-off and no signature. The app adds \"Hi {first name},\" and the sender's signature. Write the body first and the subject after it. Return one subject.",
   "- Calls are made by the owner in their own name. When writes_as differs, the call opener refers to that person's note, e.g. \"Mouli from Spendflo, following Sid's note\".",
 ].join("\n");
 

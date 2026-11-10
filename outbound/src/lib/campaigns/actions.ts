@@ -71,6 +71,14 @@ export type StepPatch = {
   date?: string;
 };
 
+/** The step and its campaign, once the caller is allowed to edit it. */
+export async function stepForEditing(db: SupabaseClient, user: SessionUser, stepId: string) {
+  const { step, campaign } = await stepWithCampaign(db, stepId);
+  if (!canEdit(user, campaign.owner_id) && step.assignee_id !== user.id) throw new ActionError("You can edit steps on your own accounts or assigned to you", 403);
+  if (["done", "skipped", "superseded"].includes(step.status)) throw new ActionError("This step is closed and can't be edited");
+  return { step, campaign };
+}
+
 export async function updateStep(db: SupabaseClient, user: SessionUser, stepId: string, patch: StepPatch) {
   const { step, campaign } = await stepWithCampaign(db, stepId);
   if (!canEdit(user, campaign.owner_id) && step.assignee_id !== user.id) throw new ActionError("You can edit steps on your own accounts or assigned to you", 403);

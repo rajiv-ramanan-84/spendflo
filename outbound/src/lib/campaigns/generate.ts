@@ -1,6 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { callClaude } from "@/lib/claude/client";
+import { finalizeEmail, firstNameOf } from "@/lib/writing/compose";
+import { senderSignatures } from "@/lib/writing/rules";
 import { buildGeneratePayload, type PayloadAccount, contactRefs, namesForRefs } from "@/lib/claude/payload";
 import { CampaignSchema, type CampaignOutput } from "@/lib/claude/schemas";
 import { validateCampaign, type ValidatedCampaign } from "@/lib/claude/validate";
@@ -8,7 +10,7 @@ import { logActivity } from "@/lib/activity/log";
 import { playForAccount, playPayload } from "@/lib/playbook/payload";
 import type { PlayResult } from "@/lib/playbook/gate";
 import { PLAY_JOB, PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
-import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, type PlanningContext } from "./context";
+import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor, type PlanningContext } from "./context";
 
 /**
  * Generate campaign (PRD M3): account + contacts -> Claude -> validated draft.
@@ -106,6 +108,7 @@ export async function prepareGenerate(
     caps: p.caps,
     approvedProofPoints: p.proofPoints,
     ownerNotes: opts.ownerNotes ?? null,
+    writing: writingFor(p, owner, contacts.map((c) => c.persona as string | null)),
   });
   return { ok: true, prep: { p, account, contacts, drafts: (open ?? []).filter((c) => c.status === "draft").map((c) => c.id), owner, win, touches, model, refs, payload, play } };
 }
@@ -260,6 +263,10 @@ export async function saveDraft(
 }
 
 export async function insertTracks(db: SupabaseClient, campaignId: string, versionNo: number, v: ValidatedCampaign) {
+  // Emails are finished here: greeting, short paragraphs and the sender's signature, so Gmail gets a complete message.
+  const { data: people } = await db.from("contacts").select("id, full_name").in("id", v.tracks.map((t) => t.contactId));
+  const firstOf = new Map((people ?? []).map((c) => [c.id as string, firstNameOf(c.full_name as string)]));
+  const signatures = await senderSignatures(db, v.tracks.flatMap((t) => t.steps.map((s) => s.assigneeId).filter((x): x is string => !!x)));
   for (const t of v.tracks) {
     const { data: track, error } = await db.from("contact_tracks").insert({
       campaign_id: campaignId,
@@ -295,8 +302,8 @@ export async function insertTracks(db: SupabaseClient, campaignId: string, versi
       moved_reason: s.movedNote,
       offset_working_days: s.offsetWorkingDays,
       subject: s.subject,
-      body: s.body,
-      original_body: s.body,
+      body: s.channel === "email" && s.body ? finalizeEmail(s.body, { firstName: firstOf.get(t.contactId) ?? null, signature: signatures.get(s.assigneeId ?? "") ?? null }) : s.body,
+      original_body: s.channel === "email" && s.body ? finalizeEmail(s.body, { firstName: firstOf.get(t.contactId) ?? null, signature: signatures.get(s.assigneeId ?? "") ?? null }) : s.body,
       call_script: s.callScript,
       status: "upcoming",
     })));

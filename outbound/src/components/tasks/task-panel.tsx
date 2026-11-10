@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { CHANNEL_LABEL, fmtDate, PERSONA_LABEL } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { needsEdit } from "@/lib/tasks/state";
+import { AiEdit } from "./ai-edit";
 
 type Ctx = {
   contact: { full_name: string; title: string | null; email: string | null; linkedin_url: string | null; phone: string | null; bounced: boolean | null; engagement_status: string | null; persona: string | null; replies: number };
@@ -151,6 +152,9 @@ export function TaskPanel(props: {
               </div>
             ) : null}
             <textarea id={`body-${t.id}`} value={text} onChange={(e) => { setText(e.target.value); setSave("dirty"); }} aria-label={t.channel === "call" ? "Call script" : "Message"} rows={isEmail ? 11 : 7} className="w-full resize-y rounded-xl border border-line bg-canvas p-3 text-sm leading-relaxed text-ink-900 focus:border-brand-300 focus:bg-white focus:outline-none" />
+            {(isEmail || isLinkedIn) && !waiting ? (
+              <AiEdit stepId={t.id} isEmail={isEmail} subject={subject} body={text} disabled={busy} onKeep={(v) => { if (v.subject !== null) setSubject(v.subject); setText(v.body); setSave("dirty"); }} />
+            ) : null}
             {t.channel === "linkedin_connect" && text.length > 300 ? <div className="text-xs text-amber-700">{text.length} characters. LinkedIn notes stop at 300.</div> : null}
             {waiting ? <Notice tone="lock"><Lock size={13} className="mt-0.5 shrink-0" />{t.state_reason}. It goes out once that happens, so it can&apos;t be done early.</Notice> : null}
             {editReason ? <Notice tone="warn">{editReason}.</Notice> : null}
