@@ -10,14 +10,24 @@ const TONE: Record<FitLevel, string> = {
   weak: "bg-canvas text-ink-500 ring-1 ring-line",
 };
 
-/** Fit chip for the Accounts list: how well the account matches the ICP of its best play. */
-export function FitChip({ level, play }: { level: string | null; play: string | null }) {
+const DOT: Record<FitLevel, string> = { strong: "bg-emerald-500", possible: "bg-amber-400", weak: "bg-ink-400" };
+const RANK: Record<FitLevel, number> = { strong: 2, possible: 1, weak: 0 };
+
+/**
+ * Fit for the Accounts list. It describes the play being run, so it never contradicts the Play column.
+ * When another play fits better, one quiet line says so. With no play yet it shows the best match.
+ */
+export function FitChip({ run, byPlay, best, overall }: { run: string | null; byPlay: Record<string, string>; best: string | null; overall: string | null }) {
+  const shown = (run && byPlay[run] ? run : best) as PlayCode | null;
+  const level = ((shown ? byPlay[shown] : null) ?? overall) as FitLevel | null;
   if (!level) return <span className="text-ink-400">–</span>;
+  const better = best && best !== shown && RANK[byPlay[best] as FitLevel] > RANK[level] ? (best as PlayCode) : null;
+  const hint = !run && shown ? PLAY_SHORT[shown] : better ? `Also fits ${PLAY_SHORT[better]}` : null;
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={cn("inline-flex rounded-full px-2 py-0.5 text-xs font-semibold", TONE[level as FitLevel] ?? TONE.weak)}>{FIT_LABEL[level as FitLevel]?.replace(" fit", "") ?? level}</span>
-      {play ? <span className="text-xs text-ink-700">{PLAY_SHORT[play as PlayCode]}</span> : null}
-    </span>
+    <div className="flex flex-col gap-0.5" title={shown ? `${FIT_LABEL[level]} for ${PLAY_NAME[shown]}` : FIT_LABEL[level]}>
+      <span className="inline-flex items-center gap-1.5 text-[13px] text-ink-900"><span className={cn("size-2 rounded-full", DOT[level])} />{FIT_LABEL[level].replace(" fit", "")}</span>
+      {hint ? <span className="text-[11px] text-ink-400">{hint}</span> : null}
+    </div>
   );
 }
 

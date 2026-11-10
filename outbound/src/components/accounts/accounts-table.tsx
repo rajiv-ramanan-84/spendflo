@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import type { AccountRow, UserLite } from "@/lib/data/queries";
 import { CAMPAIGN_STATUS_LABEL, fmtDate, firstName } from "@/lib/format";
 import { Avatar } from "@/components/ui/avatar";
@@ -29,6 +29,7 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
 const LIVE = new Set(["active", "paused", "responded", "meeting_booked"]);
 
 function statusChip(s: string | null) {
+  if (!s) return <span className="text-ink-400">Not started</span>;
   const label = s ? (CAMPAIGN_STATUS_LABEL[s] ?? s) : "Not started";
   const tone =
     s === "draft" ? "bg-brand-50 text-brand-700"
@@ -47,6 +48,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
   const [owner, setOwner] = useState<string>("all");
   const [level, setLevel] = useState<string>("all");
   const [fit, setFit] = useState<string>("all");
+  const [more, setMore] = useState(false);
   const [play, setPlay] = useState<string>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -70,6 +72,8 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
     } satisfies Record<Filter, number>;
   }, [accounts, me]);
 
+  const extra = [tier, fit, play, owner].filter((v) => v !== "all").length;
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return accounts.filter((a) => {
@@ -83,7 +87,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
       if (tier !== "all" && a.tier !== tier) return false;
       if (owner !== "all" && a.owner_id !== owner) return false;
       if (level !== "all" && a.play_level !== level) return false;
-      if (fit !== "all" && a.fit_level !== fit) return false;
+      if (fit !== "all" && (a.fit_by_play[a.play ?? a.play_points_to ?? ""] ?? a.fit_level) !== fit) return false;
       if (play !== "all" && (a.play ?? a.play_points_to) !== play) return false;
       if (q && !`${a.name} ${a.domain ?? ""} ${a.sheet_account_id}`.toLowerCase().includes(q)) return false;
       return true;
@@ -121,16 +125,28 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
           </button>
         ))}
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <select value={tier} onChange={(e) => setTier(e.target.value)} className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
-            <option value="all">All tiers</option>
-            {["A", "B", "C", "D"].map((t) => <option key={t} value={t}>Tier {t}</option>)}
-          </select>
           <select value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Level" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
             <option value="all">All levels</option>
             <option value="super_hot">Super hot</option>
             <option value="hot">Hot</option>
             <option value="warm">Warm</option>
             <option value="nurture">Nurture</option>
+          </select>
+          <button onClick={() => setMore((m) => !m)} aria-expanded={more} className={cn("inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-sm transition-colors", more || extra ? "border-ink-900 text-ink-900" : "border-line text-ink-700 hover:bg-canvas")}>
+            <SlidersHorizontal size={14} />Filters{extra ? <span className="rounded-full bg-ink-900 px-1.5 text-[11px] font-semibold text-white">{extra}</span> : null}
+          </button>
+          <label className="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5">
+            <Search size={14} className="text-ink-400" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search accounts" className="w-36 bg-transparent text-sm outline-none" />
+          </label>
+        </div>
+      </div>
+
+      {more ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-canvas/50 px-4 py-2.5">
+          <select value={tier} onChange={(e) => setTier(e.target.value)} className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
+            <option value="all">All tiers</option>
+            {["A", "B", "C", "D"].map((t) => <option key={t} value={t}>Tier {t}</option>)}
           </select>
           <select value={fit} onChange={(e) => setFit(e.target.value)} aria-label="Fit" className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm">
             <option value="all">All fit</option>
@@ -146,12 +162,9 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
             <option value="all">Any owner</option>
             {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
           </select>
-          <label className="flex items-center gap-2 rounded-lg border border-line px-2.5 py-1.5">
-            <Search size={14} className="text-ink-400" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search accounts" className="w-36 bg-transparent text-sm outline-none" />
-          </label>
+          {extra ? <button className="text-sm text-ink-500 hover:text-ink-900" onClick={() => { setTier("all"); setFit("all"); setPlay("all"); setOwner("all"); }}>Clear</button> : null}
         </div>
-      </div>
+      ) : null}
 
       {canAssign && selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-brand-50 px-4 py-2.5 text-sm">
@@ -207,15 +220,15 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
                   ) : null}
                   <td className="px-4 py-3">
                     <Link href={`/accounts/${a.id}`} className="font-medium text-ink-900 hover:text-brand-700">{a.name}</Link>
-                    <div className="text-xs text-ink-400">{a.sheet_account_id}{a.domain ? ` · ${a.domain}` : ""}</div>
+                    <div className="text-xs text-ink-400">{a.domain ?? a.sheet_account_id}</div>
                   </td>
                   <td className="px-2 py-3"><span className="rounded-md bg-canvas px-2 py-0.5 text-xs font-semibold text-ink-700">{a.tier ?? "–"}</span></td>
-                  <td className="px-2 py-3"><FitChip level={a.fit_level} play={a.fit_best_play} /></td>
+                  <td className="px-2 py-3"><FitChip run={a.play ?? a.play_points_to} byPlay={a.fit_by_play} best={a.fit_best_play} overall={a.fit_level} /></td>
                   <td className="px-2 py-3">
                     {a.play_level ? (
                       <div className="flex flex-col items-start gap-0.5">
-                        <span className="inline-flex items-center gap-1.5"><LevelChip level={a.play_level} /><span className="text-xs text-ink-700">{(a.play ?? a.play_points_to) ? PLAY_SHORT[(a.play ?? a.play_points_to) as PlayCode] : ""}</span></span>
-                        <span className={cn("text-[11px]", a.start_by && a.start_by < todayIso ? "font-semibold text-red-700" : "text-ink-400")}>{a.start_by ? (a.start_by < todayIso ? `Overdue ${fmtDate(a.start_by)}` : a.start_by === todayIso ? "Start today" : `Start by ${fmtDate(a.start_by)}`) : a.play_level === "nurture" ? `${a.play_cooling ? "Cooling · " : ""}${a.last_signal_on ? `last signal ${fmtDate(a.last_signal_on)}` : "no signal yet"}` : a.play_level === "not_fit" ? "" : `${a.play_signal_count} signal${a.play_signal_count === 1 ? "" : "s"}`}</span>
+                        <span className="inline-flex items-center gap-1.5">{a.play_level === "nurture" ? <span className="text-[13px] text-ink-500">Nurture</span> : <LevelChip level={a.play_level} />}<span className="text-xs text-ink-700">{(a.play ?? a.play_points_to) ? PLAY_SHORT[(a.play ?? a.play_points_to) as PlayCode] : ""}</span></span>
+                        <span className={cn("text-[11px]", a.start_by && a.start_by < todayIso ? "font-semibold text-red-700" : "text-ink-400")}>{a.start_by ? (a.start_by < todayIso ? `Overdue ${fmtDate(a.start_by)}` : a.start_by === todayIso ? "Start today" : `Start by ${fmtDate(a.start_by)}`) : a.play_level === "nurture" ? `${a.play_cooling ? "Cooling · " : ""}${a.last_signal_on ? `last signal ${fmtDate(a.last_signal_on)}` : ""}` : a.play_level === "not_fit" ? "" : `${a.play_signal_count} signal${a.play_signal_count === 1 ? "" : "s"}`}</span>
                       </div>
                     ) : <span className="text-ink-400">–</span>}
                   </td>
