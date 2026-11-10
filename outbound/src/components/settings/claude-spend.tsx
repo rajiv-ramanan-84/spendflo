@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DRAFT_MODELS } from "@/lib/claude/models";
 
-type Props = { spent: number; pending: number; budget: number; drafts: number; autoDraft: "off" | "a" | "ab"; canEdit: boolean };
+type Props = { spent: number; pending: number; budget: number; drafts: number; autoDraft: "off" | "a" | "ab"; defaultModel: string; tierAModel: string; bulkMax: number; canEdit: boolean };
 
 const AUTO = [
   ["off", "Only when someone clicks Generate"],
@@ -18,6 +19,9 @@ export function ClaudeSpend(p: Props) {
   const router = useRouter();
   const [autoDraft, setAutoDraft] = useState(p.autoDraft);
   const [budget, setBudget] = useState(String(p.budget));
+  const [defaultModel, setDefaultModel] = useState(p.defaultModel);
+  const [tierAModel, setTierAModel] = useState(p.tierAModel);
+  const [bulkMax, setBulkMax] = useState(String(p.bulkMax));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const used = p.spent + p.pending;
@@ -26,7 +30,7 @@ export function ClaudeSpend(p: Props) {
   async function save() {
     setBusy(true);
     setMsg(null);
-    const res = await fetch("/api/settings/claude", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ autoDraft, budget: Number(budget) }) });
+    const res = await fetch("/api/settings/claude", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ autoDraft, budget: Number(budget), defaultModel, tierAModel, bulkMax: Number(bulkMax) }) });
     const data = await res.json().catch(() => ({ ok: false, error: "No response" }));
     setBusy(false);
     if (!data.ok) return setMsg({ ok: false, text: data.error });
@@ -37,7 +41,7 @@ export function ClaudeSpend(p: Props) {
   return (
     <Card className="p-5 md:p-6">
       <h2 className="text-lg font-semibold">Claude spend</h2>
-      <p className="mt-1 text-sm text-ink-500">Drafts are the only real cost (about $0.13 for Tier B to D, $0.27 for Tier A). Sorting a reply costs a fraction of a cent and never stops.</p>
+      <p className="mt-1 text-sm text-ink-500">Drafts are the only real cost. Sorting a reply costs a fraction of a cent and never stops. Drafts run through the half-price batch service.</p>
 
       <div className="mt-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
@@ -61,6 +65,23 @@ export function ClaudeSpend(p: Props) {
           <span className="font-medium">Monthly budget (USD)</span>
           <input type="number" min={0} step={5} value={budget} disabled={!p.canEdit} onChange={(e) => setBudget(e.target.value)} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas" />
           <span className="text-xs text-ink-400">Drafts and re-plans pause when reached.</span>
+        </label>
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {([["Model for Tier B to D accounts", defaultModel, setDefaultModel], ["Model for Tier A accounts", tierAModel, setTierAModel]] as const).map(([label, value, set]) => (
+          <label key={label} className="grid content-start gap-1.5 text-sm">
+            <span className="font-medium">{label}</span>
+            <select value={value} disabled={!p.canEdit} onChange={(e) => set(e.target.value)} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas">
+              {DRAFT_MODELS.map((m) => <option key={m.id} value={m.id}>{m.label}, about ${m.perDraftUsd.toFixed(2)} a draft</option>)}
+            </select>
+            <span className="text-xs text-ink-400">{DRAFT_MODELS.find((m) => m.id === value)?.note}</span>
+          </label>
+        ))}
+        <label className="grid content-start gap-1.5 text-sm">
+          <span className="font-medium">Most accounts per bulk generate</span>
+          <input type="number" min={1} max={25} value={bulkMax} disabled={!p.canEdit} onChange={(e) => setBulkMax(e.target.value)} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas" />
+          <span className="text-xs text-ink-400">Caps how many drafts one click can queue, 1 to 25.</span>
         </label>
       </div>
 

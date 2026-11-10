@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { loadSlackSettings } from "@/lib/slack/settings";
 import { SlackSettings } from "@/components/settings/slack-settings";
 import { loadSkillSettings } from "@/lib/claude/skill-settings";
+import { DEFAULT_BULK_MAX } from "@/lib/claude/models";
 import { WritingSettings } from "@/components/settings/writing-settings";
 import { loadWritingRules, loadWritingSettings } from "@/lib/writing/rules";
 import { SkillSettings } from "@/components/settings/skill-settings";
@@ -29,7 +30,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const user = await requireUser();
   const db = supabaseAdmin();
   const [slack, skill, data, spend, auto, mail, writing] = db
-    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft").maybeSingle(), loadMailboxSettings(db), Promise.all([loadWritingRules(db), loadWritingSettings(db)])])
+    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft, default_model, tier_a_model, caps").maybeSingle(), loadMailboxSettings(db), Promise.all([loadWritingRules(db), loadWritingSettings(db)])])
     : [null, null, null, null, null, null, null];
   return (
     <>
@@ -37,7 +38,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <div className="grid gap-5">
         {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
-        {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} canEdit={canEditAdminSettings(user)} />}
+        {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} defaultModel={(auto?.data?.default_model as string | undefined) ?? "claude-sonnet-5-5"} tierAModel={(auto?.data?.tier_a_model as string | undefined) ?? "claude-opus-5-5"} bulkMax={Number((auto?.data?.caps as Record<string, number> | null)?.bulk_generate_max) || DEFAULT_BULK_MAX} canEdit={canEditAdminSettings(user)} />}
         {writing && <WritingSettings rules={writing[0]} {...writing[1]} canEdit={canEditAdminSettings(user)} />}
         {skill && <SkillSettings {...skill} canEdit={canEditAdminSettings(user)} />}
         {slack && <SlackSettings {...slack} canEdit={canEditAdminSettings(user)} />}
