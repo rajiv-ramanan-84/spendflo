@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AiEdit } from "@/components/tasks/ai-edit";
 import { SendButton, SendStatus, useSendFlow } from "@/components/steps/send-flow";
 import type { Projection } from "@/lib/campaigns/projection";
 import { Trash2, X } from "lucide-react";
@@ -170,6 +171,9 @@ export function StepEditor(props: {
             </label>
           )}
 
+          {s && editable && channel !== "call" && (channel === "email" || channel.startsWith("linkedin")) ? (
+            <AiEdit stepId={s.id} isEmail={channel === "email"} subject={subject} body={body} disabled={busy} onKeep={(v) => { if (v.subject !== null) setSubject(v.subject); setBody(v.body); }} />
+          ) : null}
           {issues.length ? (
             <ul className="grid gap-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
               {issues.map((i) => <li key={i}>This step {i}.</li>)}
@@ -182,7 +186,7 @@ export function StepEditor(props: {
             </details>
           ) : null}
           {error || flow.error ? <div role="alert" className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-brand-700">{error ?? flow.error}</div> : null}
-          <SendStatus flow={flow} channel={channel} />
+          <SendStatus flow={flow} channel={channel} beforeSend={persist} contentKey={`${subject}\n${body}`} />
         </div>
 
         {editable ? (
@@ -195,7 +199,7 @@ export function StepEditor(props: {
             <div className="flex gap-2">
               <Button variant="ghost" onClick={props.onClose}>Cancel</Button>
               <Button variant={canSendNow ? "secondary" : "primary"} onClick={save} disabled={busy || (!s && !date)}>{busy ? "Saving…" : "Save"}</Button>
-              {canSendNow ? <SendButton flow={flow} channel={channel} disabled={busy} beforeSend={persist} /> : null}
+              {canSendNow ? <SendButton flow={flow} channel={channel} disabled={busy} beforeSend={persist} contentKey={`${subject}\n${body}`} /> : null}
             </div>
           </div>
         ) : null}

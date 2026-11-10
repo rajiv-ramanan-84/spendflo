@@ -20,7 +20,7 @@ export function AiEdit(p: { stepId: string; isEmail: boolean; subject: string; b
   async function ask(instruction: string) {
     if (!instruction.trim() || busy) return;
     setBusy(true); setError(null);
-    const res = await fetch(`/api/steps/${p.stepId}/ai-edit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ instruction }) });
+    const res = await fetch(`/api/steps/${p.stepId}/ai-edit`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ instruction, current: { subject: p.subject, body: p.body } }) });
     const d = await res.json().catch(() => ({ ok: false, error: "No response" }));
     setBusy(false);
     if (!d.ok) return setError(d.error);

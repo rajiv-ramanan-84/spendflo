@@ -15,13 +15,16 @@ import { senderSignatures } from "./rules";
  * Edit with AI: one message, one instruction, one proposal. Nothing is saved here.
  * The owner sees the new version beside the old one and keeps or discards it.
  */
-export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId: string, instruction: string) {
+export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId: string, instruction: string, current?: { subject?: string | null; body?: string }) {
   const ask = instruction.trim();
   if (ask.length < 3) throw new ActionError("Tell me what to change, for example \"shorter\" or \"open with the acquisition\".");
   if (ask.length > 1000) throw new ActionError("Keep the instruction under 1,000 characters.");
   const { step, campaign } = await stepForEditing(db, user, stepId);
   if (step.channel === "call") throw new ActionError("Edit with AI works on emails and LinkedIn messages. Call scripts are edited by hand.");
-  if (!step.body?.trim()) throw new ActionError("This step has no message yet.");
+  // Edit what is on screen, which can be ahead of what has autosaved.
+  const text = (current?.body ?? step.body ?? "").trim();
+  const subjectNow = current?.subject ?? step.subject ?? null;
+  if (!text) throw new ActionError("This step has no message yet.");
   await assertBudget(db, "re-plan");
 
   const [{ data: contact }, { data: account }, p] = await Promise.all([
@@ -43,7 +46,7 @@ export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId:
       call: "rewrite",
       instruction: ask,
       channel: step.channel,
-      message: { subject: step.subject ?? null, body: step.body },
+      message: { subject: subjectNow, body: text },
       to: { name: contact?.full_name ?? null, title: contact?.title ?? null, persona: contact?.persona ?? null },
       account: { name: account?.name ?? null, trigger: account?.trigger ?? null, signals: quoteData(String(account?.signals ?? "").slice(0, 1500)), angle: account?.outreach_angle ?? null },
       play: campaign.play ?? null,
@@ -55,7 +58,7 @@ export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId:
   if (!res.ok) throw new ActionError(res.message, 502);
 
   const body = isEmail ? finalizeEmail(res.data.body, { firstName: first, signature: sigs.get(assignee.id) ?? null }) : res.data.body.replace(/\s*—\s*/g, ", ").trim();
-  const subject = isEmail ? (res.data.subject ?? step.subject ?? "").replace(/\s*—\s*/g, ", ").trim() : null;
+  const subject = isEmail ? (res.data.subject ?? subjectNow ?? "").replace(/\s*—\s*/g, ", ").trim() : null;
   const issues = copyIssues(step.channel, subject, body, { emailWords: p.settings.email_word_flag, connectChars: p.settings.linkedin_connect_max_chars });
   const warnings = isEmail ? [...new Set([...emailChecks(subject, body), ...issues.filter((i) => !/em dash|words/.test(i))])] : issues;
   return { subject, body, changed: res.data.changed, warnings, cost: res.usage?.costUsd ?? null };

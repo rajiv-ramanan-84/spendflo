@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ExternalLink, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,8 @@ function popup(url: string, name: string, w: number, h: number) {
 export function useSendFlow(stepId: string, onDone: (label: string) => void) {
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
   const [error, setError] = useState<string | null>(null);
+  // What was in the email the last time it was sent to Gmail, to tell when the draft there is out of date.
+  const [pushedKey, setPushedKey] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const doneRef = useRef(onDone);
   useEffect(() => {
@@ -84,7 +87,7 @@ export function useSendFlow(stepId: string, onDone: (label: string) => void) {
     return () => window.removeEventListener("focus", onFocus);
   }, [phase]);
 
-  async function sendEmail(beforeSend?: () => Promise<boolean>) {
+  async function sendEmail(beforeSend?: () => Promise<boolean>, key?: string) {
     setError(null);
     if (beforeSend && !(await beforeSend())) return;
     setPhase({ kind: "opening" });
@@ -94,6 +97,7 @@ export function useSendFlow(stepId: string, onDone: (label: string) => void) {
       return setError(d.error);
     }
     popup(d.link, `gmail-${stepId}`, 760, 820);
+    setPushedKey(key ?? null);
     setPhase({ kind: "waiting_email", link: d.link, from: d.from ?? null, since: Date.now() });
   }
 
@@ -125,19 +129,20 @@ export function useSendFlow(stepId: string, onDone: (label: string) => void) {
     setPhase({ kind: "idle" });
   }
 
-  return { phase, error, sendEmail, openLinkedIn, markDone, reset, checkNow: check };
+  return { phase, error, pushedKey, sendEmail, openLinkedIn, markDone, reset, checkNow: check };
 }
 
 /** The strip shown while a send is in progress. */
-export function SendStatus({ flow, channel }: { flow: ReturnType<typeof useSendFlow>; channel: string }) {
+export function SendStatus({ flow, channel, beforeSend, contentKey }: { flow: ReturnType<typeof useSendFlow>; channel: string; beforeSend?: () => Promise<boolean>; contentKey?: string }) {
   const { phase } = flow;
   if (phase.kind === "waiting_email") {
+    const stale = contentKey !== undefined && flow.pushedKey !== null && flow.pushedKey !== contentKey;
     return (
       <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/60 px-3 py-2.5 text-sm">
         <Loader2 size={15} className="animate-spin text-brand-500" />
-        <span className="text-ink-700">Gmail is open{phase.from ? ` (${phase.from})` : ""}. Press Send there; this marks itself done.</span>
+        <span className="text-ink-700">{stale ? "You changed the email after Gmail opened. Update the draft so Gmail has the latest." : `Gmail is open${phase.from ? ` (${phase.from})` : ""}. Press Send there; this marks itself done.`}</span>
         <span className="ml-auto flex gap-1.5">
-          <button onClick={() => popup(phase.link, "gmail-reopen", 760, 820)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand-700 hover:bg-white"><ExternalLink size={13} /> Open again</button>
+          <button onClick={() => void flow.sendEmail(beforeSend, contentKey)} className={cn("inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium hover:bg-white", stale ? "bg-white text-brand-700 ring-1 ring-brand-200" : "text-brand-700")}><ExternalLink size={13} /> Update and reopen</button>
           <button onClick={() => flow.markDone("Marked sent")} className="rounded-lg px-2 py-1 text-xs font-medium text-ink-600 hover:bg-white">I sent it</button>
           <button onClick={flow.reset} className="rounded-lg px-2 py-1 text-xs text-ink-400 hover:bg-white">Stop</button>
         </span>
@@ -163,11 +168,12 @@ export function SendStatus({ flow, channel }: { flow: ReturnType<typeof useSendF
 }
 
 /** The one primary button for a step, by channel. */
-export function SendButton({ flow, channel, disabled, beforeSend, compact }: { flow: ReturnType<typeof useSendFlow>; channel: string; disabled?: boolean; beforeSend?: () => Promise<boolean>; compact?: boolean }) {
+export function SendButton({ flow, channel, disabled, beforeSend, compact, contentKey }: { flow: ReturnType<typeof useSendFlow>; channel: string; disabled?: boolean; beforeSend?: () => Promise<boolean>; compact?: boolean; contentKey?: string }) {
   const busy = flow.phase.kind === "opening";
   const cls = compact ? "px-3 py-1.5" : "";
   if (channel === "email") {
-    return <Button className={cls} disabled={disabled || busy || flow.phase.kind === "waiting_email"} onClick={() => flow.sendEmail(beforeSend)}><Send size={14} /> {busy ? "Opening Gmail..." : "Send in Gmail"}</Button>;
+    const waiting = flow.phase.kind === "waiting_email";
+    return <Button className={cls} disabled={disabled || busy} onClick={() => flow.sendEmail(beforeSend, contentKey)}><Send size={14} /> {busy ? "Opening Gmail..." : waiting ? "Update draft in Gmail" : "Send in Gmail"}</Button>;
   }
   if (channel.startsWith("linkedin")) {
     const label = channel === "linkedin_connect" ? "Connect on LinkedIn" : channel === "linkedin_inmail" ? "InMail on LinkedIn" : "Message on LinkedIn";

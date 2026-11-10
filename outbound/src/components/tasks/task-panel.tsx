@@ -165,7 +165,7 @@ export function TaskPanel(props: {
                 <p className="whitespace-pre-wrap px-3 pb-3 leading-relaxed text-ink-700">{ctx.previous.text}</p>
               </details>
             ) : null}
-            <SendStatus flow={flow} channel={t.channel} />
+            <SendStatus flow={flow} channel={t.channel} beforeSend={beforeSend} contentKey={`${subject}\n${text}`} />
             {error || flow.error ? <div role="alert" className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">{error ?? flow.error}</div> : null}
           </div>
         ) : tab === "contact" ? (
@@ -194,7 +194,7 @@ export function TaskPanel(props: {
                 <Button variant="secondary" className="px-3 py-2" disabled={busy} onClick={() => act("done", "Logged no answer", { callOutcome: "no_answer" })}>No answer</Button>
               </>
             ) : isEmail || isLinkedIn ? (
-              <SendButton compact flow={flow} channel={t.channel} disabled={notMine || !!editReason || busy} beforeSend={beforeSend} />
+              <SendButton compact flow={flow} channel={t.channel} disabled={notMine || !!editReason || busy} beforeSend={beforeSend} contentKey={`${subject}\n${text}`} />
             ) : (
               <Button className="px-3 py-2" disabled={busy} onClick={() => act("done", "Marked done")}>Mark done</Button>
             )}
