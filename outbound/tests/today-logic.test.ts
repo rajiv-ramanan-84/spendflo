@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WEIGHTS, focusOrder, priorityScore, type PriorityInput } from "@/lib/priority/score";
+import { DEFAULT_WEIGHTS, focusOrder, isFocusWorthy, priorityScore, type PriorityInput } from "@/lib/priority/score";
 import { hasUnresolvedToken, resolveTokens, tokenContext } from "@/lib/copy-tokens";
 import { buildDraftMime, gmailDraftLink, toBase64Url } from "@/lib/google/mime";
 
@@ -10,7 +10,7 @@ const base: PriorityInput = {
 
 describe("priority score", () => {
   it("adds the PRD weights and lists each reason", () => {
-    expect(priorityScore({ ...base, tier: "A", replyWaiting: true, hasDueToday: true })).toEqual({ score: 85, reasons: ["Reply waiting", "Due today", "Tier A"] });
+    expect(priorityScore({ ...base, tier: "A", replyWaiting: true, hasDueToday: true })).toEqual({ score: 63, reasons: ["Reply waiting", "Due today", "Tier A"] });
   });
 
   it("caps at 100", () => {
@@ -22,7 +22,7 @@ describe("priority score", () => {
     expect(priorityScore({ ...base, workingDaysAssignedWithoutLaunch: 1 }).reasons).not.toContain("Not started");
     expect(priorityScore({ ...base, workingDaysAssignedWithoutLaunch: 2 }).reasons).toContain("Not started");
     expect(priorityScore({ ...base, daysSinceLastTouch: 9 }).reasons).not.toContain("Going cold");
-    expect(priorityScore({ ...base, daysSinceLastTouch: 10 })).toEqual({ score: 15, reasons: ["Tier C", "Going cold"] });
+    expect(priorityScore({ ...base, daysSinceLastTouch: 10 })).toEqual({ score: 7, reasons: ["Tier C", "Going cold"] });
   });
 
   it("uses weights from Settings", () => {
@@ -74,5 +74,29 @@ describe("Gmail draft MIME", () => {
   it("is URL-safe base64 for the API and links to the sender's drafts", () => {
     expect(toBase64Url(mime)).not.toMatch(/[+/=]/);
     expect(gmailDraftLink("chandramouli@spendflo.com", "r-123")).toBe("https://mail.google.com/mail/?authuser=chandramouli%40spendflo.com#drafts?compose=r-123");
+  });
+});
+
+describe("timing leads, tier only breaks ties", () => {
+  it("ranks a Warm Tier C account above a Tier A account with no signal", () => {
+    const warmC = priorityScore({ ...base, tier: "C", level: "warm" });
+    const nurtureA = priorityScore({ ...base, tier: "A", level: "nurture" });
+    expect(warmC.score).toBeGreaterThan(nurtureA.score);
+    expect(warmC.reasons).toEqual(["Warm", "Tier C"]);
+  });
+  it("super hot and hot outrank everything a tier can add", () => {
+    expect(priorityScore({ ...base, tier: "C", level: "hot" }).score).toBeGreaterThan(priorityScore({ ...base, tier: "A", level: "warm" }).score);
+    expect(priorityScore({ ...base, tier: "C", level: "super_hot" }).score).toBeGreaterThan(priorityScore({ ...base, tier: "A", level: "hot" }).score);
+  });
+  it("does not call a Nurture account Not started", () => {
+    expect(priorityScore({ ...base, tier: "A", level: "nurture", workingDaysAssignedWithoutLaunch: 5 }).reasons).toEqual(["Tier A"]);
+    expect(priorityScore({ ...base, tier: "A", level: "hot", workingDaysAssignedWithoutLaunch: 5 }).reasons).toContain("Not started");
+  });
+  it("keeps tier-only accounts out of Focus Today", () => {
+    expect(isFocusWorthy(["Tier A"], false)).toBe(false);
+    expect(isFocusWorthy(["Tier A", "Not started"], false)).toBe(false);
+    expect(isFocusWorthy(["Hot", "Tier B"], false)).toBe(true);
+    expect(isFocusWorthy(["Reply waiting"], false)).toBe(true);
+    expect(isFocusWorthy(["Tier C"], true)).toBe(true);
   });
 });

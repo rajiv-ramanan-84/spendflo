@@ -59,10 +59,10 @@ export async function listUsers(db: SupabaseClient): Promise<UserLite[]> {
 }
 
 export async function listAccounts(db: SupabaseClient, opts: { includeArchived?: boolean } = {}): Promise<AccountRow[]> {
-  let a = db.from("accounts").select("id, sheet_account_id, name, domain, tier, icp_verdict, owner_id, archived, priority_score, priority_reasons, sheet_owner_hint, play, play_level, play_points_to, play_signal_count, last_signal_on, play_cooling, start_by, fit_level, fit_best_play, fit_scores").is("deleted_at", null);
+  let a = db.from("accounts").select("id, sheet_account_id, name, domain, tier, icp_verdict, owner_id, archived, priority_score, priority_reasons, sheet_owner_hint, play, play_level, play_points_to, play_signal_count, last_signal_on, play_cooling, start_by, fit_level, fit_best_play, fit_a1:fit_scores->0->>level, fit_a2:fit_scores->1->>level, fit_a3:fit_scores->2->>level").is("deleted_at", null);
   if (!opts.includeArchived) a = a.eq("archived", false);
   const [accounts, rollup] = await Promise.all([
-    q<Array<Omit<AccountRow, "campaign_status" | "next_step_date" | "last_touch" | "contacts_engaged" | "contacts_total" | "fit_by_play"> & { fit_scores: Array<{ play: string; level: string }> | null }>>(a.order("tier").order("name")),
+    q<Array<Omit<AccountRow, "campaign_status" | "next_step_date" | "last_touch" | "contacts_engaged" | "contacts_total" | "fit_by_play"> & { fit_a1: string | null; fit_a2: string | null; fit_a3: string | null }>>(a.order("tier").order("name")),
     q<Array<{ account_id: string; campaign_status: string | null; next_step_date: string | null; last_touch: string | null; contacts_engaged: number; contacts_total: number }>>(
       db.from("account_rollup").select("account_id, campaign_status, next_step_date, last_touch, contacts_engaged, contacts_total"),
     ),
@@ -70,10 +70,10 @@ export async function listAccounts(db: SupabaseClient, opts: { includeArchived?:
   const r = new Map(rollup.map((x) => [x.account_id, x]));
   return accounts.map((x) => {
     const y = r.get(x.id);
-    const { fit_scores, ...rest } = x;
+    const { fit_a1, fit_a2, fit_a3, ...rest } = x;
     return {
       ...rest,
-      fit_by_play: Object.fromEntries((fit_scores ?? []).map((p) => [p.play, p.level])),
+      fit_by_play: Object.fromEntries(([["A1", fit_a1], ["A2", fit_a2], ["A3", fit_a3]] as const).filter(([, v]) => v).map(([k, v]) => [k, v as string])),
       priority_reasons: (x.priority_reasons as unknown as string[]) ?? [],
       campaign_status: y?.campaign_status ?? null,
       next_step_date: y?.next_step_date ?? null,

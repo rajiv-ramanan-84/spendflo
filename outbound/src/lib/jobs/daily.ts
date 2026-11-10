@@ -27,7 +27,7 @@ export async function refreshPriorities(db: SupabaseClient, onlyAccountId?: stri
   const today = p.today;
   const weights: PriorityWeights = { ...DEFAULT_WEIGHTS, ...(p.settings.priority_weights as Partial<PriorityWeights>) };
 
-  let accountsQ = db.from("accounts").select("id, tier, trigger_date, owner_id, owner_assigned_at").eq("archived", false).is("deleted_at", null);
+  let accountsQ = db.from("accounts").select("id, tier, play_level, trigger_date, owner_id, owner_assigned_at").eq("archived", false).is("deleted_at", null);
   if (onlyAccountId) accountsQ = accountsQ.eq("id", onlyAccountId);
   const { data: accounts } = await accountsQ;
   if (!accounts?.length) return 0;
@@ -56,6 +56,7 @@ export async function refreshPriorities(db: SupabaseClient, onlyAccountId?: stri
 
     const { score, reasons } = priorityScore({
       tier: a.tier,
+      level: a.play_level,
       replyWaiting,
       hasOverdue: open.some((x) => x.due_date && x.due_date < today),
       hasDueToday: open.some((x) => x.due_date === today),
