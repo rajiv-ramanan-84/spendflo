@@ -4,7 +4,7 @@ import { addDays, todayIn, type IsoDate } from "@/lib/calendar/dates";
 import { columnLetter } from "@/lib/sheet-sync/headers";
 import { refreshPlays } from "@/lib/playbook/service";
 import { refreshPriorities } from "@/lib/jobs/daily";
-import { LIMITS, contentKey, decideRows, effectOf, parseFeedTab, rowHash, type Decision, type DecideCtx } from "./validate";
+import { LIMITS, TEST_ACCOUNT, contentKey, decideRows, effectOf, parseFeedTab, rowHash, type Decision, type DecideCtx } from "./validate";
 
 /**
  * Reads the vendor's Signals tab, decides every new row under the limits, writes a status back to the tab,
@@ -39,7 +39,8 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
     // 1. The watch list the vendor reads: IDs, names and domains only. Nothing else leaves the app.
     const { data: accts } = await db.from("accounts").select("id, sheet_account_id, name, domain, archived, do_not_contact").is("deleted_at", null).order("sheet_account_id").limit(5000);
     const active = (accts ?? []).filter((a) => !a.archived && !a.do_not_contact && a.sheet_account_id);
-    const watch = [["Account ID", "Account", "Domain"], ...active.map((a) => [String(a.sheet_account_id), String(a.name), String(a.domain ?? "")])];
+    // The sandbox account comes first so the vendor can test before touching a real account.
+    const watch = [["Account ID", "Account", "Domain"], [TEST_ACCOUNT.sheetId, TEST_ACCOUNT.name, TEST_ACCOUNT.domain], ...active.map((a) => [String(a.sheet_account_id), String(a.name), String(a.domain ?? "")])];
     await io.write([{ tab: FEED_TABS.watch, range: `A1:C${watch.length}`, values: watch }]);
     await io.clear(FEED_TABS.watch, `A${watch.length + 1}:C5000`);
 
@@ -57,14 +58,20 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
     }
     const { data: vendorSignals } = await db.from("account_signals").select("account_id, signal_id, seen_on, source_url").eq("source", "vendor").eq("expired", false).gte("seen_on", addDays(today, -LIMITS.maxAgeDays - 1)).limit(20000);
     const contentKeys = new Set((vendorSignals ?? []).map((v) => contentKey(v.account_id as string, v.signal_id as string, v.seen_on as string, (v.source_url as string | null) ?? "")));
-    const { data: recent } = await db.from("signal_feed_rows").select("account_id, decided_at").eq("status", "accepted").gte("decided_at", new Date(now.getTime() - 7 * 86_400_000).toISOString()).limit(20000);
+    // Test rows are never stored as signals, so their content keys live on the feed rows.
+    const { data: testRows } = await db.from("signal_feed_rows").select("content_key").eq("sheet_account_id", TEST_ACCOUNT.sheetId).eq("status", "accepted").not("content_key", "is", null).limit(5000);
+    for (const t of testRows ?? []) contentKeys.add(t.content_key as string);
+    const { data: recent } = await db.from("signal_feed_rows").select("account_id, decided_at").eq("status", "accepted").not("account_id", "is", null).gte("decided_at", new Date(now.getTime() - 7 * 86_400_000).toISOString()).limit(20000);
     const acceptedToday = (recent ?? []).filter((r) => (r.decided_at as string) >= dayStart);
     const perAccountWeek = new Map<string, number>();
     for (const r of recent ?? []) if (r.account_id) perAccountWeek.set(r.account_id as string, (perAccountWeek.get(r.account_id as string) ?? 0) + 1);
 
     const ctx: DecideCtx = {
       today, known, contentKeys, perAccountWeek,
-      accounts: new Map((accts ?? []).filter((a) => a.sheet_account_id).map((a) => [String(a.sheet_account_id).toUpperCase(), { id: a.id as string, active: !a.archived && !a.do_not_contact }])),
+      accounts: new Map([
+        [TEST_ACCOUNT.sheetId, { id: TEST_ACCOUNT.id, active: true }],
+        ...(accts ?? []).filter((a) => a.sheet_account_id).map((a): [string, { id: string; active: boolean }] => [String(a.sheet_account_id).toUpperCase(), { id: a.id as string, active: !a.archived && !a.do_not_contact }]),
+      ]),
       acceptedToday: acceptedToday.length,
       accountsToday: new Set(acceptedToday.map((r) => r.account_id as string).filter(Boolean)),
     };
@@ -74,8 +81,9 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
     const touched = new Set<string>();
     const rowOf = new Map(parsed.rows.map((r) => [r.ref, r.sheetRow]));
     for (const d of decisions) {
-      const acct = d.accept?.accountId ?? ctx.accounts.get(d.row.accountId.toUpperCase())?.id ?? null;
-      if (d.status === "accepted" && d.accept) {
+      const isTest = d.accept?.accountId === TEST_ACCOUNT.id || d.row.accountId.toUpperCase() === TEST_ACCOUNT.sheetId;
+      const acct = isTest ? null : (d.accept?.accountId ?? ctx.accounts.get(d.row.accountId.toUpperCase())?.id ?? null);
+      if (d.status === "accepted" && d.accept && !isTest) {
         const a = d.accept;
         const { error } = await db.from("account_signals").upsert({
           account_id: a.accountId, signal_id: a.signalId, seen_on: a.seenOn, evidence: a.evidence, source_url: a.url, confidence: a.confidence,
@@ -88,10 +96,14 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
           await db.from("signal_feed_rows").update({ status: "superseded", reason: `Replaced by ${a.ref}`, decided_at: now.toISOString() }).eq("vendor_ref", a.replaces);
         }
       }
+      if (d.status === "accepted" && d.accept && isTest && d.accept.replaces) {
+        await db.from("signal_feed_rows").update({ status: "superseded", reason: `Replaced by ${d.accept.ref}`, content_key: null, decided_at: now.toISOString() }).eq("vendor_ref", d.accept.replaces);
+      }
       if (d.row.ref) {
         await db.from("signal_feed_rows").upsert({
           vendor_ref: d.row.ref, account_id: acct, sheet_account_id: d.row.accountId || null, signal_id: d.accept?.signalId ?? (d.row.signalId || null),
-          status: d.status, reason: d.reason, effect: d.accept ? effectOf(d.accept.seenOn, today) : null, row_hash: rowHash(d.row), sheet_row: d.row.sheetRow, decided_at: now.toISOString(),
+          status: d.status, reason: d.reason, effect: d.accept ? effectOf(d.accept.seenOn, today, isTest) : null, row_hash: rowHash(d.row), sheet_row: d.row.sheetRow, decided_at: now.toISOString(),
+          content_key: d.accept ? contentKey(d.accept.accountId, d.accept.signalId, d.accept.seenOn, d.accept.url) : null,
         }, { onConflict: "vendor_ref" });
       }
     }
@@ -114,7 +126,7 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
     const updates: Array<{ tab: string; range: string; values: string[][] }> = [];
     const label = (d: Decision) => STATUS_LABEL[d.status];
     for (const d of decisions) {
-      const want = [label(d), d.reason ?? "", d.accept ? effectOf(d.accept.seenOn, today) : ""];
+      const want = [label(d), d.reason ?? "", d.accept ? effectOf(d.accept.seenOn, today, d.accept.accountId === TEST_ACCOUNT.id) : ""];
       const have = [cur(d.row.sheetRow, "Status"), cur(d.row.sheetRow, "Reason"), cur(d.row.sheetRow, "Effect")];
       if (want.every((w, i) => w === have[i]) || col.Status < 0) continue;
       const a = columnLetter(col.Status);

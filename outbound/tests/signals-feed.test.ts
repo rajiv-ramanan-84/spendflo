@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays } from "@/lib/calendar/dates";
-import { LIMITS, decideRows, parseFeedTab, rowHash, contentKey, type DecideCtx, type FeedRow } from "@/lib/signals-feed/validate";
+import { LIMITS, TEST_ACCOUNT, decideRows, parseFeedTab, rowHash, contentKey, type DecideCtx, type FeedRow } from "@/lib/signals-feed/validate";
 
 const today = "2026-11-10";
 const ctx = (over: Partial<DecideCtx> = {}): DecideCtx => ({
@@ -125,5 +125,32 @@ describe("reading the tab", () => {
   it("skips blank rows and keeps row numbers", () => {
     const r = parseFeedTab([header, [], ["T-1", "ACC-001", "A1.S1", "2026-11-03", "e", "https://x.com/a", "Confirmed"]]);
     expect(decideRows(r.rows, ctx()).map((d) => d.row.sheetRow)).toEqual([3]);
+  });
+});
+
+describe("the test account", () => {
+  const withTest = (c: Partial<DecideCtx> = {}) => ctx({ accounts: new Map([["ACC-TEST", { id: TEST_ACCOUNT.id, active: true }], ["ACC-001", { id: "u1", active: true }]]), ...c });
+  it("gets the full checks and is accepted when the row is good", () => {
+    const d = decideRows([row({ accountId: "ACC-TEST" })], withTest())[0];
+    expect(d.status).toBe("accepted");
+    expect(d.accept?.accountId).toBe(TEST_ACCOUNT.id);
+  });
+  it("still rejects bad rows, so the vendor sees real feedback", () => {
+    expect(decideRows([row({ accountId: "ACC-TEST", url: "" })], withTest())[0].status).toBe("rejected");
+    expect(decideRows([row({ accountId: "ACC-TEST", signalId: "A9.S9" })], withTest())[0].status).toBe("rejected");
+    expect(decideRows([row({ accountId: "ACC-TEST", date: addDays(today, -200) })], withTest())[0].status).toBe("rejected");
+  });
+  it("flags a repeated test event as a duplicate", () => {
+    const d = decideRows([row({ accountId: "ACC-TEST", ref: "A" }), row({ accountId: "ACC-TEST", ref: "B", sheetRow: 3 })], withTest());
+    expect(d.map((x) => x.status)).toEqual(["accepted", "duplicate"]);
+  });
+  it("never uses up the real limits, even with hundreds of test rows", () => {
+    const many = Array.from({ length: 600 }, (_, i) => row({ accountId: "ACC-TEST", ref: `X${i}`, sheetRow: i + 2, url: `https://example.com/${i}`, date: addDays(today, -(i % 100)), signalId: i % 2 ? "A1.S1" : "E2" }));
+    const d = decideRows([...many, row({ ref: "REAL", sheetRow: 700 })], withTest({ acceptedToday: LIMITS.rowsPerDay - 1 }));
+    expect(d[d.length - 1].status).toBe("accepted");
+  });
+  it("can be corrected with a replacement", () => {
+    const d = decideRows([row({ accountId: "ACC-TEST", ref: "T1" }), row({ accountId: "ACC-TEST", ref: "T8", sheetRow: 3, url: "https://example.com/1b", replaces: "T1" })], withTest());
+    expect(d.map((x) => x.status)).toEqual(["accepted", "accepted"]);
   });
 });

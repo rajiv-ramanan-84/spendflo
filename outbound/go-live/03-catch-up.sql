@@ -216,10 +216,12 @@ create table if not exists signal_feed_rows (
   reason text,
   effect text,
   row_hash text not null,
+  content_key text,
   sheet_row integer,
   decided_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
+alter table signal_feed_rows add column if not exists content_key text;
 create index if not exists signal_feed_rows_day on signal_feed_rows (decided_at) where status = 'accepted';
 create index if not exists signal_feed_rows_account on signal_feed_rows (account_id, decided_at) where status = 'accepted';
 

@@ -7,6 +7,12 @@ import { FIT_FACT_IDS, normalizeSignalId, signalDef } from "@/lib/playbook/catal
  * Everything the vendor writes is checked here, and anything that fails never reaches scoring.
  */
 
+/**
+ * A sandbox account the vendor can write to before going live. Its rows get the full checks and a status
+ * written back, but are never stored, never count toward the limits and never touch a real account.
+ */
+export const TEST_ACCOUNT = { sheetId: "ACC-TEST", id: "__test__", name: "Test account (ignore)", domain: "example.com" } as const;
+
 export const LIMITS = {
   rowsPerDay: 500,
   accountsPerDay: 50,
@@ -107,6 +113,14 @@ export function decideRows(rows: FeedRow[], ctx: DecideCtx): Decision[] {
     const key = contentKey(acct.id, sid, row.date, row.url);
     if (keys.has(key)) { out.push({ row, status: "duplicate", reason: "The same event for this account is already recorded." }); continue; }
 
+    // The test account is checked like any other but is never counted and never stored.
+    if (acct.id === TEST_ACCOUNT.id) {
+      keys.add(key);
+      acceptedRefs.add(row.ref);
+      out.push({ row, status: "accepted", reason: null, accept: { accountId: acct.id, signalId: sid, seenOn: row.date as IsoDate, evidence: norm(row.evidence), url: row.url, confidence: row.confidence.toLowerCase() as "confirmed" | "likely", ref: row.ref, replaces: row.replaces || null } });
+      continue;
+    }
+
     if (acceptedToday >= LIMITS.rowsPerDay) { out.push({ row, status: "deferred", reason: `Daily limit of ${LIMITS.rowsPerDay} rows reached. Held, and it is picked up automatically after midnight UTC.` }); continue; }
     if (!accountsToday.has(acct.id) && accountsToday.size >= LIMITS.accountsPerDay) { out.push({ row, status: "deferred", reason: `Daily limit of ${LIMITS.accountsPerDay} accounts reached. Held, and it is picked up automatically after midnight UTC.` }); continue; }
     if ((perAccount.get(acct.id) ?? 0) >= LIMITS.perAccountPerWeek) { out.push({ row, status: "deferred", reason: `This account already has ${LIMITS.perAccountPerWeek} new signals in the last 7 days. Held until some age out of that week.` }); continue; }
@@ -125,7 +139,8 @@ export function decideRows(rows: FeedRow[], ctx: DecideCtx): Decision[] {
 }
 
 /** What an accepted signal does today, in the words the vendor sees. */
-export function effectOf(seenOn: string, today: IsoDate): string {
+export function effectOf(seenOn: string, today: IsoDate, test = false): string {
+  if (test) return "Test row: checked only. Not stored, no effect on any account.";
   const age = Math.round((Date.parse(today) - Date.parse(seenOn)) / 86_400_000);
   return age <= 90 ? "Counts toward the account's level" : "Aging (91 to 180 days), counts toward Hot only";
 }
