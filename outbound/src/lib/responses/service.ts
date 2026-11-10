@@ -5,6 +5,8 @@ import { callClaude } from "@/lib/claude/client";
 import { buildClassifyPayload, buildReplanPayload, contactRefs, namesForRefs } from "@/lib/claude/payload";
 import { CampaignSchema, ClassifySchema, type Classification } from "@/lib/claude/schemas";
 import { validateCampaign } from "@/lib/claude/validate";
+import { loadReplanHistory } from "@/lib/responses/history";
+import { playForAccount, playPayload } from "@/lib/playbook/payload";
 import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor } from "@/lib/campaigns/context";
 import { accountForPayload, insertTracks } from "@/lib/campaigns/generate";
 import { ActionError, canEdit } from "@/lib/campaigns/actions";
@@ -237,7 +239,7 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   if (!process.env.ANTHROPIC_API_KEY) throw new ActionError("Claude is not connected yet (ANTHROPIC_API_KEY). Edit the steps by hand for now.");
 
   const { data: account } = await db.from("accounts").select("*").eq("id", c.account_id).single();
-  const { data: contacts } = await db.from("contacts").select("id, full_name, title, persona, email, email_status, linkedin_url, phone, country, notes, linkedin_signals, exclude, do_not_contact, bounced").eq("account_id", c.account_id).is("deleted_at", null);
+  const { data: contacts } = await db.from("contacts").select("id, full_name, title, persona, email, email_status, linkedin_url, phone, country, notes, linkedin_signals, exclude, do_not_contact, bounced, engagement_status").eq("account_id", c.account_id).is("deleted_at", null);
   const { data: resp } = d.responseId ? await db.from("responses").select("*").eq("id", d.responseId).single() : { data: null };
   const owner = p.users.find((u) => u.id === c.owner_id)!;
   const win = planningWindow(p);
@@ -247,14 +249,24 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   const refTracks = (current.tracks as Array<Record<string, unknown>>).map((t) => ({ ...t, id: undefined, assignee_id: undefined, contact_id: refs.ref(t.contact_id as string), trigger_from_contact_id: refs.ref(t.trigger_from_contact_id as string | null) }));
   const refDone = (current.done as Array<Record<string, unknown>>).map((d) => ({ ...d, contact_ref: refs.ref(d.contact_ref as string) }));
 
+  // What has already happened, and the signals as they stand now, so the new plan builds on both.
+  const history = await loadReplanHistory(db, c.id, c.account_id, refs);
+  const { data: lastVersion } = await db.from("campaign_versions").select("created_at").eq("campaign_id", c.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: freshVendor } = await db.from("account_signals").select("signal_id, seen_on").eq("account_id", c.account_id).eq("source", "vendor").eq("expired", false).gt("ingested_at", (lastVersion?.created_at as string | undefined) ?? c.created_at);
+  const replanPlay = (() => {
+    const pp = playPayload(playForAccount(account as { signals: string | null; vendor_signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, p.today));
+    const fresh = new Set((freshVendor ?? []).map((v) => `${v.signal_id}|${v.seen_on}`));
+    return { play: pp.play, signals: pp.signals.map((sg) => (fresh.has(`${sg.id}|${sg.seen_on}`) ? { ...sg, new_since_plan: true } : sg)) };
+  })();
   const payload = buildReplanPayload({
     today: p.today, campaignStartDate: win.start, validWorkingDates: win.validWorkingDates,
-    account: accountForPayload(account), contacts: (contacts ?? []).map((x) => ({ contact_id: refs.ref(x.id)!, name: x.full_name, title: x.title, persona: x.persona, email: x.bounced ? null : x.email, email_status: x.email_status, linkedin_url: x.linkedin_url, has_phone: !!x.phone, country: x.country, notes: x.notes, linkedin_signals: x.linkedin_signals ?? {}, exclude: x.exclude, do_not_contact: x.do_not_contact })),
+    account: accountForPayload(account), contacts: (contacts ?? []).map((x) => ({ contact_id: refs.ref(x.id)!, name: x.full_name, title: x.title, persona: x.persona, email: x.bounced ? null : x.email, email_status: x.email_status, linkedin_url: x.linkedin_url, has_phone: !!x.phone, engagement: x.engagement_status as string | null, country: x.country, notes: x.notes, linkedin_signals: x.linkedin_signals ?? {}, exclude: x.exclude, do_not_contact: x.do_not_contact })),
     owner: owner.key, team: teamPayload(p, win.start, win.end), teamLoad: teamLoadPayload(p, touches), caps: p.caps, approvedProofPoints: p.proofPoints, ownerNotes: null, writing: writingFor(p, owner, (contacts ?? []).map((x) => x.persona as string | null)),
     currentCampaign: { name: c.name, objective: c.objective, angle: c.angle, job: c.job, tracks: refTracks },
     completedSteps: refDone,
     response: { contact: refs.ref(resp?.contact_id) ?? "", channel: resp?.channel ?? "email", classification: resp?.classification ?? null, summary: resp?.summary ?? null, raw_text: resp?.raw_text ?? null },
     ownerNextStep: d.ownerNextStep, scope: d.scope,
+    history, play: replanPlay.play, signals: replanPlay.signals,
   });
   const model = account.tier === "A" ? p.settings.tier_a_model : p.settings.default_model;
   // Re-plans keep the play the draft was written for, so the same kit guides the new steps.
@@ -272,6 +284,14 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   // returned is ignored, and the diff compares that one person's steps.
   const only = d.scope === "track" && resp?.contact_id ? resp.contact_id : null;
   if (only) validated.tracks = validated.tracks.filter((t) => t.contactId === only);
+  // Whatever Claude wrote, history wins: never repeat a connect request already sent, and never plan more
+  // touches for someone who asked us to stop or told us we have the wrong person.
+  const alreadyConnected = new Set(history.steps_taken.filter((x) => x.channel === "linkedin_connect" && x.result === "done").map((x) => x.contact_ref as string));
+  const stopped = new Set(history.replies_and_responses.filter((x) => ["unsubscribe", "wrong_person"].includes(String(x.kind))).map((x) => x.contact_ref as string));
+  for (const t of validated.tracks) {
+    const ref = refs.ref(t.contactId) as string;
+    t.steps = stopped.has(ref) ? [] : t.steps.filter((st) => !(st.channel === "linkedin_connect" && alreadyConnected.has(ref)));
+  }
   const oldOpen = only ? current.open.filter((s) => s.contactId === only) : current.open;
   const next: PlanStep[] = validated.tracks.flatMap((t) => t.steps.map((s) => ({ contactId: t.contactId, sequenceNo: s.sequenceNo, channel: s.channel, date: s.date, offset: s.offsetWorkingDays, subject: s.subject, body: s.body })));
 

@@ -71,3 +71,18 @@ export async function appendRows(sheetId: string, tab: string, rows: readonly st
   });
   return { updatedRows: res.updates?.updatedRows ?? 0 };
 }
+
+/** Writes blocks of values to named ranges of one tab. RAW, so text stays exactly as given. */
+export async function writeRanges(sheetId: string, updates: ReadonlyArray<{ tab: string; range: string; values: string[][] }>) {
+  if (!updates.length) return;
+  const data = updates.map((u) => ({ range: `${quoteTab(u.tab)}!${u.range}`, values: u.values }));
+  for (let i = 0; i < data.length; i += 200) {
+    await call(`${API}/${sheetId}/values:batchUpdate`, { method: "POST", body: JSON.stringify({ valueInputOption: "RAW", data: data.slice(i, i + 200) }) });
+  }
+}
+
+/** Empties a range without touching formatting or validation. */
+export async function clearRange(sheetId: string, tab: string, range: string) {
+  const r = encodeURIComponent(`${quoteTab(tab)}!${range}`);
+  await call(`${API}/${sheetId}/values/${r}:clear`, { method: "POST", body: "{}" });
+}

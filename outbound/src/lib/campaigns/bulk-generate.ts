@@ -28,7 +28,7 @@ export async function planBulkGenerate(db: SupabaseClient, user: SessionUser, ac
   if (ids.length > max) throw new ActionError(`You can generate up to ${max} drafts at a time. Select ${max} or fewer, or an admin can raise the limit in Settings.`);
 
   const [{ data: accounts }, { data: camps }, { data: calls }, { data: people }, { data: settings }, spend] = await Promise.all([
-    db.from("accounts").select("id, name, tier, owner_id, archived, do_not_contact, signals, outreach_angle, icp_verdict").in("id", ids).is("deleted_at", null),
+    db.from("accounts").select("id, name, tier, owner_id, archived, do_not_contact, signals, vendor_signals, outreach_angle, icp_verdict").in("id", ids).is("deleted_at", null),
     db.from("campaigns").select("account_id, status").in("account_id", ids).is("deleted_at", null).in("status", ["draft", "active", "paused", "responded", "meeting_booked"]),
     db.from("claude_calls").select("account_id").eq("call_type", "generate_campaign").in("account_id", ids).in("status", ["queued", "running"]),
     db.from("contacts").select("account_id, email, linkedin_url").in("account_id", ids).is("deleted_at", null).is("sheet_deleted_at", null).eq("exclude", false).eq("do_not_contact", false),

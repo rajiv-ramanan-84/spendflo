@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ChevronDown, Pin } from "lucide-react";
-import type { FocusCard, ReplyCard, UrgentCard } from "@/lib/data/today";
+import type { FocusCard, ReplyCard, SignalCard, UrgentCard } from "@/lib/data/today";
 import { LevelChip } from "@/components/cockpit/why-this-plan";
 import { PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
 import { fmtDate } from "@/lib/format";
@@ -47,6 +47,30 @@ export function RepliesStrip({ replies }: { replies: ReplyCard[] }) {
           {all ? "Show fewer" : `Show all ${replies.length}`}
         </button>
       ) : null}
+    </section>
+  );
+}
+
+/** Accounts whose plan was written before new signals arrived. The owner decides whether to re-plan. */
+export function SignalsStrip({ cards }: { cards: SignalCard[] }) {
+  if (!cards.length) return null;
+  return (
+    <section className="mb-4 overflow-hidden rounded-2xl border border-sky-200 bg-sky-50/60" aria-label="New signals">
+      <div className="px-4 pt-3 text-xs font-semibold uppercase tracking-wider text-sky-800">{cards.length} account{cards.length === 1 ? "" : "s"} with new signals</div>
+      <ul className="divide-y divide-sky-100">
+        {cards.slice(0, 5).map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+            <LevelChip level={c.level} />
+            <div className="min-w-0 flex-1">
+              <span className="font-medium">{c.name}</span>
+              {c.tier ? <span className="ml-2 rounded bg-white px-1.5 text-[11px] font-semibold text-ink-500">{c.tier}</span> : null}
+              <span className="ml-2 text-sm text-ink-500">{c.count} new signal{c.count === 1 ? "" : "s"}{c.latest ? `, latest ${fmtDate(c.latest)}` : ""} · {c.campaignStatus === "draft" ? "draft not launched" : "campaign running"}</span>
+            </div>
+            <Link href={`/accounts/${c.id}#plan`}><Button variant="secondary" className="px-3 py-1.5">{c.campaignStatus === "draft" ? "Review and regenerate" : "Review and re-plan"}</Button></Link>
+          </li>
+        ))}
+      </ul>
+      {cards.length > 5 ? <div className="border-t border-sky-100 px-4 py-2 text-sm text-sky-800">and {cards.length - 5} more on the Accounts page</div> : null}
     </section>
   );
 }

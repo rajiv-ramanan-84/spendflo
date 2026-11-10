@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!db) return NextResponse.json({ ok: false, error: "Database is not configured" }, { status: 500 });
   const { id } = await params;
 
-  const { data: account } = await db.from("accounts").select("owner_id, archived, signals, outreach_angle, icp_verdict, do_not_contact").eq("id", id).maybeSingle();
+  const { data: account } = await db.from("accounts").select("owner_id, archived, signals, vendor_signals, outreach_angle, icp_verdict, do_not_contact").eq("id", id).maybeSingle();
   if (!account) return NextResponse.json({ ok: false, error: "Account not found" }, { status: 404 });
   const allowed = user.role !== "member" || account.owner_id === user.id;
   if (!allowed) return NextResponse.json({ ok: false, error: "Only the owner, admins or the manager can generate this campaign" }, { status: 403 });
