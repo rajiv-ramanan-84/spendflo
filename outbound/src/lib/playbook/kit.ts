@@ -80,7 +80,7 @@ export function kitFor(code: PlayCode): string {
     out.push(`Wave ${w} (${["first touches", "after Wave 1 starts", "on a reply, or when the account is hot"][w - 1]}):`);
     out.push(bullets(bs.map((b) => `${b.role} (${b.t}). Cares about: ${b.care}. Track: ${shapeLine(b.shape)}.`)));
   }
-  out.push("Sequence rules: gaps of at least 2 working days; a LinkedIn message only after the connect; founder-sent for the economic buyer; at most 6 people active.");
+  out.push("Sequence rules: gaps of at least 2 working days; a LinkedIn message only after the connect; at most 6 people active.");
   out.push("", "## Message kit (patterns, not scripts)");
   for (const e of p.emails) out.push(`Email pattern, ${e.label} (${e.sig}). Shows the shape and the safe claims only. Do not reuse its sentences, and write your own subject.\n${e.body}\n`);
   out.push(`LinkedIn connect: ${p.li.connect}`, `LinkedIn message: ${p.li.message}`, `Call opener: ${p.call.opener}`, `Call proposition: ${p.call.prop}`, `If it's close: ${p.call.close}`, `If it's way off: ${p.call.off}`);

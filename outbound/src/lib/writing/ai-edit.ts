@@ -8,8 +8,9 @@ import { callClaude } from "@/lib/claude/call";
 import { quoteData } from "@/lib/claude/payload";
 import { RewriteSchema } from "@/lib/claude/schemas";
 import { copyIssues } from "@/lib/claude/copy-checks";
-import { emailChecks, finalizeEmail, firstNameOf } from "./compose";
-import { senderSignatures } from "./rules";
+import { emailChecks, firstNameOf } from "./compose";
+import { finishStep } from "./finish";
+import { loadSigners } from "./rules";
 
 /**
  * Edit with AI: one message, one instruction, one proposal. Nothing is saved here.
@@ -34,7 +35,7 @@ export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId:
   ]);
   const assignee = p.users.find((u) => u.id === (step.assignee_id ?? campaign.owner_id));
   if (!assignee) throw new ActionError("This step has no sender yet.");
-  const sigs = await senderSignatures(db, [assignee.id]);
+  const signers = await loadSigners(db, [assignee.id]);
   const isEmail = step.channel === "email";
   const first = firstNameOf(contact?.full_name as string | undefined);
   // Edit the message as the reader sees it, minus the greeting and signature the app adds.
@@ -57,7 +58,7 @@ export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId:
   await db.from("claude_calls").insert({ call_type: "rewrite", account_id: campaign.account_id, campaign_id: campaign.id, model: res.model, status: res.ok ? "ok" : "failed", attempts: res.attempts, input_tokens: res.usage?.input ?? null, output_tokens: res.usage?.output ?? null, cost_usd: res.usage?.costUsd ?? null, error: res.ok ? null : res.message, raw_output: res.rawText, requested_by: user.id });
   if (!res.ok) throw new ActionError(res.message, 502);
 
-  const body = isEmail ? finalizeEmail(res.data.body, { firstName: first, signature: sigs.get(assignee.id) ?? null }) : res.data.body.replace(/\s*—\s*/g, ", ").trim();
+  const body = finishStep(step.channel, res.data.body, { firstName: first, assigneeId: assignee.id }, signers) ?? "";
   const subject = isEmail ? (res.data.subject ?? subjectNow ?? "").replace(/\s*—\s*/g, ", ").trim() : null;
   const issues = copyIssues(step.channel, subject, body, { emailWords: p.settings.email_word_flag, connectChars: p.settings.linkedin_connect_max_chars });
   const warnings = isEmail ? [...new Set([...emailChecks(subject, body), ...issues.filter((i) => !/em dash|words/.test(i))])] : issues;

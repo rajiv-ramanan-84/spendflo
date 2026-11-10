@@ -89,3 +89,26 @@ export async function senderSignatures(db: SupabaseClient, assigneeIds: string[]
   }
   return out;
 }
+
+/** First names of everyone on the team: the names Claude might sign with, and the ones the app strips and replaces. */
+export async function teamFirstNames(db: SupabaseClient): Promise<string[]> {
+  const { data } = await db.from("users").select("name");
+  return [...new Set((data ?? []).map((u) => String(u.name).trim().split(/\s+/)[0]).filter((n) => n.length > 1))];
+}
+
+/** Each assignee's own first name: the person whose LinkedIn the message goes from. */
+export async function ownFirstNames(db: SupabaseClient, ids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const want = [...new Set(ids)];
+  if (!want.length) return out;
+  const { data } = await db.from("users").select("id, name").in("id", want);
+  for (const u of data ?? []) out.set(u.id as string, String(u.name).trim().split(/\s+/)[0]);
+  return out;
+}
+
+/** The finished text of one step, signed by whoever sends it. Emails carry the mailbox's person, LinkedIn the sender's own name. */
+export type Signers = { names: string[]; emailSig: Map<string, string>; own: Map<string, string> };
+export async function loadSigners(db: SupabaseClient, assigneeIds: string[]): Promise<Signers> {
+  const [names, emailSig, own] = await Promise.all([teamFirstNames(db), senderSignatures(db, assigneeIds), ownFirstNames(db, assigneeIds)]);
+  return { names, emailSig, own };
+}

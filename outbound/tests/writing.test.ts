@@ -62,3 +62,28 @@ describe("email checks", () => {
     expect(emailChecks("Supplier paper at BD", "Short and clear.")).toEqual([]);
   });
 });
+
+import { finalizeLinkedIn } from "@/lib/writing/compose";
+
+describe("who signs", () => {
+  const names = ["Rajiv", "Sid", "Mouli", "Shweta"];
+  it("strips a wrong name from a connect note and signs nothing", () => {
+    expect(finalizeLinkedIn("Hi Shawn, I work with procurement ops leaders running Coupa. Would be glad to connect. Rajiv", { channel: "linkedin_connect", signName: "Mouli", names })).toBe("Hi Shawn, I work with procurement ops leaders running Coupa. Would be glad to connect.");
+    expect(finalizeLinkedIn("Glad to connect. Rajiv, Spendflo", { channel: "linkedin_connect", signName: "Mouli", names })).toBe("Glad to connect.");
+  });
+  it("signs a message with the sender's own first name, replacing the one Claude wrote", () => {
+    expect(finalizeLinkedIn("Thanks for connecting. Quick question on renewals?\n\nSid", { channel: "linkedin_message", signName: "Mouli", names })).toBe("Thanks for connecting. Quick question on renewals?\n\nMouli");
+    expect(finalizeLinkedIn("Thanks for connecting. Quick question on renewals?", { channel: "linkedin_message", signName: "Mouli", names })).toBe("Thanks for connecting. Quick question on renewals?\n\nMouli");
+  });
+  it("is stable when run twice", () => {
+    const once = finalizeLinkedIn("A question.\n\nRajiv", { channel: "linkedin_message", signName: "Mouli", names });
+    expect(finalizeLinkedIn(once, { channel: "linkedin_message", signName: "Mouli", names })).toBe(once);
+  });
+  it("does not cut a name that sits inside a sentence", () => {
+    expect(finalizeLinkedIn("I spoke with Sid last week about this. Worth a look?", { channel: "linkedin_message", signName: "Mouli", names })).toBe("I spoke with Sid last week about this. Worth a look?\n\nMouli");
+  });
+  it("replaces a mismatched sign-off in an email instead of stacking two", () => {
+    const out = finalizeEmail("A point.\n\nHow does it work today?\n\nRajiv", { firstName: "Dan", signature: "Sid\nCo-founder, Spendflo", names });
+    expect(out).toBe("Hi Dan,\n\nA point.\n\nHow does it work today?\n\nSid\nCo-founder, Spendflo");
+  });
+});

@@ -30,6 +30,7 @@ export function firstNameOf(full: string | null | undefined): string | null {
   return n || null;
 }
 
+const escapeRe = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const GREETING = /^\s*(hi|hello|hey|dear|good (morning|afternoon|evening))\b[^\n]*\n+/i;
 const SIGN_OFF = /^(best|best regards|kind regards|regards|thanks|thank you|cheers|sincerely|warm regards|talk soon)[,.!]?$/i;
 
@@ -41,7 +42,7 @@ function sentencesOf(text: string): string[] {
  * A complete email: "Hi Dan," then short paragraphs, then the sender's signature.
  * Safe to run twice. A greeting or sign-off Claude wrote is replaced, not doubled.
  */
-export function finalizeEmail(body: string, o: { firstName: string | null; signature: string | null }): string {
+export function finalizeEmail(body: string, o: { firstName: string | null; signature: string | null; names?: string[] }): string {
   let t = body.replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").trim();
   t = t.replace(/\s*—\s*/g, ", ");
   t = t.replace(GREETING, "");
@@ -50,7 +51,8 @@ export function finalizeEmail(body: string, o: { firstName: string | null; signa
   const lines = t.split("\n");
   const sigLines = (o.signature ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
   const first = sigLines[0]?.toLowerCase();
-  const tail = (l: string) => { const x = l.trim(); return !x || SIGN_OFF.test(x) || (first !== undefined && x.toLowerCase() === first) || sigLines.some((s) => s === x); };
+  const nameLine = o.names?.length ? new RegExp(`^(?:${o.names.map(escapeRe).join("|")})(?:,?\\s*(?:spendflo|co-?founder.*|cro.*|global head.*))?$`, "i") : null;
+  const tail = (l: string) => { const x = l.trim(); return !x || SIGN_OFF.test(x) || (first !== undefined && x.toLowerCase() === first) || sigLines.some((s) => s === x) || !!nameLine?.test(x); };
   while (lines.length && tail(lines[lines.length - 1])) lines.pop();
   t = lines.join("\n").trim();
 
@@ -85,4 +87,23 @@ export function emailChecks(subject: string | null, body: string): string[] {
   const sw = (subject ?? "").trim().split(/\s+/).filter(Boolean).length;
   if (subject && (sw < 2 || sw > 9)) w.push(`The subject is ${sw} word${sw === 1 ? "" : "s"}. 3 to 8 reads best.`);
   return w;
+}
+
+/**
+ * LinkedIn copy. The app, not Claude, decides who signs. A connect note is not signed at all: the request
+ * already shows the sender's name and every character counts. A message ends with the sender's own first name.
+ * Whatever name Claude put at the end is replaced, so the text always matches the profile it goes from.
+ */
+export function finalizeLinkedIn(body: string, o: { channel: string; signName: string | null; names: string[] }): string {
+  let t = body.replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").replace(/\s*—\s*/g, ", ").trim();
+  const names = o.names.length ? o.names.map(escapeRe).join("|") : null;
+  const generic = "best|best regards|kind regards|regards|thanks|thank you|cheers|sincerely|talk soon";
+  for (let i = 0; i < 3; i++) {
+    const before = t;
+    if (names) t = t.replace(new RegExp(`(?<=[.?!\\n])[\\s,.-]*(?:(?:${generic}),?\\s*)?\\b(?:${names})\\b(?:,?\\s*(?:spendflo|co-?founder[^\\n]*|cro[^\\n]*))?\\s*$`, "i"), "").trim();
+    t = t.replace(new RegExp(`(?<=[.?!\\n])\\s*(?:${generic})[,.!]?\\s*$`, "i"), "").trim();
+    if (t === before) break;
+  }
+  if (o.channel !== "linkedin_connect" && o.signName) t = `${t}\n\n${o.signName}`;
+  return t;
 }
