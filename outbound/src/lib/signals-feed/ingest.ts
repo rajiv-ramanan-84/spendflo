@@ -52,9 +52,13 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
     // 3. What the app already knows and today's counters.
     const refs = [...new Set(parsed.rows.map((r) => r.ref).filter(Boolean))];
     const known = new Map<string, { hash: string; status: string }>();
+    const stored = new Map<string, { status: string; reason: string | null; effect: string | null }>();
     for (const part of chunk(refs)) {
-      const { data } = await db.from("signal_feed_rows").select("vendor_ref, row_hash, status").in("vendor_ref", part);
-      for (const r of data ?? []) known.set(r.vendor_ref as string, { hash: r.row_hash as string, status: r.status as string });
+      const { data } = await db.from("signal_feed_rows").select("vendor_ref, row_hash, status, reason, effect").in("vendor_ref", part);
+      for (const r of data ?? []) {
+        known.set(r.vendor_ref as string, { hash: r.row_hash as string, status: r.status as string });
+        stored.set(r.vendor_ref as string, { status: r.status as string, reason: (r.reason as string | null) ?? null, effect: (r.effect as string | null) ?? null });
+      }
     }
     const { data: vendorSignals } = await db.from("account_signals").select("account_id, signal_id, seen_on, source_url").eq("source", "vendor").eq("expired", false).gte("seen_on", addDays(today, -LIMITS.maxAgeDays - 1)).limit(20000);
     const contentKeys = new Set((vendorSignals ?? []).map((v) => contentKey(v.account_id as string, v.signal_id as string, v.seen_on as string, (v.source_url as string | null) ?? "")));
@@ -135,6 +139,13 @@ export async function ingestVendorSignals(db: SupabaseClient, io: FeedIO, opts: 
     for (const d of decisions) {
       const old = d.accept?.replaces ? rowOf.get(d.accept.replaces) : null;
       if (old && col.Status >= 0) updates.push({ tab: FEED_TABS.signals, range: `${columnLetter(col.Status)}${old}:${columnLetter(col.Status + 2)}${old}`, values: [["Superseded", `Replaced by ${d.accept!.ref}`, ""]] });
+    }
+    // A row decided earlier whose Status cell is empty (the vendor pasted it again, or cleared it) gets its answer written back.
+    const decidedRows = new Set(decisions.map((d) => d.row.sheetRow));
+    for (const row of parsed.rows) {
+      const st = row.ref ? stored.get(row.ref) : undefined;
+      if (!st || decidedRows.has(row.sheetRow) || known.get(row.ref)?.hash !== rowHash(row) || col.Status < 0 || cur(row.sheetRow, "Status")) continue;
+      updates.push({ tab: FEED_TABS.signals, range: `${columnLetter(col.Status)}${row.sheetRow}:${columnLetter(col.Status + 2)}${row.sheetRow}`, values: [[STATUS_LABEL[st.status] ?? st.status, st.reason ?? "", st.effect ?? ""]] });
     }
     await io.write(updates);
 
