@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { LevelChip } from "@/components/cockpit/why-this-plan";
+import { LaunchDialog } from "@/components/accounts/launch-dialog";
 import { FitChip } from "@/components/cockpit/fit-card";
 import { PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
 
@@ -55,6 +56,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
   const [assignTo, setAssignTo] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [launching, setLaunching] = useState(false);
 
   const userIndex = useMemo(() => new Map(users.map((u, i) => [u.id, { u, i }])), [users]);
 
@@ -166,14 +168,20 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
         </div>
       ) : null}
 
-      {canAssign && selected.size > 0 ? (
+      {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 border-b border-line bg-brand-50 px-4 py-2.5 text-sm">
           <span className="font-medium text-brand-700">{selected.size} selected</span>
-          <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} className="rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-sm">
-            <option value="">Assign to…</option>
-            {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-          <Button className="px-3 py-1.5" onClick={assign} disabled={!assignTo || busy}>{busy ? "Assigning…" : "Assign"}</Button>
+          <Button className="px-3 py-1.5" onClick={() => setLaunching(true)}>Launch campaigns</Button>
+          {canAssign ? (
+            <>
+              <span className="text-ink-300">|</span>
+              <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} className="rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-sm">
+                <option value="">Assign to…</option>
+                {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+              <Button variant="secondary" className="px-3 py-1.5" onClick={assign} disabled={!assignTo || busy}>{busy ? "Assigning…" : "Assign"}</Button>
+            </>
+          ) : null}
           <button className="text-ink-500 hover:text-ink-900" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       ) : null}
@@ -183,7 +191,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
         <table className="w-full min-w-[860px] text-sm">
           <thead>
             <tr className="text-left text-xs font-medium uppercase tracking-wide text-ink-400">
-              {canAssign ? (
+              {true ? (
                 <th className="w-10 px-4 py-3">
                   <input type="checkbox" aria-label="Select all" checked={allSelected} onChange={(e) => setSelected(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())} />
                 </th>
@@ -204,7 +212,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
               const o = a.owner_id ? userIndex.get(a.owner_id) : undefined;
               return (
                 <tr key={a.id} className="border-t border-line hover:bg-canvas/60">
-                  {canAssign ? (
+                  {true ? (
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -251,6 +259,7 @@ export function AccountsTable({ accounts, users, me, canAssign }: { accounts: Ac
           </tbody>
         </table>
       </div>
+      {launching ? <LaunchDialog accountIds={[...selected]} onClose={() => setLaunching(false)} onLaunched={() => { setSelected(new Set()); router.refresh(); }} /> : null}
     </div>
   );
 }
