@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { supabaseEnv } from "@/lib/supabase/config";
@@ -17,14 +18,17 @@ export type SessionUser = {
 };
 
 /** Use in every signed-in page, route handler and server action. Never trust the proxy alone. */
-export async function requireUser(): Promise<SessionUser> {
+export const requireUser = cache(async function requireUser(): Promise<SessionUser> {
   await cookies(); // per-request rendering, even before Supabase is configured
   if (!supabaseEnv()) redirect("/login?error=not_configured");
 
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
-  if (!user) redirect("/login");
+  // The token is verified here without a call to the auth server when the project signs with asymmetric keys.
+  // Access is still checked against the team table on every request, so removing someone takes effect at once.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) redirect("/login");
+  const user = { id: claims.sub, email: (claims.email as string | undefined) ?? null, user_metadata: (claims.user_metadata ?? {}) as Record<string, unknown> };
 
   const team = user.email ? await findTeamUser(user.email) : null;
   const decision = checkAccess(user.email, accessConfigFromEnv(), team);
@@ -43,7 +47,7 @@ export async function requireUser(): Promise<SessionUser> {
     role: team?.role ?? "member",
     avatarUrl: team?.avatar_url || (meta.avatar_url as string) || null,
   };
-}
+});
 
 export function canEditAdminSettings(user: SessionUser) {
   return user.role === "admin";

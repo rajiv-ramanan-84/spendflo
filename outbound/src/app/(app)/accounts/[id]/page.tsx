@@ -59,10 +59,22 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const cleared = (campaign?.review_flags_cleared as string[] | undefined) ?? [];
   const datedSteps = tracks.flatMap((t) => t.steps).filter((s) => s.due_date).length;
   const live = campaign && !["draft", "closed_no_response", "disqualified", "recycle"].includes(campaign.status) ? campaign : null;
-  const inbox = await getAccountResponses(db, a.id, live?.id ?? null);
-  // Where tracks waiting on a trigger will land, and any that can no longer start.
   const today = todayIn();
-  const calCtx = await loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]);
+  // Everything the page needs besides the account itself is fetched together, so it waits for the slowest one, not the sum.
+  const stepIds = tracks.flatMap((t) => t.steps.map((x) => x.id));
+  const entityIds = [...(campaign ? [campaign.id] : []), ...tracks.map((t) => t.id), ...stepIds];
+  const keys = [a.sheet_account_id, ...contacts.map((c) => c.sheet_contact_key)].filter(Boolean) as string[];
+  type LogRow = { id: number; at: string; action: string; actor_id: string | null; entity_type: string; entity_id: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null };
+  type DqRow = { id: string; issue_type: string; details: string | null; sheet_tab: string; sheet_row: number | null };
+  const [inbox, calCtx, { data: lastCall }, { data: settings }, { data: logRows }, { data: dq }] = await Promise.all([
+    getAccountResponses(db, a.id, live?.id ?? null),
+    // Where tracks waiting on a trigger will land, and any that can no longer start.
+    loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]),
+    db.from("claude_calls").select("status, created_at, error").eq("account_id", a.id).eq("call_type", "generate_campaign").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("app_settings").select("caps").maybeSingle(),
+    entityIds.length ? db.from("activity_log").select("id, at, action, actor_id, entity_type, entity_id, before, after").in("entity_id", entityIds).order("at", { ascending: false }).limit(60) : Promise.resolve({ data: [] as LogRow[] }),
+    keys.length ? db.from("data_quality_issues").select("id, issue_type, details, sheet_tab, sheet_row").in("sheet_key", keys).eq("status", "open").limit(30) : Promise.resolve({ data: [] as DqRow[] }),
+  ]);
   const playResult = playForAccount(a as unknown as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, today);
   const firstNames = new Map(contacts.map((c) => [c.id, firstName(c.full_name)]));
   const projections = projectTriggeredTracks(tracks, firstNames, calCtx);
@@ -77,12 +89,10 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const pausedTracks = others.filter((t) => t.status === "paused").map((t) => ({ name: firstName(fullNames.get(t.contact_id) ?? ""), reason: t.pause_reason ?? null }));
   const runningTracks = others.filter((t) => t.status === "active" || (t.status === "not_started" && t.start_trigger_type !== "fixed")).length;
   // Drafts are written in the background: show progress, or the last failure.
-  const { data: lastCall } = await db.from("claude_calls").select("status, created_at, error").eq("account_id", a.id).eq("call_type", "generate_campaign").order("created_at", { ascending: false }).limit(1).maybeSingle();
   const pending = lastCall && ["queued", "running"].includes(lastCall.status) ? lastCall : null;
   const lastError = lastCall && ["failed", "invalid"].includes(lastCall.status) && (!campaign || campaign.created_at < lastCall.created_at) ? (lastCall.error as string | null) : null;
 
   // The attack plan: waves from the real dates and triggers, the rest in nurture.
-  const { data: settings } = await db.from("app_settings").select("caps").maybeSingle();
   const cap = Number((settings?.caps as Record<string, number> | null)?.active_contacts_per_account) || DEFAULT_ACTIVE_CAP;
   const plan = campaign && tracks.length ? buildAttackPlan({ tracks, contacts, projections, skipped: review.skipped ?? [], cap }) : null;
   const planOrder = plan ? plan.active.map((p) => p.trackId) : [];
@@ -95,11 +105,6 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   ] : undefined;
 
   // History for the Activity tab.
-  const stepIds = tracks.flatMap((t) => t.steps.map((x) => x.id));
-  const entityIds = [...(campaign ? [campaign.id] : []), ...tracks.map((t) => t.id), ...stepIds];
-  const { data: logRows } = entityIds.length
-    ? await db.from("activity_log").select("id, at, action, actor_id, entity_type, entity_id, before, after").in("entity_id", entityIds).order("at", { ascending: false }).limit(60)
-    : { data: [] as Array<{ id: number; at: string; action: string; actor_id: string | null; entity_type: string; entity_id: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null }> };
   const stepOf = new Map(tracks.flatMap((t) => t.steps.map((x) => [x.id, { contactId: t.contact_id, channel: x.channel }] as const)));
   const trackContact = new Map(tracks.map((t) => [t.id, t.contact_id]));
   const activity: ActivityItem[] = (logRows ?? []).map((r) => {
@@ -117,8 +122,6 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const pendingReplies = inbox.responses.filter((r) => r.state === "pending").length;
 
   // Data issues on this account's rows in the sheet.
-  const keys = [a.sheet_account_id, ...contacts.map((c) => c.sheet_contact_key)].filter(Boolean) as string[];
-  const { data: dq } = keys.length ? await db.from("data_quality_issues").select("id, issue_type, details, sheet_tab, sheet_row").in("sheet_key", keys).eq("status", "open").limit(30) : { data: [] as Array<{ id: string; issue_type: string; details: string | null; sheet_tab: string; sheet_row: number | null }> };
   const discovery = (campaign?.discovery_questions as string[] | undefined) ?? [];
 
   return (

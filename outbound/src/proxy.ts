@@ -35,8 +35,9 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
+  // Checks the token's signature here instead of asking the auth server on every click, which saves a network round trip per page.
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub ? { email: (data.claims.email as string | undefined) ?? null } : null;
 
   if (isPublic(pathname)) {
     if (user && pathname === "/login" && checkDomain(user.email, accessConfigFromEnv()).allowed) {

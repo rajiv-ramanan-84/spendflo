@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, type IsoDate } from "@/lib/calendar/dates";
 import { addWorkingDays, type CalendarContext } from "@/lib/calendar/working-calendar";
-import { focusOrder } from "@/lib/priority/score";
+import { focusOrder, isFocusWorthy } from "@/lib/priority/score";
 import { needsEdit } from "@/lib/tasks/state";
 import { projectTriggeredTracks, type PTrack } from "@/lib/campaigns/projection";
 
@@ -66,11 +66,58 @@ const CONTACT_COLS = "id, full_name, title, persona, email, linkedin_url, phone,
 
 
 
+/** Replies waiting: detected and not yet confirmed, or confirmed and not yet re-planned. */
+async function loadReplies(db: SupabaseClient, opts: { userId: string | null; scope: "mine" | "team" }): Promise<ReplyCard[]> {
+  let accountScope: string[] | null = null;
+  if (opts.scope === "mine" && opts.userId) {
+    const { data: mine } = await db.from("accounts").select("id").eq("owner_id", opts.userId);
+    accountScope = (mine ?? []).map((a) => a.id);
+  }
+  let respQ = db.from("responses").select("id, state, classification, confidence, needs_review, summary, received_at, channel, account_id, contact_id, campaign_id, from_address, suggested_next_step").in("state", ["pending", "confirmed"]).order("received_at", { ascending: false }).limit(50);
+  if (accountScope) respQ = respQ.in("account_id", accountScope.length ? accountScope : ["00000000-0000-0000-0000-000000000000"]);
+  const { data: resp } = await respQ;
+  const respCamps = [...new Set((resp ?? []).map((r) => r.campaign_id).filter(Boolean))] as string[];
+  const { data: respCampRows } = respCamps.length ? await db.from("campaigns").select("id, status").in("id", respCamps) : { data: [] as Array<{ id: string; status: string }> };
+  const replanned = new Set((respCampRows ?? []).filter((c) => c.status !== "responded").map((c) => c.id));
+  const respAccounts = [...new Set((resp ?? []).map((r) => r.account_id).filter(Boolean))] as string[];
+  const respContacts = [...new Set((resp ?? []).map((r) => r.contact_id).filter(Boolean))] as string[];
+  const [{ data: ra }, { data: rc }] = await Promise.all([
+    respAccounts.length ? db.from("accounts").select("id, name, tier").in("id", respAccounts) : Promise.resolve({ data: [] as Array<{ id: string; name: string; tier: string | null }> }),
+    respContacts.length ? db.from("contacts").select("id, full_name, title").in("id", respContacts) : Promise.resolve({ data: [] as Array<{ id: string; full_name: string; title: string | null }> }),
+  ]);
+  const replies: ReplyCard[] = (resp ?? [])
+    .filter((r) => r.state === "pending" || (r.campaign_id && !replanned.has(r.campaign_id)))
+    .map((r) => ({
+      ...r,
+      account: (ra ?? []).find((a) => a.id === r.account_id) ?? null,
+      contact: (rc ?? []).find((c) => c.id === r.contact_id) ?? null,
+    }));
+
+  return replies;
+}
+
 export async function loadToday(db: SupabaseClient, opts: { userId: string | null; scope: "mine" | "team"; today: IsoDate; ctx: CalendarContext }) {
   const { today, ctx } = opts;
   const tomorrow = addWorkingDays(today, 1, {}, ctx);
   const weekEnd = addDays(today, 7);
   const horizon = addDays(today, 60);
+
+  // Everything below that does not depend on the steps starts now, so the page waits for the slowest chain, not the sum of all of them.
+  const repliesP = loadReplies(db, opts);
+  const waitingP = waitingSteps(db, { userId: opts.userId, scope: opts.scope, today, tomorrow, weekEnd, horizon, ctx });
+  let focusQ = db.from("accounts").select("id, name, tier, priority_score, priority_reasons").eq("archived", false).is("deleted_at", null);
+  if (opts.scope === "mine" && opts.userId) focusQ = focusQ.eq("owner_id", opts.userId);
+  const focusDataP = Promise.all([
+    focusQ.order("priority_score", { ascending: false }).limit(200),
+    opts.userId ? db.from("account_pins").select("account_id").eq("user_id", opts.userId) : Promise.resolve({ data: [] as Array<{ account_id: string }> }),
+    db.from("account_rollup").select("account_id, campaign_status"),
+  ]);
+  let urgentQ = db.from("accounts").select("id, name, tier, play, play_points_to, play_level, start_by, play_signal_count").eq("archived", false).is("deleted_at", null).not("start_by", "is", null).in("play_level", ["super_hot", "hot"]).order("start_by").limit(30);
+  if (opts.scope === "mine" && opts.userId) urgentQ = urgentQ.eq("owner_id", opts.userId);
+  const urgentP = urgentQ;
+  let doneQ = db.from("steps").select("id", { count: "exact", head: true }).eq("status", "done").gte("completed_at", `${today}T00:00:00`);
+  if (opts.scope === "mine" && opts.userId) doneQ = doneQ.eq("completed_by", opts.userId);
+  const doneP = doneQ;
 
   let stepsQ = db.from("steps")
     .select(STEP_COLS)
@@ -118,49 +165,18 @@ export async function loadToday(db: SupabaseClient, opts: { userId: string | nul
       } as TodayStep;
     });
 
-  steps.push(...(await waitingSteps(db, { userId: opts.userId, scope: opts.scope, today, tomorrow, weekEnd, horizon, ctx })));
+  steps.push(...(await waitingP));
   steps.sort((a, b) => (TIER_RANK[a.account.tier ?? ""] ?? 9) - (TIER_RANK[b.account.tier ?? ""] ?? 9) || (a.due_date ?? "9999").localeCompare(b.due_date ?? "9999") || a.account.name.localeCompare(b.account.name));
 
-  // Replies waiting: detected and not yet confirmed, or confirmed and not yet re-planned.
-  let accountScope: string[] | null = null;
-  if (opts.scope === "mine" && opts.userId) {
-    const { data: mine } = await db.from("accounts").select("id").eq("owner_id", opts.userId);
-    accountScope = (mine ?? []).map((a) => a.id);
-  }
-  let respQ = db.from("responses").select("id, state, classification, confidence, needs_review, summary, received_at, channel, account_id, contact_id, campaign_id, from_address, suggested_next_step").in("state", ["pending", "confirmed"]).order("received_at", { ascending: false }).limit(50);
-  if (accountScope) respQ = respQ.in("account_id", accountScope.length ? accountScope : ["00000000-0000-0000-0000-000000000000"]);
-  const { data: resp } = await respQ;
-  const respCamps = [...new Set((resp ?? []).map((r) => r.campaign_id).filter(Boolean))] as string[];
-  const { data: respCampRows } = respCamps.length ? await db.from("campaigns").select("id, status").in("id", respCamps) : { data: [] as Array<{ id: string; status: string }> };
-  const replanned = new Set((respCampRows ?? []).filter((c) => c.status !== "responded").map((c) => c.id));
-  const respAccounts = [...new Set((resp ?? []).map((r) => r.account_id).filter(Boolean))] as string[];
-  const respContacts = [...new Set((resp ?? []).map((r) => r.contact_id).filter(Boolean))] as string[];
-  const [{ data: ra }, { data: rc }] = await Promise.all([
-    respAccounts.length ? db.from("accounts").select("id, name, tier").in("id", respAccounts) : Promise.resolve({ data: [] as Array<{ id: string; name: string; tier: string | null }> }),
-    respContacts.length ? db.from("contacts").select("id, full_name, title").in("id", respContacts) : Promise.resolve({ data: [] as Array<{ id: string; full_name: string; title: string | null }> }),
-  ]);
-  const replies: ReplyCard[] = (resp ?? [])
-    .filter((r) => r.state === "pending" || (r.campaign_id && !replanned.has(r.campaign_id)))
-    .map((r) => ({
-      ...r,
-      account: (ra ?? []).find((a) => a.id === r.account_id) ?? null,
-      contact: (rc ?? []).find((c) => c.id === r.contact_id) ?? null,
-    }));
-
   // Focus Today: my accounts (or everyone's), ranked.
-  let focusQ = db.from("accounts").select("id, name, tier, priority_score, priority_reasons").eq("archived", false).is("deleted_at", null);
-  if (opts.scope === "mine" && opts.userId) focusQ = focusQ.eq("owner_id", opts.userId);
-  const [{ data: focusAccounts }, { data: pins }, { data: rollup }] = await Promise.all([
-    focusQ.order("priority_score", { ascending: false }).limit(200),
-    opts.userId ? db.from("account_pins").select("account_id").eq("user_id", opts.userId) : Promise.resolve({ data: [] as Array<{ account_id: string }> }),
-    db.from("account_rollup").select("account_id, campaign_status"),
-  ]);
+  const replies = await repliesP;
+  const [{ data: focusAccounts }, { data: pins }, { data: rollup }] = await focusDataP;
   const pinned = new Set((pins ?? []).map((p) => p.account_id));
   const statusOf = new Map((rollup ?? []).map((r) => [r.account_id, r.campaign_status as string | null]));
   const firstStep = new Map<string, TodayStep>();
   for (const s of steps) if (!firstStep.has(s.account.id)) firstStep.set(s.account.id, s);
   const focus: FocusCard[] = focusOrder(
-    (focusAccounts ?? []).map((a) => ({
+    (focusAccounts ?? []).filter((a) => isFocusWorthy((a.priority_reasons as string[]) ?? [], pinned.has(a.id))).map((a) => ({
       id: a.id, name: a.name, tier: a.tier, score: a.priority_score ?? 0, reasons: (a.priority_reasons as string[]) ?? [], pinned: pinned.has(a.id),
       campaignStatus: statusOf.get(a.id) ?? null,
       nextStepId: firstStep.get(a.id)?.id ?? null,
@@ -170,15 +186,11 @@ export async function loadToday(db: SupabaseClient, opts: { userId: string | nul
   );
 
   // Accounts that must start now: super hot within 24 hours, hot within 48. Cleared the moment a campaign launches.
-  let urgentQ = db.from("accounts").select("id, name, tier, play, play_points_to, play_level, start_by, play_signal_count").eq("archived", false).is("deleted_at", null).not("start_by", "is", null).in("play_level", ["super_hot", "hot"]).order("start_by").limit(30);
-  if (opts.scope === "mine" && opts.userId) urgentQ = urgentQ.eq("owner_id", opts.userId);
-  const { data: urgentRows } = await urgentQ;
+  const { data: urgentRows } = await urgentP;
   const urgent: UrgentCard[] = (urgentRows ?? []).map((a) => ({ id: a.id, name: a.name, tier: a.tier, level: a.play_level as "super_hot" | "hot", play: (a.play ?? a.play_points_to) as string | null, startBy: a.start_by as string, signals: a.play_signal_count ?? 0 }));
 
   // Header strip
-  let doneQ = db.from("steps").select("id", { count: "exact", head: true }).eq("status", "done").gte("completed_at", `${today}T00:00:00`);
-  if (opts.scope === "mine" && opts.userId) doneQ = doneQ.eq("completed_by", opts.userId);
-  const { count: doneToday } = await doneQ;
+  const { count: doneToday } = await doneP;
 
   return {
     steps,
