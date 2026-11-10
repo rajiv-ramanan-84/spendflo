@@ -52,7 +52,9 @@ export function finalizeEmail(body: string, o: { firstName: string | null; signa
   const sigLines = (o.signature ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
   const first = sigLines[0]?.toLowerCase();
   const nameLine = o.names?.length ? new RegExp(`^(?:${o.names.map(escapeRe).join("|")})(?:,?\\s*(?:spendflo|co-?founder.*|cro.*|global head.*))?$`, "i") : null;
-  const tail = (l: string) => { const x = l.trim(); return !x || SIGN_OFF.test(x) || (first !== undefined && x.toLowerCase() === first) || sigLines.some((s) => s === x) || !!nameLine?.test(x); };
+  // A sign-off can be more than one line: "Mouli", then "Spendflo" or a title. All of it goes before the signature is added.
+  const TITLE = /^(spendflo|(global )?(head|vp|vice president|director)\b.*|co-?founder.*|cro\b.*|ceo\b.*|chief .*)$/i;
+  const tail = (l: string) => { const x = l.trim(); return !x || SIGN_OFF.test(x) || (first !== undefined && x.toLowerCase() === first) || sigLines.some((s) => s === x) || !!nameLine?.test(x) || (x.split(/\s+/).length <= 8 && !/[.?!]$/.test(x) && TITLE.test(x)); };
   while (lines.length && tail(lines[lines.length - 1])) lines.pop();
   t = lines.join("\n").trim();
 

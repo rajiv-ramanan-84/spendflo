@@ -87,3 +87,15 @@ describe("who signs", () => {
     expect(out).toBe("Hi Dan,\n\nA point.\n\nHow does it work today?\n\nSid\nCo-founder, Spendflo");
   });
 });
+
+describe("multi-line sign-offs", () => {
+  const names = ["Rajiv", "Sid", "Mouli"];
+  it("removes a name, company and title block before adding the signature", () => {
+    const out = finalizeEmail("A point.\n\nHow does it work today?\n\nMouli\nSpendflo\n\nSid\nCo-founder, Spendflo", { firstName: "Dan", signature: "Sid\nCo-founder, Spendflo", names });
+    expect(out).toBe("Hi Dan,\n\nA point.\n\nHow does it work today?\n\nSid\nCo-founder, Spendflo");
+  });
+  it("keeps a real closing sentence that mentions Spendflo", () => {
+    const out = finalizeEmail("Happy to send an example. Spendflo does this for Coupa customers.", { firstName: "Dan", signature: "Sid\nCo-founder, Spendflo", names });
+    expect(out).toContain("Spendflo does this for Coupa customers.");
+  });
+});

@@ -36,6 +36,7 @@ export type PayloadContact = {
   email_status: string | null;
   linkedin_url: string | null;
   has_phone?: boolean;
+  engagement?: string | null;
   country: string | null;
   notes: string | null;
   linkedin_signals: Record<string, string>;
@@ -66,7 +67,7 @@ export type GenerateInput = {
 };
 
 export type PayloadPlay = { code: string; job: string; name: string; level: string; why: string[]; points_to: string | null };
-export type PayloadSignal = { id: string; name: string; type: string; seen_on: string | null; age_days: number | null; counts: boolean; why_not?: string; note?: string; confidence: string | null; evidence: string; source: string | null };
+export type PayloadSignal = { id: string; name: string; type: string; seen_on: string | null; age_days: number | null; counts: boolean; new_since_plan?: boolean; why_not?: string; note?: string; confidence: string | null; evidence: string; source: string | null };
 
 /** Custom sheet columns that are research worth passing on. Everything else stays home. */
 const USEFUL_CUSTOM = /why|signal|fit|target|procurement lead|sales nav|notes|agent/i;
@@ -90,6 +91,7 @@ export function buildGeneratePayload(i: GenerateInput) {
       email_status: c.email_status,
       linkedin_url: c.linkedin_url,
       has_phone: c.has_phone ?? false,
+      engagement: c.engagement ?? undefined,
       country: c.country,
       notes: c.notes,
       linkedin_signals: c.linkedin_signals,
@@ -123,6 +125,8 @@ export type ReplanInput = GenerateInput & {
   };
   ownerNextStep: string | null;
   scope: "track" | "campaign";
+  /** Everything already done on this campaign: steps taken with outcomes, replies, paused tracks, earlier versions. */
+  history?: unknown;
 };
 
 export function buildReplanPayload(i: ReplanInput) {
@@ -134,6 +138,7 @@ export function buildReplanPayload(i: ReplanInput) {
     response: { ...i.response, raw_text: i.response.raw_text ? quoteData(i.response.raw_text) : null },
     owner_next_step: i.ownerNextStep,
     scope: i.scope,
+    history: i.history,
   };
 }
 

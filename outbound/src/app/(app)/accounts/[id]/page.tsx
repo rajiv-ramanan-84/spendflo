@@ -27,6 +27,8 @@ import { ActivityFeed, type ActivityItem } from "@/components/cockpit/activity-f
 import { fmtDate } from "@/lib/format";
 import { playForAccount } from "@/lib/playbook/payload";
 import { LevelChip, WhyThisPlan } from "@/components/cockpit/why-this-plan";
+import { NewSignalsBanner, type NewSignal } from "@/components/cockpit/new-signals";
+import { signalDef } from "@/lib/playbook/catalog";
 import { FitCard, type StoredPlayFit } from "@/components/cockpit/fit-card";
 
 export const dynamic = "force-dynamic";
@@ -66,7 +68,8 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
   const keys = [a.sheet_account_id, ...contacts.map((c) => c.sheet_contact_key)].filter(Boolean) as string[];
   type LogRow = { id: number; at: string; action: string; actor_id: string | null; entity_type: string; entity_id: string; before: Record<string, unknown> | null; after: Record<string, unknown> | null };
   type DqRow = { id: string; issue_type: string; details: string | null; sheet_tab: string; sheet_row: number | null };
-  const [inbox, calCtx, { data: lastCall }, { data: settings }, { data: logRows }, { data: dq }] = await Promise.all([
+  const baselineQ = campaign ? db.from("campaign_versions").select("created_at").eq("campaign_id", campaign.id).order("created_at", { ascending: false }).limit(1).maybeSingle() : Promise.resolve({ data: null as { created_at: string } | null });
+  const [inbox, calCtx, { data: lastCall }, { data: settings }, { data: logRows }, { data: dq }, { data: lastVersion }] = await Promise.all([
     getAccountResponses(db, a.id, live?.id ?? null),
     // Where tracks waiting on a trigger will land, and any that can no longer start.
     loadCalendarContext(db, [Number(today.slice(0, 4)), Number(today.slice(0, 4)) + 1]),
@@ -74,7 +77,12 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
     db.from("app_settings").select("caps").maybeSingle(),
     entityIds.length ? db.from("activity_log").select("id, at, action, actor_id, entity_type, entity_id, before, after").in("entity_id", entityIds).order("at", { ascending: false }).limit(60) : Promise.resolve({ data: [] as LogRow[] }),
     keys.length ? db.from("data_quality_issues").select("id, issue_type, details, sheet_tab, sheet_row").in("sheet_key", keys).eq("status", "open").limit(30) : Promise.resolve({ data: [] as DqRow[] }),
+    baselineQ,
   ]);
+  // Vendor signals that arrived after the plan was written (or last re-planned) and that nobody has dismissed.
+  const planned = [(lastVersion?.created_at as string | undefined), (campaign?.created_at as string | undefined), (a.signals_reviewed_at as string | null | undefined)].filter(Boolean).sort().pop();
+  const { data: freshRows } = campaign && planned ? await db.from("account_signals").select("id, signal_id, seen_on, evidence, source_url").eq("account_id", a.id).eq("source", "vendor").eq("expired", false).gt("ingested_at", planned).order("seen_on", { ascending: false }).limit(12) : { data: [] as Array<{ id: string; signal_id: string; seen_on: string | null; evidence: string; source_url: string | null }> };
+  const newSignals: NewSignal[] = (freshRows ?? []).map((r) => ({ id: r.id, name: signalDef(r.signal_id)?.name ?? r.signal_id, seenOn: r.seen_on, evidence: r.evidence, url: r.source_url }));
   const playResult = playForAccount(a as unknown as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, today);
   const firstNames = new Map(contacts.map((c) => [c.id, firstName(c.full_name)]));
   const projections = projectTriggeredTracks(tracks, firstNames, calCtx);
@@ -175,6 +183,7 @@ export default async function AccountPage({ params, searchParams }: { params: Pr
           panels={{
             plan: (
               <>
+                {campaign && newSignals.length && ["draft", "active", "paused", "responded", "meeting_booked"].includes(campaign.status) ? <NewSignalsBanner accountId={a.id} campaignId={campaign.id} live={campaign.status !== "draft"} signals={newSignals} canEdit={canEdit && !a.archived} /> : null}
                 <WhyThisPlan result={playResult} draftPlay={(campaign?.play as string | null) ?? null} startBy={a.start_by as unknown as string | null} today={today} />
                 <FitCard plays={(a.fit_scores as unknown as StoredPlayFit[] | null) ?? null} best={(a.fit_best_play as string | null) ?? null} />
                 {pending ? <DraftPending startedAt={pending.created_at as string} regenerating={campaign?.status === "draft"} /> : null}

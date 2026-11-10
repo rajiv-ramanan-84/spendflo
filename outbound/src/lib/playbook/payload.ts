@@ -5,9 +5,10 @@ import { AGING_DAYS, evaluatePlay, type PlayResult } from "./gate";
 import { parseSignals } from "./signals";
 
 /** What Claude is told about an account's signals and the play they earned. Pure. */
-export function playForAccount(a: { signals: string | null; outreach_angle: string | null; archived?: boolean | null; icp_verdict?: string | null; do_not_contact?: boolean | null }, today: IsoDate): PlayResult {
+export function playForAccount(a: { signals: string | null; vendor_signals?: string | null; outreach_angle: string | null; archived?: boolean | null; icp_verdict?: string | null; do_not_contact?: boolean | null }, today: IsoDate): PlayResult {
   return evaluatePlay({
-    signals: parseSignals(a.signals),
+    // The Master cell and the vendor feed are two sources for the same gate.
+    signals: parseSignals([a.signals, a.vendor_signals].filter(Boolean).join("\n")),
     today,
     angleNote: a.outreach_angle,
     notFit: !!a.archived || !!a.do_not_contact || a.icp_verdict === "no_fit",

@@ -57,6 +57,9 @@ export type ReplyCard = {
 /** A super hot or hot account whose first activity is due: shown first on Tasks. */
 export type UrgentCard = { id: string; name: string; tier: string | null; level: "super_hot" | "hot"; play: string | null; startBy: string; signals: number };
 
+/** An account with a draft or live campaign that has new signals since the owner last looked. */
+export type SignalCard = { id: string; name: string; tier: string | null; level: string | null; count: number; latest: string | null; campaignStatus: string };
+
 export type FocusCard = { id: string; name: string; tier: string | null; score: number; reasons: string[]; pinned: boolean; nextAction: string | null; nextStepId: string | null; campaignStatus: string | null };
 
 const TIER_RANK: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
@@ -187,6 +190,17 @@ export async function loadToday(db: SupabaseClient, opts: { userId: string | nul
 
   // Accounts that must start now: super hot within 24 hours, hot within 48. Cleared the moment a campaign launches.
   const { data: urgentRows } = await urgentP;
+  // New vendor signals on accounts that already have a plan the owner should look at again.
+  let changedQ = db.from("accounts").select("id, name, tier, play_level, signals_changed_at, signals_reviewed_at").eq("archived", false).is("deleted_at", null).not("signals_changed_at", "is", null).order("signals_changed_at", { ascending: false }).limit(60);
+  if (opts.scope === "mine" && opts.userId) changedQ = changedQ.eq("owner_id", opts.userId);
+  const { data: changedRows } = await changedQ;
+  const unseen = (changedRows ?? []).filter((a) => !a.signals_reviewed_at || (a.signals_changed_at as string) > (a.signals_reviewed_at as string)).filter((a) => ["draft", "active", "paused", "responded", "meeting_booked"].includes(statusOf.get(a.id) ?? ""));
+  const { data: freshCounts } = unseen.length ? await db.from("account_signals").select("account_id, seen_on, ingested_at").eq("source", "vendor").eq("expired", false).in("account_id", unseen.map((a) => a.id)).limit(2000) : { data: [] as Array<{ account_id: string; seen_on: string | null; ingested_at: string }> };
+  const signalCards: SignalCard[] = unseen.map((a) => {
+    const since = (a.signals_reviewed_at as string | null) ?? "";
+    const mine = (freshCounts ?? []).filter((c) => c.account_id === a.id && c.ingested_at > since);
+    return { id: a.id as string, name: a.name as string, tier: a.tier as string | null, level: a.play_level as string | null, count: mine.length, latest: mine.map((c) => c.seen_on).filter(Boolean).sort().pop() ?? null, campaignStatus: statusOf.get(a.id) as string };
+  }).filter((c) => c.count > 0).slice(0, 20);
   const urgent: UrgentCard[] = (urgentRows ?? []).map((a) => ({ id: a.id, name: a.name, tier: a.tier, level: a.play_level as "super_hot" | "hot", play: (a.play ?? a.play_points_to) as string | null, startBy: a.start_by as string, signals: a.play_signal_count ?? 0 }));
 
   // Header strip
@@ -196,6 +210,7 @@ export async function loadToday(db: SupabaseClient, opts: { userId: string | nul
     steps,
     replies,
     urgent,
+    signalCards,
     focus,
     header: {
       dueToday: steps.filter((s) => s.bucket === "today" && s.state !== "waiting").length,

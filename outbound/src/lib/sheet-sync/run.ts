@@ -1,4 +1,5 @@
 import { refreshPriorities } from "@/lib/jobs/daily";
+import { googleFeedIO, ingestVendorSignals } from "@/lib/signals-feed/ingest";
 import { resignOpenSteps } from "@/lib/writing/resign";
 import { queueOvernightDrafts } from "@/lib/playbook/overnight";
 import type { AutoDraftMode } from "@/lib/playbook/auto-draft";
@@ -281,6 +282,12 @@ export async function runSheetSync(opts: SyncOptions = {}): Promise<SyncResult> 
       counts,
       error: r.plan.ok ? null : r.plan.fatal.join("; "),
     }).eq("id", runId);
+
+    // The vendor's signals come in on the same schedule. A problem there never fails the master sync.
+    if (!dryRun && r.plan.ok) {
+      const io = await googleFeedIO().catch(() => null);
+      if (io) await ingestVendorSignals(db, io).then((res) => { if (!res.ok) console.error("Vendor signals:", res.error); }).catch((e) => console.error("Vendor signals:", e));
+    }
 
     return { ok: r.plan.ok, dryRun, runId, counts, fatal: r.plan.fatal, missingWritebackColumns: r.missingWritebackColumns };
   } catch (e) {

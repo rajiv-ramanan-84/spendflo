@@ -20,7 +20,7 @@ export const lineKey = (s: ParsedSignal) => `${s.id}|${s.seenOn ?? ""}|${s.evide
 
 export async function refreshPlays(db: SupabaseClient, opts: { accountIds?: string[]; today?: IsoDate } = {}) {
   const today = opts.today ?? todayIn();
-  let q = db.from("accounts").select("id, name, owner_id, signals, outreach_angle, archived, icp_verdict, do_not_contact, play_level, level_since, start_by, coupa_evidence, employees, disqualifier_flags, custom_fields").is("deleted_at", null);
+  let q = db.from("accounts").select("id, name, owner_id, signals, vendor_signals, outreach_angle, archived, icp_verdict, do_not_contact, play_level, level_since, start_by, coupa_evidence, employees, disqualifier_flags, custom_fields").is("deleted_at", null);
   if (opts.accountIds?.length) q = q.in("id", opts.accountIds);
   const { data: accounts, error } = await q.limit(5000);
   if (error) throw new Error(`Play refresh could not read accounts: ${error.message}`);
@@ -29,7 +29,7 @@ export async function refreshPlays(db: SupabaseClient, opts: { accountIds?: stri
 
   const existing: Array<{ id: string; account_id: string; line_key: string }> = [];
   for (const part of chunk(ids, 100)) {
-    const { data } = await db.from("account_signals").select("id, account_id, line_key").in("account_id", part);
+    const { data } = await db.from("account_signals").select("id, account_id, line_key").eq("source", "master").in("account_id", part);
     existing.push(...(data ?? []));
   }
   const have = new Map<string, Map<string, string>>();

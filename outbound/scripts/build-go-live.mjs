@@ -46,6 +46,7 @@ out("03-catch-up.sql", [
   read("supabase/migrations/20261109000012_super_hot.sql"),
   read("supabase/migrations/20261110000013_icp_fit.sql"),
   read("supabase/migrations/20261110000014_writing_rules.sql"),
+  read("supabase/migrations/20261111000015_vendor_signals.sql"),
   "notify pgrst, 'reload schema';",
   "",
   "-- The campaign skill, rewritten around the three plays. Adds a new skill version only if the text changed.",
