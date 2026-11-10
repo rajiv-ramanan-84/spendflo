@@ -5,6 +5,8 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { loadSlackSettings } from "@/lib/slack/settings";
 import { SlackSettings } from "@/components/settings/slack-settings";
 import { loadSkillSettings } from "@/lib/claude/skill-settings";
+import { WritingSettings } from "@/components/settings/writing-settings";
+import { loadWritingRules, loadWritingSettings } from "@/lib/writing/rules";
 import { SkillSettings } from "@/components/settings/skill-settings";
 import { loadDataSettings } from "@/lib/data/data-quality";
 import { DataSettings } from "@/components/settings/data-settings";
@@ -26,9 +28,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const user = await requireUser();
   const db = supabaseAdmin();
-  const [slack, skill, data, spend, auto, mail] = db
-    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft").maybeSingle(), loadMailboxSettings(db)])
-    : [null, null, null, null, null, null];
+  const [slack, skill, data, spend, auto, mail, writing] = db
+    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft").maybeSingle(), loadMailboxSettings(db), Promise.all([loadWritingRules(db), loadWritingSettings(db)])])
+    : [null, null, null, null, null, null, null];
   return (
     <>
       <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
@@ -36,6 +38,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
         {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} canEdit={canEditAdminSettings(user)} />}
+        {writing && <WritingSettings rules={writing[0]} {...writing[1]} canEdit={canEditAdminSettings(user)} />}
         {skill && <SkillSettings {...skill} canEdit={canEditAdminSettings(user)} />}
         {slack && <SlackSettings {...slack} canEdit={canEditAdminSettings(user)} />}
         {canEditAdminSettings(user) ? (

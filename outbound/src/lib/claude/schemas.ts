@@ -15,8 +15,8 @@ export const StepSchema = z.object({
   date: z.string().nullable().describe("YYYY-MM-DD from valid_working_dates; null on trigger-based tracks"),
   offset_working_days: z.number().int().nullable().describe("Trigger-based tracks only: working days after the trigger fires"),
   channel: z.enum(CHANNELS),
-  subject: z.string().nullable(),
-  body: z.string().nullable(),
+  body: z.string().nullable().describe("Email: 2 to 4 short paragraphs, no greeting, no sign-off, no signature. The app adds them."),
+  subject: z.string().nullable().describe("Email only. Write it after the body."),
   call_script: z.string().nullable(),
   keep_from_previous: z.boolean(),
 });
@@ -76,3 +76,11 @@ export type Classification = (typeof CLASSIFICATIONS)[number];
 
 /** Below this confidence a detected reply shows as Needs review (PRD M10). */
 export const CLASSIFY_REVIEW_THRESHOLD = 0.7;
+
+/** One message rewritten on request ("Edit with AI"). */
+export const RewriteSchema = z.object({
+  body: z.string().describe("The rewritten message. For email: 2 to 4 short paragraphs, no greeting, no sign-off, no signature."),
+  subject: z.string().nullable().describe("Email only: one subject, written after the body. Null for LinkedIn."),
+  changed: z.string().describe("One plain sentence on what you changed."),
+});
+export type RewriteOutput = z.infer<typeof RewriteSchema>;
