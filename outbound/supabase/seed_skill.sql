@@ -54,19 +54,19 @@ ICP profiles describe the deal shape. Use the profile's economic buyer for the p
 
 Every contact in the input with an email or a LinkedIn URL, not marked exclude or do-not-contact, gets their own track written for their job. Never clone one message across people. List everyone you skip in `skipped_contacts` with the reason.
 
-| Persona | What they care about | Track shape | Line to build from |
+| Persona | What they care about | Track shape | Angle to build from |
 | --- | --- | --- | --- |
-| Economic buyer (CFO, CPO, SVP, VP Finance) | Spend under control, savings, risk | Short, 2 to 3 touches. Starts after a reply or a warm signal from a lower track, or on a fixed date only for Tier A with a strong dated trigger. Founder-sent (Sid or Rajiv) where possible | "Every contract waiting in review is spend you can't control yet." |
-| Procurement leader (VP, Director, Head of) | Cycle time, renewals, team capacity | Main thread. LinkedIn connect, 2 to 3 emails, 1 call | "Your team reviews deviations, not 60 pages." |
-| Coupa or system owner (admin, eProcurement, procurement systems) | Adoption, admin load, no new tool for users | Starts first. Practical, "works on top of Coupa" angle | "Coupa stays the source of truth. Flo reads where your contracts already live." |
-| Contract manager or legal ops | Bandwidth, not being the bottleneck | Redlining angle only | "Flo marks what the supplier changed and what they left out." |
-| Legal or GC | Consistency, risk, audit | Only when the job is redlining. Never first | "Lawyers keep the final call. Flo escalates with the clause and rule cited." |
+| Economic buyer (CFO, CPO, SVP, VP Finance) | Spend under control, savings, risk | Short, 2 to 3 touches. Starts after a reply or a warm signal from a lower track, or on a fixed date only for Tier A with a strong dated trigger. | Spend waiting on a review it cannot see. How soon they can decide. |
+| Procurement leader (VP, Director, Head of) | Cycle time, renewals, team capacity | Main thread. LinkedIn connect, 2 to 3 emails, 1 call | The team spends its time on exceptions, not on reading whole agreements. |
+| Coupa or system owner (admin, eProcurement, procurement systems) | Adoption, admin load, no new tool for users | Starts first. Practical, "works on top of Coupa" angle | Nothing new for users. It works on top of Coupa and the contracts already there. |
+| Contract manager or legal ops | Bandwidth, not being the bottleneck | Redlining angle only | Seeing what the supplier changed or left out without reading every page. |
+| Legal or GC | Consistency, risk, audit | Only when the job is redlining. Never first | Legal keeps the final call and gets the clause and the rule behind every flag. |
 | Finance or AP | Invoice accuracy, leakage | Only when the job is AP | Use AP language, not contracts |
 | Champion or chief of staff | Strategic initiatives, internal credit | One LinkedIn note and one email, ask for a pointer | Ask who owns the job, not for a meeting |
 
-The "Line to build from" column shows the angle for each persona. Never copy it word for word: write a fresh line in the sender's voice from this account's trigger and signals. Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
+The "Angle to build from" column names the angle for each persona, not wording. Write a fresh line in the sender's voice from this account's trigger and signals, and never reuse one line across accounts. Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
 
-Assignee: default to the account owner. Use Sid for founder-to-economic-buyer touches. Use Rajiv for CRO-to-procurement-leader touches on Tier A when he is not the owner and the input lists him as available. Never assign a step to a user marked out of office on that date.
+Assignee: always the account owner. The app sets it and signs each message for whoever sends it, so never write a sender's name into the copy and never plan a step for another person. Never schedule a step on a date its owner is out of office.
 
 ## Step 4. Dates, cadence and caps
 
@@ -260,19 +260,19 @@ ICP profiles describe the deal shape. Use the profile's economic buyer for the p
 
 Every contact in the input with an email or a LinkedIn URL, not marked exclude or do-not-contact, gets their own track written for their job. Never clone one message across people. List everyone you skip in `skipped_contacts` with the reason.
 
-| Persona | What they care about | Track shape | Line to build from |
+| Persona | What they care about | Track shape | Angle to build from |
 | --- | --- | --- | --- |
-| Economic buyer (CFO, CPO, SVP, VP Finance) | Spend under control, savings, risk | Short, 2 to 3 touches. Starts after a reply or a warm signal from a lower track, or on a fixed date only for Tier A with a strong dated trigger. Founder-sent (Sid or Rajiv) where possible | "Every contract waiting in review is spend you can't control yet." |
-| Procurement leader (VP, Director, Head of) | Cycle time, renewals, team capacity | Main thread. LinkedIn connect, 2 to 3 emails, 1 call | "Your team reviews deviations, not 60 pages." |
-| Coupa or system owner (admin, eProcurement, procurement systems) | Adoption, admin load, no new tool for users | Starts first. Practical, "works on top of Coupa" angle | "Coupa stays the source of truth. Flo reads where your contracts already live." |
-| Contract manager or legal ops | Bandwidth, not being the bottleneck | Redlining angle only | "Flo marks what the supplier changed and what they left out." |
-| Legal or GC | Consistency, risk, audit | Only when the job is redlining. Never first | "Lawyers keep the final call. Flo escalates with the clause and rule cited." |
+| Economic buyer (CFO, CPO, SVP, VP Finance) | Spend under control, savings, risk | Short, 2 to 3 touches. Starts after a reply or a warm signal from a lower track, or on a fixed date only for Tier A with a strong dated trigger. | Spend waiting on a review it cannot see. How soon they can decide. |
+| Procurement leader (VP, Director, Head of) | Cycle time, renewals, team capacity | Main thread. LinkedIn connect, 2 to 3 emails, 1 call | The team spends its time on exceptions, not on reading whole agreements. |
+| Coupa or system owner (admin, eProcurement, procurement systems) | Adoption, admin load, no new tool for users | Starts first. Practical, "works on top of Coupa" angle | Nothing new for users. It works on top of Coupa and the contracts already there. |
+| Contract manager or legal ops | Bandwidth, not being the bottleneck | Redlining angle only | Seeing what the supplier changed or left out without reading every page. |
+| Legal or GC | Consistency, risk, audit | Only when the job is redlining. Never first | Legal keeps the final call and gets the clause and the rule behind every flag. |
 | Finance or AP | Invoice accuracy, leakage | Only when the job is AP | Use AP language, not contracts |
 | Champion or chief of staff | Strategic initiatives, internal credit | One LinkedIn note and one email, ask for a pointer | Ask who owns the job, not for a meeting |
 
-The "Line to build from" column shows the angle for each persona. Never copy it word for word: write a fresh line in the sender's voice from this account's trigger and signals. Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
+The "Angle to build from" column names the angle for each persona, not wording. Write a fresh line in the sender's voice from this account's trigger and signals, and never reuse one line across accounts. Where the playbook's buyer map differs from this table, the playbook wins. Order across tracks: system owner and procurement leader start first; champion mid-way; economic buyer last or on a trigger. Set `start_trigger` to `fixed` with a date, `after_reply` from a named contact, or `after_step` of another track, each with `delay_working_days`.
 
-Assignee: default to the account owner. Use Sid for founder-to-economic-buyer touches. Use Rajiv for CRO-to-procurement-leader touches on Tier A when he is not the owner and the input lists him as available. Never assign a step to a user marked out of office on that date.
+Assignee: always the account owner. The app sets it and signs each message for whoever sends it, so never write a sender's name into the copy and never plan a step for another person. Never schedule a step on a date its owner is out of office.
 
 ## Step 4. Dates, cadence and caps
 

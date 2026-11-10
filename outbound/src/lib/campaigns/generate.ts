@@ -1,8 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { callClaude } from "@/lib/claude/client";
-import { finalizeEmail, firstNameOf } from "@/lib/writing/compose";
-import { senderSignatures } from "@/lib/writing/rules";
+import { finishStep } from "@/lib/writing/finish";
+import { firstNameOf } from "@/lib/writing/compose";
+import { loadSigners } from "@/lib/writing/rules";
 import { buildGeneratePayload, type PayloadAccount, contactRefs, namesForRefs } from "@/lib/claude/payload";
 import { CampaignSchema, type CampaignOutput } from "@/lib/claude/schemas";
 import { validateCampaign, type ValidatedCampaign } from "@/lib/claude/validate";
@@ -266,7 +267,7 @@ export async function insertTracks(db: SupabaseClient, campaignId: string, versi
   // Emails are finished here: greeting, short paragraphs and the sender's signature, so Gmail gets a complete message.
   const { data: people } = await db.from("contacts").select("id, full_name").in("id", v.tracks.map((t) => t.contactId));
   const firstOf = new Map((people ?? []).map((c) => [c.id as string, firstNameOf(c.full_name as string)]));
-  const signatures = await senderSignatures(db, v.tracks.flatMap((t) => t.steps.map((s) => s.assigneeId).filter((x): x is string => !!x)));
+  const signers = await loadSigners(db, v.tracks.flatMap((t) => t.steps.map((s) => s.assigneeId).filter((x): x is string => !!x)));
   for (const t of v.tracks) {
     const { data: track, error } = await db.from("contact_tracks").insert({
       campaign_id: campaignId,
@@ -302,8 +303,8 @@ export async function insertTracks(db: SupabaseClient, campaignId: string, versi
       moved_reason: s.movedNote,
       offset_working_days: s.offsetWorkingDays,
       subject: s.subject,
-      body: s.channel === "email" && s.body ? finalizeEmail(s.body, { firstName: firstOf.get(t.contactId) ?? null, signature: signatures.get(s.assigneeId ?? "") ?? null }) : s.body,
-      original_body: s.channel === "email" && s.body ? finalizeEmail(s.body, { firstName: firstOf.get(t.contactId) ?? null, signature: signatures.get(s.assigneeId ?? "") ?? null }) : s.body,
+      body: finishStep(s.channel, s.body, { firstName: firstOf.get(t.contactId) ?? null, assigneeId: s.assigneeId }, signers),
+      original_body: finishStep(s.channel, s.body, { firstName: firstOf.get(t.contactId) ?? null, assigneeId: s.assigneeId }, signers),
       call_script: s.callScript,
       status: "upcoming",
     })));

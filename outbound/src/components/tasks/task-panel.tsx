@@ -104,7 +104,7 @@ export function TaskPanel(props: {
 
   // Re-checked as you type, with the same rule the list uses.
   const editReason = waiting ? null : needsEdit({ channel: t.channel, subject, body: text, call_script: text }, t.contact, t.account.name);
-  const from = isEmail ? `${props.senderName}${props.senderEmail ? ` <${props.senderEmail}>` : ""}` : t.channel === "call" ? `${props.senderName}, from your phone` : `Your LinkedIn, written as ${props.senderName}`;
+  const from = isEmail ? `${props.senderName}${props.senderEmail ? ` <${props.senderEmail}>` : ""}` : t.channel === "call" ? `${props.senderName}, from your phone` : "Your own LinkedIn";
 
   return (
     <aside className="fixed inset-0 z-40 flex flex-col bg-white lg:sticky lg:inset-auto lg:top-4 lg:z-auto lg:max-h-[calc(100vh-2rem)] lg:rounded-2xl lg:border lg:border-line lg:shadow-[var(--shadow-lift)]" aria-label={`Task for ${t.contact.full_name}`}>

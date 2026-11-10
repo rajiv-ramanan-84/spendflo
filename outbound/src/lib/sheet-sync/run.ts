@@ -1,3 +1,4 @@
+import { resignOpenSteps } from "@/lib/writing/resign";
 import { queueOvernightDrafts } from "@/lib/playbook/overnight";
 import type { AutoDraftMode } from "@/lib/playbook/auto-draft";
 import { refreshPlays } from "@/lib/playbook/service";
@@ -179,6 +180,9 @@ async function applyPlan(db: SupabaseClient, plan: SyncPlan, personaByKey: Map<s
 
   // Dated signals and the play each account earned. Runs before auto-draft so only live accounts get drafted.
   await refreshPlays(db, { accountIds: plan.accounts.map((a) => accountUuid.get(a.sheetAccountId)).filter((x): x is string => !!x) });
+
+  // Drafts written before the signing rules get the right name, greeting and paragraphs.
+  await resignOpenSteps(db).catch(() => 0);
 
   // Overnight drafts, if Settings > Claude spend says so (off by default: Claude writes when someone
   // clicks Generate). Super hot and Hot accounts are drafted in any tier, Warm follow the tier switch,
