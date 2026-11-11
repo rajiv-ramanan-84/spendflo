@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type Proposal = { subject: string | null; body: string; changed: string; warnings: string[] };
-const CHIPS = ["Shorter", "Warmer", "More direct", "Softer ask", "Lead with the trigger"];
+const CHIPS = ["Shorter", "Warmer", "More direct", "Softer ask", "Lead with the trigger", "As a founder asking for 20 minutes"];
 
 /**
  * Edit with AI for one message. Asks, shows the new version, and only changes

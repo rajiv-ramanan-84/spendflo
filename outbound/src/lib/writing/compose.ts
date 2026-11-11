@@ -8,9 +8,13 @@ export type WritingRules = {
   team: string;
   personas: Record<string, string>;
   senders: Record<string, { voice: string; signature: string }>;
+  /** Edited validation hypotheses, keyed "A1:procurement_leader". Empty means the built-in table is used. */
+  hypotheses: Record<string, { guess: string; share: string; subject: string }>;
+  /** Founder validation settings. smallGroup: mention that the founder is speaking with a small group of enterprise leaders. */
+  validation: { smallGroup: boolean };
 };
 
-export const EMPTY_RULES: WritingRules = { team: "", personas: {}, senders: {} };
+export const EMPTY_RULES: WritingRules = { team: "", personas: {}, senders: {}, hypotheses: {}, validation: { smallGroup: true } };
 
 /** What Claude is told for one campaign: the team's rules, the sender's voice, and only the personas on this account. */
 export function writingForPayload(rules: WritingRules, senderId: string | null, senderName: string, personas: Array<string | null>) {

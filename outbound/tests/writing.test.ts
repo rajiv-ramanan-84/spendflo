@@ -37,6 +37,7 @@ describe("writing rules for one campaign", () => {
     team: "Plain English.",
     personas: { economic_buyer: "Lead with spend under control.", champion: "Ask who owns the job.", legal: "" },
     senders: { u1: { voice: "Founder and operator.", signature: sig }, u2: { voice: "", signature: "Sid" } },
+    hypotheses: {}, validation: { smallGroup: true },
   };
   it("sends only the personas on the account, and only those with instructions", () => {
     const w = writingForPayload(rules, "u1", "Rajiv", ["economic_buyer", "legal", "economic_buyer", null]);
@@ -49,7 +50,7 @@ describe("writing rules for one campaign", () => {
     expect(w?.personas).toBeUndefined();
   });
   it("sends nothing when there are no rules at all", () => {
-    expect(writingForPayload({ team: "", personas: {}, senders: {} }, null, "Rajiv", ["champion"])).toBeNull();
+    expect(writingForPayload({ team: "", personas: {}, senders: {}, hypotheses: {}, validation: { smallGroup: true } }, null, "Rajiv", ["champion"])).toBeNull();
   });
   it("never puts the signature in front of Claude", () => {
     expect(JSON.stringify(writingForPayload(rules, "u1", "Rajiv", []))).not.toContain("Co-founder");

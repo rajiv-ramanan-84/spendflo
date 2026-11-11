@@ -10,7 +10,7 @@ import { firstNameOf } from "@/lib/writing/compose";
 import { loadSigners } from "@/lib/writing/rules";
 import { loadReplanHistory } from "@/lib/responses/history";
 import { playForAccount, playPayload } from "@/lib/playbook/payload";
-import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor } from "@/lib/campaigns/context";
+import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor, styleFor, focusFor } from "@/lib/campaigns/context";
 import { accountForPayload, insertTracks } from "@/lib/campaigns/generate";
 import { ActionError, canEdit } from "@/lib/campaigns/actions";
 import { assertBudget } from "@/lib/claude/budget";
@@ -263,8 +263,8 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
   })();
   const payload = buildReplanPayload({
     today: p.today, campaignStartDate: win.start, validWorkingDates: win.validWorkingDates,
-    account: accountForPayload(account), contacts: (contacts ?? []).map((x) => ({ contact_id: refs.ref(x.id)!, name: x.full_name, title: x.title, persona: x.persona, email: x.bounced ? null : x.email, email_status: x.email_status, linkedin_url: x.linkedin_url, has_phone: !!x.phone, engagement: x.engagement_status as string | null, country: x.country, notes: x.notes, linkedin_signals: x.linkedin_signals ?? {}, exclude: x.exclude, do_not_contact: x.do_not_contact })),
-    owner: owner.key, team: teamPayload(p, win.start, win.end), teamLoad: teamLoadPayload(p, touches), caps: p.caps, approvedProofPoints: p.proofPoints, ownerNotes: null, writing: writingFor(p, owner, (contacts ?? []).map((x) => x.persona as string | null)),
+    account: accountForPayload(account), contacts: (contacts ?? []).map((x) => ({ contact_id: refs.ref(x.id)!, name: x.full_name, title: x.title, persona: x.persona, email: x.bounced ? null : x.email, email_status: x.email_status, linkedin_url: x.linkedin_url, has_phone: !!x.phone, engagement: x.engagement_status as string | null, validation_focus: styleFor(p, owner) === "founder" ? focusFor(p, (c.play as "A1" | "A2" | "A3" | null) ?? null, x.persona as string | null, account.name as string) : undefined, country: x.country, notes: x.notes, linkedin_signals: x.linkedin_signals ?? {}, exclude: x.exclude, do_not_contact: x.do_not_contact })),
+    owner: owner.key, team: teamPayload(p, win.start, win.end), teamLoad: teamLoadPayload(p, touches), caps: p.caps, approvedProofPoints: p.proofPoints, ownerNotes: null, writing: writingFor(p, owner, (contacts ?? []).map((x) => x.persona as string | null)), style: styleFor(p, owner), validation: { small_group: p.writing.validation.smallGroup },
     currentCampaign: { name: c.name, objective: c.objective, angle: c.angle, job: c.job, tracks: refTracks },
     completedSteps: refDone,
     response: { contact: refs.ref(resp?.contact_id) ?? "", channel: resp?.channel ?? "email", classification: resp?.classification ?? null, summary: resp?.summary ?? null, raw_text: resp?.raw_text ?? null },

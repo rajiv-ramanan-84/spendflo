@@ -7,7 +7,7 @@ import { DRAFT_MODELS } from "@/lib/claude/models";
 import { cn } from "@/lib/cn";
 
 type Item = { accountId: string; name: string; reason: string | null; level: string | null; model: string };
-type Plan = { willGenerate: Item[]; nurture: Item[]; skipped: Item[]; max: number; estimateUsd: number; remainingUsd: number };
+type Plan = { willGenerate: Item[]; nurture: Item[]; replaceable: Item[]; skipped: Item[]; max: number; estimateUsd: number; remainingUsd: number };
 type Result = { queued: number; names: string[]; skipped: Item[]; estimateUsd: number };
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -23,6 +23,7 @@ export function GenerateDialog({ accountIds, onClose, onQueued }: { accountIds: 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [withNurture, setWithNurture] = useState(false);
+  const [replace, setReplace] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const box = useRef<HTMLDivElement>(null);
 
@@ -47,13 +48,14 @@ export function GenerateDialog({ accountIds, onClose, onQueued }: { accountIds: 
   }, [busy, result, onClose, onQueued]);
   useEffect(() => { box.current?.focus(); }, []);
 
-  const count = plan ? plan.willGenerate.length + (withNurture ? plan.nurture.length : 0) : 0;
-  const cost = plan ? Math.round([...plan.willGenerate, ...(withNurture ? plan.nurture : [])].reduce((s, i) => s + (DRAFT_MODELS.find((m) => m.id === i.model)?.perDraftUsd ?? 0.25), 0) * 100) / 100 : 0;
+  const picked = plan ? [...plan.willGenerate, ...(replace ? plan.replaceable : []), ...(withNurture ? plan.nurture : [])] : [];
+  const count = picked.length;
+  const cost = plan ? Math.round(picked.reduce((s, i) => s + (DRAFT_MODELS.find((m) => m.id === i.model)?.perDraftUsd ?? 0.25), 0) * 100) / 100 : 0;
   const overBudget = !!plan && cost > plan.remainingUsd;
 
   async function go() {
     setBusy(true); setError(null);
-    const res = await fetch("/api/accounts/bulk-generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ accountIds, includeNurture: withNurture }) });
+    const res = await fetch("/api/accounts/bulk-generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ accountIds, includeNurture: withNurture, replaceDrafts: replace }) });
     const d = await res.json().catch(() => ({ ok: false, error: "No response" }));
     setBusy(false);
     if (!d.ok) return setError(d.error);
@@ -86,8 +88,14 @@ export function GenerateDialog({ accountIds, onClose, onQueued }: { accountIds: 
                   <span><b>Also draft {plural(plan.nurture.length, "Nurture account")}</b><span className="block text-ink-600">{plan.nurture.map((i) => i.name).join(", ")}. They have no live signal, so the draft is a short, low-key sequence.</span></span>
                 </label>
               ) : null}
+              {plan.replaceable.length ? (
+                <label className="flex items-start gap-2 rounded-xl border border-line p-3">
+                  <input type="checkbox" className="mt-0.5 accent-brand-500" checked={replace} onChange={(e) => setReplace(e.target.checked)} />
+                  <span><b>Replace {plural(plan.replaceable.length, "existing draft")} with a new one</b><span className="block text-ink-600">{plan.replaceable.map((i) => i.name).join(", ")}. Use this to rewrite drafts in the latest style. Drafts you have edited by hand are never replaced, and live campaigns are not touched. The old draft stays in the history.</span></span>
+                </label>
+              ) : null}
               {count ? (
-                <p className="rounded-xl bg-canvas px-3 py-2 text-ink-700">About <b>{usd(cost)}</b> using {[...new Set([...plan.willGenerate, ...(withNurture ? plan.nurture : [])].map((i) => modelLabel(i.model)))].join(" and ")}, at half price through the batch service. Drafts appear as Draft ready in about 5 to 10 minutes. You have {usd(Math.max(0, plan.remainingUsd))} left this month.</p>
+                <p className="rounded-xl bg-canvas px-3 py-2 text-ink-700">About <b>{usd(cost)}</b> using {[...new Set(picked.map((i) => modelLabel(i.model)))].join(" and ")}, at half price through the batch service. Drafts appear as Draft ready in about 5 to 10 minutes. You have {usd(Math.max(0, plan.remainingUsd))} left this month.</p>
               ) : null}
               {overBudget ? <p className="flex items-start gap-1.5 text-amber-900"><AlertTriangle size={15} className="mt-0.5 shrink-0" />This is more than the budget you have left this month. An admin can raise it in Settings.</p> : null}
               {plan.skipped.length ? (
@@ -96,7 +104,7 @@ export function GenerateDialog({ accountIds, onClose, onQueued }: { accountIds: 
                   <ul className="mt-0.5 text-ink-600">{plan.skipped.map((i) => <li key={i.accountId}>{i.name}: {i.reason}</li>)}</ul>
                 </section>
               ) : null}
-              {!plan.willGenerate.length && !plan.nurture.length ? <p className="text-ink-600">None of these accounts can get a draft right now.</p> : null}
+              {!plan.willGenerate.length && !plan.nurture.length && !plan.replaceable.length ? <p className="text-ink-600">None of these accounts can get a draft right now.</p> : null}
             </div>
           ) : null}
 

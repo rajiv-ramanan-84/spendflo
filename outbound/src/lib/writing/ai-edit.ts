@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ActionError, stepForEditing } from "@/lib/campaigns/actions";
-import { loadPlanningContext, writingFor } from "@/lib/campaigns/context";
+import { loadPlanningContext, writingFor, styleFor, focusFor } from "@/lib/campaigns/context";
 import type { SessionUser } from "@/lib/auth/session";
 import { assertBudget } from "@/lib/claude/budget";
 import { callClaude } from "@/lib/claude/call";
@@ -51,6 +51,9 @@ export async function proposeEdit(db: SupabaseClient, user: SessionUser, stepId:
       to: { name: contact?.full_name ?? null, title: contact?.title ?? null, persona: contact?.persona ?? null },
       account: { name: account?.name ?? null, trigger: account?.trigger ?? null, signals: quoteData(String(account?.signals ?? "").slice(0, 1500)), angle: account?.outreach_angle ?? null },
       play: campaign.play ?? null,
+      outreach_style: styleFor(p, assignee),
+      validation_focus: styleFor(p, assignee) === "founder" ? focusFor(p, (campaign.play as "A1" | "A2" | "A3" | null) ?? null, (contact?.persona as string | null) ?? null, String(account?.name ?? "the company")) : undefined,
+      validation: { small_group: p.writing.validation.smallGroup },
       approved_proof_points: p.proofPoints,
       writing_rules: writing ?? undefined,
     },

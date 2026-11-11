@@ -11,7 +11,7 @@ import { logActivity } from "@/lib/activity/log";
 import { playForAccount, playPayload } from "@/lib/playbook/payload";
 import type { PlayResult } from "@/lib/playbook/gate";
 import { PLAY_JOB, PLAY_SHORT, type PlayCode } from "@/lib/playbook/catalog";
-import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor, type PlanningContext } from "./context";
+import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor, styleFor, focusFor, type PlanningContext } from "./context";
 
 /**
  * Generate campaign (PRD M3): account + contacts -> Claude -> validated draft.
@@ -81,6 +81,7 @@ export async function prepareGenerate(
   // No signal points anywhere: a person picks the play, so Claude never gets all three.
   const play: PlayResult = opts.forcePlay && !evaluated.play ? { ...evaluated, pointsTo: opts.forcePlay } : evaluated;
   const pp = playPayload(play);
+  const style = styleFor(p, owner);
   const payload = buildGeneratePayload({
     play: pp.play,
     signals: pp.signals,
@@ -102,7 +103,10 @@ export async function prepareGenerate(
       linkedin_signals: c.linkedin_signals ?? {},
       exclude: c.exclude,
       do_not_contact: c.do_not_contact,
+      validation_focus: style === "founder" ? focusFor(p, (play.play ?? play.pointsTo) as PlayCode | null, c.persona as string | null, account.name as string) : undefined,
     })),
+    style,
+    validation: { small_group: p.writing.validation.smallGroup },
     owner: owner.key,
     team: teamPayload(p, win.start, win.end),
     teamLoad: teamLoadPayload(p, touches),
@@ -152,7 +156,7 @@ export async function finishGenerate(db: SupabaseClient, prep: Prepared, data: C
   const pr = prep.play;
   if (pr.play && data.job !== PLAY_JOB[pr.play]) readable.blocking.push({ text: `The signals point to ${PLAY_SHORT[pr.play]}, but this draft leads with ${data.job.replace("_", " ")}. Check which one you want to test.` });
   if (pr.level === "nurture") readable.blocking.push({ text: [...pr.aging, ...pr.stale].length ? `No signal in the last 90 days (the newest is ${[...pr.aging, ...pr.stale][0].ageDays} days old). This draft has no live trigger.` : "No dated signal on this account. This draft has no live trigger." });
-  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: meta.model, p, createdBy: meta.requestedBy, play: pr.play ?? pr.pointsTo, level: pr.level });
+  const campaignId = await saveDraft(db, { accountId: account.id, ownerId: owner.id, startDate: win.start, output, validated: readable, payload, model: meta.model, p, createdBy: meta.requestedBy, play: pr.play ?? pr.pointsTo, level: pr.level, style: (payload as { outreach_style?: string }).outreach_style ?? "standard" });
   await db.from("claude_calls").update({ campaign_id: campaignId }).eq("id", meta.callId);
   await logActivity(db, { entityType: "campaign", entityId: campaignId, action: "draft_generated", actorId: meta.requestedBy, after: { model: meta.model, blocking: validated.blocking.length } });
   return { campaignId, blocking: validated.blocking.length, notes: validated.notes.length };
@@ -227,7 +231,7 @@ export type ReviewFlag = { id: string; text: string; contactId?: string; sequenc
 
 export async function saveDraft(
   db: SupabaseClient,
-  d: { accountId: string; ownerId: string; startDate: string; output: CampaignOutput; validated: ValidatedCampaign; payload: unknown; model: string; p: PlanningContext; createdBy: string | null; play?: string | null; level?: string | null },
+  d: { accountId: string; ownerId: string; startDate: string; output: CampaignOutput; validated: ValidatedCampaign; payload: unknown; model: string; p: PlanningContext; createdBy: string | null; play?: string | null; level?: string | null; style?: string },
 ): Promise<string> {
   const flags: ReviewFlag[] = d.validated.blocking.map((b, i) => ({ id: `f${i + 1}`, ...b }));
   const { data: campaign, error } = await db.from("campaigns").insert({
@@ -242,7 +246,7 @@ export async function saveDraft(
     icp_profile: d.output.icp_profile,
     rationale: d.output.rationale,
     discovery_questions: d.output.discovery_questions,
-    review: { likely_reply: d.output.review.likely_reply, main_weakness: d.output.review.main_weakness, flags, notes: d.validated.notes, skipped: d.validated.skipped },
+    review: { style: d.style ?? "standard", likely_reply: d.output.review.likely_reply, main_weakness: d.output.review.main_weakness, flags, notes: d.validated.notes, skipped: d.validated.skipped },
     review_flags_cleared: [],
     status: "draft",
     current_version: 1,
