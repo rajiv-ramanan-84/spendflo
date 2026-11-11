@@ -37,6 +37,8 @@ export type PayloadContact = {
   linkedin_url: string | null;
   has_phone?: boolean;
   engagement?: string | null;
+  /** Founder style: the hypothesis the app chose for this person, from play and persona. */
+  validation_focus?: unknown;
   country: string | null;
   notes: string | null;
   linkedin_signals: Record<string, string>;
@@ -61,6 +63,9 @@ export type GenerateInput = {
   ownerNotes: string | null;
   /** Standing writing instructions: team rules, the sender's voice, and the personas on this account. */
   writing?: { team?: string; sender: { name: string; voice?: string }; personas?: Record<string, string> } | null;
+  /** "founder" when whoever the email is signed by is a founder: the founder validation style applies. */
+  style?: "standard" | "founder";
+  validation?: { small_group: boolean };
   /** The matched play and each signal with its date and age. The app has already applied the gate. */
   play?: PayloadPlay | null;
   signals?: PayloadSignal[];
@@ -92,6 +97,7 @@ export function buildGeneratePayload(i: GenerateInput) {
       linkedin_url: c.linkedin_url,
       has_phone: c.has_phone ?? false,
       engagement: c.engagement ?? undefined,
+      validation_focus: c.validation_focus ?? undefined,
       country: c.country,
       notes: c.notes,
       linkedin_signals: c.linkedin_signals,
@@ -110,6 +116,8 @@ export function buildGeneratePayload(i: GenerateInput) {
     approved_proof_points: i.approvedProofPoints,
     owner_notes: i.ownerNotes,
     writing_rules: i.writing ?? undefined,
+    outreach_style: i.style ?? "standard",
+    validation: i.style === "founder" ? i.validation : undefined,
   };
 }
 

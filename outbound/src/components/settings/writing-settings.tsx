@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import type { WritingRules } from "@/lib/writing/compose";
+import { isFounderSignature } from "@/lib/playbook/founder";
+import { ValidationEditor } from "@/components/settings/validation-editor";
 
 type Hist = Array<{ versionNo: number; instructions: string; signature: string; editedBy: string | null; createdAt: string }>;
 type Props = {
@@ -16,13 +18,14 @@ type Props = {
   history: Record<string, Hist>;
   canEdit: boolean;
 };
-type Tab = "team" | "persona" | "sender";
+type Tab = "team" | "persona" | "sender" | "founder";
 
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 const HINT: Record<Tab, string> = {
   team: "Voice, subject lines, what makes an email worth reading. Applies to every email.",
   persona: "How to write to this kind of person. For example: lead with spend under control, never mention features.",
   sender: "How this person sounds. Leave the voice empty to use the team rules alone.",
+  founder: "",
 };
 
 export function WritingSettings(p: Props) {
@@ -39,6 +42,7 @@ export function WritingSettings(p: Props) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const hist = p.history[id] ?? [];
+  const founders = p.senders.filter((u) => isFounderSignature(p.rules.senders[u.id]?.signature)).map((u) => u.name);
 
   async function save() {
     setBusy(true); setMsg(null);
@@ -57,11 +61,13 @@ export function WritingSettings(p: Props) {
       <p className="mt-1 max-w-2xl text-sm text-ink-500">Standing instructions Claude follows when it writes. Narrower wins: a persona rule refines the team rule, and the sender&apos;s voice sets the tone.</p>
 
       <div className="mt-4 inline-flex rounded-xl bg-canvas p-1" role="tablist">
-        {([["team", "Team"], ["persona", "By persona"], ["sender", "By sender"]] as const).map(([t, label]) => (
+        {([["team", "Team"], ["persona", "By persona"], ["sender", "By sender"], ["founder", "Founder outreach"]] as const).map(([t, label]) => (
           <button key={t} role="tab" aria-selected={tab === t} onClick={() => { setTab(t); setMsg(null); }} className={cn("rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors", tab === t ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900")}>{label}</button>
         ))}
       </div>
 
+      {tab === "founder" ? <ValidationEditor personas={p.personas} custom={p.rules.hypotheses} smallGroup={p.rules.validation.smallGroup} founders={founders} canEdit={p.canEdit} /> : (
+        <>
       {tab !== "team" ? (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {(tab === "persona" ? p.personas.map((x) => ({ id: x.key, label: x.label, on: !!p.rules.personas[x.key]?.trim() })) : p.senders.map((x) => ({ id: x.id, label: x.name, on: !!p.rules.senders[x.id]?.voice.trim() }))).map((o) => (
@@ -104,6 +110,8 @@ export function WritingSettings(p: Props) {
           </ul>
         </details>
       ) : null}
+        </>
+      )}
     </Card>
   );
 }

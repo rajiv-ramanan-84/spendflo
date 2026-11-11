@@ -62,7 +62,7 @@ export function requestParams(kind: CallKind, model: string, skillText: string, 
   return {
     model,
     max_tokens: MAX_TOKENS[kind],
-    system: [{ type: "text" as const, text: kind === "classify_reply" ? classifySystem(skillText) : kind === "rewrite" ? REWRITE_SYSTEM : campaignSystem(skillText, play), cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
+    system: [{ type: "text" as const, text: kind === "classify_reply" ? classifySystem(skillText) : kind === "rewrite" ? REWRITE_SYSTEM : campaignSystem(skillText, play, (payload as { outreach_style?: string } | null)?.outreach_style === "founder" ? "founder" : "standard"), cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }],
     output_config: { effort: EFFORT[kind], format },
     messages: [{ role: "user" as const, content: `${USER_PREAMBLE}\n\n${JSON.stringify(payload)}` }],
   };

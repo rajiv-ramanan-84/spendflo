@@ -16,18 +16,26 @@ export const PERSONAS: Array<{ key: string; label: string }> = [
   { key: "other", label: "Other" },
 ];
 
+function parseJson<T>(s: string): T | null { try { return JSON.parse(s) as T; } catch { return null; } }
+
 type Row = { scope: string; key: string; version_no: number; instructions: string; signature: string | null; edited_by: string | null; created_at: string };
 
 /** The newest version of every rule. */
 export async function loadWritingRules(db: SupabaseClient): Promise<WritingRules> {
   const { data } = await db.from("writing_rules").select("scope, key, version_no, instructions, signature").order("version_no", { ascending: false }).limit(2000);
   const seen = new Set<string>();
-  const rules: WritingRules = { ...EMPTY_RULES, personas: {}, senders: {} };
+  const rules: WritingRules = { ...EMPTY_RULES, personas: {}, senders: {}, hypotheses: {}, validation: { smallGroup: true } };
   for (const r of (data ?? []) as Row[]) {
     const id = `${r.scope}|${r.key}`;
     if (seen.has(id)) continue;
     seen.add(id);
-    if (r.scope === "team") rules.team = r.instructions;
+    if (r.scope === "team" && r.key.startsWith("hypothesis:")) {
+      const j = parseJson<{ guess?: string; share?: string; subject?: string }>(r.instructions);
+      if (j?.guess && j.share && j.subject) rules.hypotheses[r.key.slice("hypothesis:".length)] = { guess: j.guess, share: j.share, subject: j.subject };
+    } else if (r.scope === "team" && r.key === "validation") {
+      const j = parseJson<{ smallGroup?: boolean }>(r.instructions);
+      if (typeof j?.smallGroup === "boolean") rules.validation = { smallGroup: j.smallGroup };
+    } else if (r.scope === "team") rules.team = r.instructions;
     else if (r.scope === "persona") rules.personas[r.key] = r.instructions;
     else if (r.scope === "sender") rules.senders[r.key] = { voice: r.instructions, signature: r.signature ?? "" };
   }
@@ -52,7 +60,8 @@ export async function loadWritingSettings(db: SupabaseClient) {
 export async function saveWritingRule(db: SupabaseClient, user: SessionUser, i: { scope: string; key: string; instructions: string; signature?: string | null }) {
   if (!canEditAdminSettings(user)) throw new ActionError("Only admins can change the writing rules", 403);
   if (!["team", "persona", "sender"].includes(i.scope)) throw new ActionError("Unknown rule type");
-  if (i.scope === "team" && i.key !== "team") throw new ActionError("Unknown rule");
+  const okTeamKey = i.key === "team" || i.key === "validation" || /^hypothesis:A[123]:(economic_buyer|procurement_leader|system_owner|contract_manager|legal|finance_ap|champion|other)$/.test(i.key);
+  if (i.scope === "team" && !okTeamKey) throw new ActionError("Unknown rule");
   if (i.scope === "persona" && !PERSONAS.some((p) => p.key === i.key)) throw new ActionError("Unknown persona");
   const instructions = i.instructions.replace(/\r\n/g, "\n").trim();
   const signature = i.scope === "sender" ? (i.signature ?? "").replace(/\r\n/g, "\n").trim() : null;

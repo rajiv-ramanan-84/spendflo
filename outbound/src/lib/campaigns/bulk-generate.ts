@@ -9,7 +9,7 @@ import { playForAccount } from "@/lib/playbook/payload";
 import { todayIn } from "@/lib/calendar/dates";
 
 export type GenItem = { accountId: string; name: string; reason: string | null; level: string | null; model: string };
-export type GenPlan = { willGenerate: GenItem[]; nurture: GenItem[]; skipped: GenItem[]; max: number; estimateUsd: number; remainingUsd: number };
+export type GenPlan = { willGenerate: GenItem[]; nurture: GenItem[]; replaceable: GenItem[]; skipped: GenItem[]; max: number; estimateUsd: number; remainingUsd: number };
 
 export async function bulkLimit(db: SupabaseClient): Promise<number> {
   const { data } = await db.from("app_settings").select("caps").maybeSingle();
@@ -29,16 +29,20 @@ export async function planBulkGenerate(db: SupabaseClient, user: SessionUser, ac
 
   const [{ data: accounts }, { data: camps }, { data: calls }, { data: people }, { data: settings }, spend] = await Promise.all([
     db.from("accounts").select("id, name, tier, owner_id, archived, do_not_contact, signals, vendor_signals, outreach_angle, icp_verdict").in("id", ids).is("deleted_at", null),
-    db.from("campaigns").select("account_id, status").in("account_id", ids).is("deleted_at", null).in("status", ["draft", "active", "paused", "responded", "meeting_booked"]),
+    db.from("campaigns").select("id, account_id, status").in("account_id", ids).is("deleted_at", null).in("status", ["draft", "active", "paused", "responded", "meeting_booked"]),
     db.from("claude_calls").select("account_id").eq("call_type", "generate_campaign").in("account_id", ids).in("status", ["queued", "running"]),
     db.from("contacts").select("account_id, email, linkedin_url").in("account_id", ids).is("deleted_at", null).is("sheet_deleted_at", null).eq("exclude", false).eq("do_not_contact", false),
     db.from("app_settings").select("default_model, tier_a_model").maybeSingle(),
     monthSpend(db),
   ]);
+  // A draft someone has edited by hand is never replaced.
+  const draftIds = (camps ?? []).filter((c) => c.status === "draft").map((c) => c.id as string);
+  const { data: draftSteps } = draftIds.length ? await db.from("steps").select("campaign_id, body, original_body").in("campaign_id", draftIds).is("deleted_at", null) : { data: [] as Array<{ campaign_id: string; body: string | null; original_body: string | null }> };
+  const editedCampaigns = new Set((draftSteps ?? []).filter((x) => (x.body ?? "") !== (x.original_body ?? "")).map((x) => x.campaign_id as string));
   const has = (set: Array<{ account_id: unknown }> | null, id: string) => (set ?? []).some((x) => x.account_id === id);
   const usable = new Set((people ?? []).filter((c) => c.email || c.linkedin_url).map((c) => c.account_id as string));
   const today = todayIn();
-  const plan: GenPlan = { willGenerate: [], nurture: [], skipped: [], max, estimateUsd: 0, remainingUsd: spend.remaining };
+  const plan: GenPlan = { willGenerate: [], nurture: [], replaceable: [], skipped: [], max, estimateUsd: 0, remainingUsd: spend.remaining };
 
   for (const a of accounts ?? []) {
     const model = ((a.tier === "A" ? settings?.tier_a_model : settings?.default_model) as string | undefined) ?? "claude-sonnet-5-5";
@@ -48,7 +52,8 @@ export async function planBulkGenerate(db: SupabaseClient, user: SessionUser, ac
     if (!a.owner_id) { plan.skipped.push(item("No owner yet")); continue; }
     const mine = (camps ?? []).filter((c) => c.account_id === a.id);
     if (mine.some((c) => c.status !== "draft")) { plan.skipped.push(item("Already has a live campaign")); continue; }
-    if (mine.length) { plan.skipped.push(item("Already has a draft")); continue; }
+    const draft = mine.find((c) => c.status === "draft");
+    if (draft && editedCampaigns.has(draft.id as string)) { plan.skipped.push(item("Its draft has your edits, so it is not replaced")); continue; }
     if (has(calls, a.id as string)) { plan.skipped.push(item("A draft is already being written")); continue; }
     if (!usable.has(a.id as string)) { plan.skipped.push(item("No contact with an email or LinkedIn yet")); continue; }
     const gate = playForAccount(a as unknown as { signals: string | null; outreach_angle: string | null; archived: boolean | null; icp_verdict: string | null; do_not_contact: boolean | null }, today);
@@ -56,10 +61,10 @@ export async function planBulkGenerate(db: SupabaseClient, user: SessionUser, ac
     if (gate.level === "nurture") {
       // Nothing on the account points to a play, so a person has to choose one on the account page first.
       if (!gate.pointsTo) { plan.skipped.push(item("No signal and no play to draft for. Open the account to choose one.", "nurture")); continue; }
-      plan.nurture.push(item(null, "nurture"));
+      (draft ? plan.replaceable : plan.nurture).push(item(null, "nurture"));
       continue;
     }
-    plan.willGenerate.push(item(null, gate.level));
+    (draft ? plan.replaceable : plan.willGenerate).push(item(null, gate.level));
   }
   for (const id of ids) if (!(accounts ?? []).some((a) => a.id === id)) plan.skipped.push({ accountId: id, name: "Unknown account", reason: "Not found", level: null, model: "" });
   plan.estimateUsd = Math.round(plan.willGenerate.reduce((s, i) => s + draftCost(i.model), 0) * 100) / 100;
@@ -67,9 +72,9 @@ export async function planBulkGenerate(db: SupabaseClient, user: SessionUser, ac
 }
 
 /** Queues every eligible draft and sends them to Claude as one batch. Nothing launches on its own. */
-export async function bulkGenerate(db: SupabaseClient, user: SessionUser, accountIds: string[], opts: { includeNurture: boolean }) {
+export async function bulkGenerate(db: SupabaseClient, user: SessionUser, accountIds: string[], opts: { includeNurture: boolean; replaceDrafts?: boolean }) {
   const plan = await planBulkGenerate(db, user, accountIds);
-  const todo = [...plan.willGenerate, ...(opts.includeNurture ? plan.nurture : [])];
+  const todo = [...plan.willGenerate, ...(opts.replaceDrafts ? plan.replaceable : []), ...(opts.includeNurture ? plan.nurture : [])];
   if (!todo.length) return { queued: 0, names: [] as string[], skipped: plan.skipped, estimateUsd: 0 };
   await assertBudget(db, "draft", todo.length);
   const { data: rows, error } = await db.from("claude_calls").insert(todo.map((t) => ({

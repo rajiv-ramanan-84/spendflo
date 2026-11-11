@@ -1,3 +1,5 @@
+import { isFounderSignature, validationFocus } from "@/lib/playbook/founder";
+import type { PlayCode } from "@/lib/playbook/catalog";
 import { loadWritingRules } from "@/lib/writing/rules";
 import { writingForPayload, type WritingRules } from "@/lib/writing/compose";
 import "server-only";
@@ -26,6 +28,17 @@ export type PlanningContext = {
 export function writingFor(p: PlanningContext, owner: TeamUser, personas: Array<string | null>) {
   const sender = p.users.find((u) => u.name === owner.writesAs) ?? owner;
   return writingForPayload(p.writing, sender.id, owner.writesAs, personas);
+}
+
+/** Founder validation style when whoever the emails are signed by is a founder, else the standard style. */
+export function styleFor(p: PlanningContext, owner: TeamUser): "founder" | "standard" {
+  const sender = p.users.find((u) => u.name === owner.writesAs) ?? owner;
+  return isFounderSignature(p.writing.senders[sender.id]?.signature) ? "founder" : "standard";
+}
+
+/** What each contact is told to write from in the founder style, chosen by play and persona. */
+export function focusFor(p: PlanningContext, play: PlayCode | null, persona: string | null, companyName: string) {
+  return validationFocus({ play, persona, companyName, custom: p.writing.hypotheses, smallGroup: p.writing.validation.smallGroup });
 }
 
 export function userKey(u: { name: string; email: string }): string {

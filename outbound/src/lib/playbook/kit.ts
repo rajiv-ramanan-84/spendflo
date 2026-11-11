@@ -43,7 +43,7 @@ export const PLAYBOOK_INTRO = [
   "- Only signals marked counts: true are triggers. Cite the signal and its date in the first touch and the rationale. Never present an old or undated signal as current.",
   "- Level super_hot (two signals within 90 days): the first touches go out today, on the first date in the list. Lead with the strongest signal and use the second for another track. Level hot (two signals within 180 days, one older than 90): a full multi-contact plan starting within 48 hours. Level warm: a 4-touch track per contact. Level nurture: no live trigger, so write a short, low-key sequence of 3 touches and flag that there is no live signal.",
   "- A signal 91 to 180 days old counts toward hot, but say so honestly in the copy: reference the event, not the word recent.",
-  "- The message kit below shows the pattern, the tone and the claims that are safe. Write original copy for each contact from their role and the signal. Do not paste the examples.",
+  "- The message kit below shows the pattern, the tone and the claims that are safe. Write original copy for each contact from their role and the signal. Do not paste the examples. If the request says outreach_style is founder, the FOUNDER VALIDATION STYLE section overrides the message kit.",
   "- You may ask to run Flo on the buyer's own documents (for example three recent contracts). Never say a sample or demo output already exists unless the request says so.",
 ].join("\n");
 
@@ -53,16 +53,21 @@ function shapeLine(key: string | null) {
   return `${s.name}: ${s.t.map(([d, c]) => `day ${d} ${CH[c]}`).join(", ")}`;
 }
 
-const cache = new Map<PlayCode, string>();
+const cache = new Map<string, string>();
 
-export function kitFor(code: PlayCode): string {
-  const hit = cache.get(code);
+/**
+ * The playbook for one play. In the founder style the buyer is asked to teach us, so the pitch parts are left out:
+ * the value proposition, the sample emails, the call script and the 30-day offer. What stays is why they buy,
+ * who they are, what the signals mean, and what we may and may not say.
+ */
+export function kitFor(code: PlayCode, style: "standard" | "founder" = "standard"): string {
+  const hit = cache.get(`${code}|${style}`);
   if (hit) return hit;
   const p = PLAYS.find((x) => x.agent === code);
   if (!p) throw new Error(`No playbook for ${code}`);
   const out: string[] = [];
   out.push(`# PLAYBOOK: ${p.name} (${code})`, "", `Sells as: ${p.sells}.`, `Promise: ${p.promise}`);
-  if (p.value) {
+  if (p.value && style === "standard") {
     const v = p.value;
     out.push("", "## Value proposition", `Headline: ${v.headline}`, v.sub, v.caveat, "");
     for (const o of v.outcomes) out.push(`- ${o.n}: ${o.name}. Buyers say: ${o.say} Mechanism: ${o.mech} Hard savings: ${o.hard} Cost avoidance: ${o.avoid} A CPO says: "${o.cpo}" A CFO says: "${o.cfo}"`);
@@ -81,17 +86,21 @@ export function kitFor(code: PlayCode): string {
     out.push(bullets(bs.map((b) => `${b.role} (${b.t}). Cares about: ${b.care}. Track: ${shapeLine(b.shape)}.`)));
   }
   out.push("Sequence rules: gaps of at least 2 working days; a LinkedIn message only after the connect; at most 6 people active.");
-  out.push("", "## Message kit (patterns, not scripts)");
-  for (const e of p.emails) out.push(`Email pattern, ${e.label} (${e.sig}). Shows the shape and the safe claims only. Do not reuse its sentences, and write your own subject.\n${e.body}\n`);
-  out.push(`LinkedIn connect: ${p.li.connect}`, `LinkedIn message: ${p.li.message}`, `Call opener: ${p.call.opener}`, `Call proposition: ${p.call.prop}`, `If it's close: ${p.call.close}`, `If it's way off: ${p.call.off}`);
+  if (style === "standard") {
+    out.push("", "## Message kit (patterns, not scripts)");
+    for (const e of p.emails) out.push(`Email pattern, ${e.label} (${e.sig}). Shows the shape and the safe claims only. Do not reuse its sentences, and write your own subject.\n${e.body}\n`);
+    out.push(`LinkedIn connect: ${p.li.connect}`, `LinkedIn message: ${p.li.message}`, `Call opener: ${p.call.opener}`, `Call proposition: ${p.call.prop}`, `If it's close: ${p.call.close}`, `If it's way off: ${p.call.off}`);
+  } else {
+    out.push("", "## Messages", "This request is in the founder validation style. Write every message from the FOUNDER VALIDATION STYLE section and each contact's validation_focus. The playbook's sample emails, call script and offers are not used.");
+  }
   out.push("", "## Objections (acknowledge, then ask)", bullets(p.objections.map(([a, b]) => `"${a}" -> ${b}`)));
   out.push("", "## Discovery questions", bullets(p.discovery));
   out.push("", "## Rivals and our line", bullets(p.rivals.map(([a, , c, d]) => `${a}. Weak where: ${c} Our line: ${d}`)));
   out.push("", "## What you can say", bullets(p.proof.can), "## Never say", bullets(p.proof.never));
-  out.push("", `## The 30-day proof`, p.pilot.rule, `Need from them: ${p.pilot.need.join("; ")}. They get: ${p.pilot.get.join("; ")}. Pass marks: ${p.pilot.pass.join("; ")}.`);
+  if (style === "standard") out.push("", `## The 30-day proof`, p.pilot.rule, `Need from them: ${p.pilot.need.join("; ")}. They get: ${p.pilot.get.join("; ")}. Pass marks: ${p.pilot.pass.join("; ")}.`);
   out.push("", "## Raise these as review flags when they apply", bullets(p.flags));
   const text = out.join("\n");
-  cache.set(code, text);
+  cache.set(`${code}|${style}`, text);
   return text;
 }
 
