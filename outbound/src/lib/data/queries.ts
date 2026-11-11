@@ -154,7 +154,7 @@ export type CockpitResponse = {
   summary: string | null; raw_text: string | null; received_at: string; contact_id: string | null; from_address: string | null;
   return_date: string | null; referred_to: string | null; suggested_next_step: string | null; owner_next_step: string | null; campaign_id: string | null;
 };
-export type CockpitReplan = { id: string; state: string; scope: string; response_id: string | null; created_at: string; claude_output: { output?: { change_summary?: string | null }; diff?: import("@/lib/responses/diff").DiffRow[]; validated?: { blocking?: Array<{ text: string }>; notes?: Array<{ text: string }> } } | null };
+export type CockpitReplan = { id: string; state: string; scope: string; response_id: string | null; created_at: string; claude_output: { output?: { change_summary?: string | null }; diff?: import("@/lib/responses/diff").DiffRow[]; validated?: { blocking?: Array<{ text: string; contactId?: string; sequenceNo?: number }>; notes?: Array<{ text: string }> } } | null };
 
 /** Responses on an account that still need a person, and the latest re-plan. */
 export async function getAccountResponses(db: SupabaseClient, accountId: string, campaignId: string | null) {

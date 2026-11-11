@@ -45,6 +45,8 @@ export type ValidationInput = {
   linkedinConnectMaxChars?: number;
   /** New drafts only: people active at once on the account. Extra tracks go to nurture. */
   activeCap?: number;
+  /** Re-plans: contacts whose LinkedIn connect request was already sent, so a message to them needs no new connect. */
+  connectedContactIds?: ReadonlySet<string>;
 };
 
 export type DraftStep = {
@@ -137,7 +139,7 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
 
     const steps: WorkingStep[] = [];
     let prevDate: IsoDate | null = null;
-    let sawConnect = false;
+    let sawConnect = input.connectedContactIds?.has(contact.id) ?? false;
     const scope = { country: contact.country, assigneeId: assignee.id };
 
     tr.steps.forEach((s, i) => {
@@ -147,6 +149,9 @@ export function validateCampaign(out: CampaignOutput, input: ValidationInput): V
       }
       if ((s.channel === "email" && !contact.hasEmail) || (s.channel.startsWith("linkedin") && !contact.hasLinkedIn)) {
         blocking.push({ text: `Step ${seq} is ${s.channel.replace("_", " ")} but this contact has no ${s.channel === "email" ? "email" : "LinkedIn URL"}.`, contactId: contact.id, sequenceNo: seq });
+      }
+      if (s.channel === "other") {
+        blocking.push({ text: `Step ${seq} uses the channel Other, which the app cannot send. Use email, LinkedIn or a call.`, contactId: contact.id, sequenceNo: seq });
       }
       if (s.channel === "linkedin_connect") sawConnect = true;
       if (s.channel === "linkedin_message" && !sawConnect) {
