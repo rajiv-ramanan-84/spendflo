@@ -5,6 +5,9 @@ import { callClaude } from "@/lib/claude/client";
 import { buildClassifyPayload, buildReplanPayload, contactRefs, namesForRefs } from "@/lib/claude/payload";
 import { CampaignSchema, ClassifySchema, type Classification } from "@/lib/claude/schemas";
 import { validateCampaign } from "@/lib/claude/validate";
+import { finishStep } from "@/lib/writing/finish";
+import { firstNameOf } from "@/lib/writing/compose";
+import { loadSigners } from "@/lib/writing/rules";
 import { loadReplanHistory } from "@/lib/responses/history";
 import { playForAccount, playPayload } from "@/lib/playbook/payload";
 import { loadPlanningContext, loadScheduledTouches, planningWindow, teamLoadPayload, teamPayload, writingFor } from "@/lib/campaigns/context";
@@ -279,6 +282,7 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
     contacts: (contacts ?? []).map((x) => ({ id: x.id, email: x.email, hasEmail: !!x.email && !x.bounced, hasLinkedIn: !!x.linkedin_url, country: x.country, excluded: x.exclude, doNotContact: x.do_not_contact })),
     users: p.users.map((u) => ({ id: u.id, key: u.key, active: u.active })),
     campaignStartDate: win.start, caps: p.caps, existingTouches: touches, ctx: p.ctx,
+    connectedContactIds: new Set(history.steps_taken.filter((x) => x.channel === "linkedin_connect" && x.result === "done").map((x) => refs.toId.get(String(x.contact_ref)) as string).filter(Boolean)),
   });
   // Track scope: only the person who replied changes. Anything else Claude
   // returned is ignored, and the diff compares that one person's steps.
@@ -293,6 +297,11 @@ export async function requestReplan(db: SupabaseClient, user: SessionUser, d: { 
     t.steps = stopped.has(ref) ? [] : t.steps.filter((st) => !(st.channel === "linkedin_connect" && alreadyConnected.has(ref)));
   }
   const oldOpen = only ? current.open.filter((s) => s.contactId === only) : current.open;
+  // Finish every new message the same way a first draft is finished (greeting, paragraphs, the right signature),
+  // so the comparison shows real changes and what is applied is complete.
+  const firstOf = new Map((contacts ?? []).map((x) => [x.id as string, firstNameOf(x.full_name as string)]));
+  const signers = await loadSigners(db, validated.tracks.flatMap((t) => t.steps.map((st) => st.assigneeId).filter((v): v is string => !!v)));
+  for (const t of validated.tracks) for (const st of t.steps) st.body = finishStep(st.channel, st.body, { firstName: firstOf.get(t.contactId) ?? null, assigneeId: st.assigneeId }, signers);
   const next: PlanStep[] = validated.tracks.flatMap((t) => t.steps.map((s) => ({ contactId: t.contactId, sequenceNo: s.sequenceNo, channel: s.channel, date: s.date, offset: s.offsetWorkingDays, subject: s.subject, body: s.body })));
 
   const names = new Map((contacts ?? []).map((x) => [x.id, x.full_name as string]));

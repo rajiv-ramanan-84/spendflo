@@ -10,6 +10,9 @@ export type DiffRow =
   | { kind: "removed"; old: PlanStep }
   | { kind: "added"; next: PlanStep };
 
+const squash = (t: string | null) => (t ?? "").replace(/\s+/g, " ").trim();
+const daysApart = (a: string, b: string) => Math.abs(Math.round((Date.parse(a) - Date.parse(b)) / 86_400_000));
+
 export function diffPlans(oldOpen: readonly PlanStep[], next: readonly PlanStep[]): DiffRow[] {
   const rows: DiffRow[] = [];
   const contacts = [...new Set([...oldOpen, ...next].map((s) => s.contactId))];
@@ -25,9 +28,12 @@ export function diffPlans(oldOpen: readonly PlanStep[], next: readonly PlanStep[
       else if (o && x) {
         const what: string[] = [];
         if (o.channel !== x.channel) what.push("channel");
-        if ((o.date ?? `+${o.offset}`) !== (x.date ?? `+${x.offset}`)) what.push("date");
-        if ((o.subject ?? "") !== (x.subject ?? "")) what.push("subject");
-        if ((o.body ?? "").trim() !== (x.body ?? "").trim()) what.push("copy");
+        // A one-day nudge on an otherwise identical step is noise, not a change.
+        const dateChanged = (o.date ?? `+${o.offset}`) !== (x.date ?? `+${x.offset}`);
+        const nudge = dateChanged && o.date && x.date && daysApart(o.date, x.date) <= 1;
+        if (dateChanged && !nudge) what.push("date");
+        if (squash(o.subject) !== squash(x.subject)) what.push("subject");
+        if (squash(o.body) !== squash(x.body)) what.push("copy");
         rows.push(what.length ? { kind: "changed", old: o, next: x, what } : { kind: "kept", old: o, next: x });
       }
     }

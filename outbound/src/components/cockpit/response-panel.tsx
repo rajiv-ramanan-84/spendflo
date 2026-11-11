@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { CLASS_EFFECT, CLASS_LABEL, CLASS_TONE } from "@/lib/responses/labels";
+import { blockedContacts, splitFindings } from "@/lib/responses/findings";
 import { diffSummary, type DiffRow } from "@/lib/responses/diff";
 import type { CockpitReplan, CockpitResponse } from "@/lib/data/queries";
 
@@ -150,8 +151,8 @@ function PendingCard({ r, who, focused, busy, canEdit, onConfirm, onDismiss }: {
 
 function ReplanRequest({ r, who, busy, canEdit, hasDraft, onRequest }: { r: CockpitResponse; who: string | null; busy: boolean; canEdit: boolean; hasDraft: boolean; onRequest: (next: string, scope: "track" | "campaign") => void }) {
   const [next, setNext] = useState(r.owner_next_step ?? r.suggested_next_step ?? "");
-  // A positive reply can change the whole account; anything else, just that person.
-  const [scope, setScope] = useState<"track" | "campaign">(r.classification === "positive" ? "campaign" : "track");
+  // Start with the person who replied. The whole campaign is one click away when a reply really changes the account.
+  const [scope, setScope] = useState<"track" | "campaign">("track");
   if (hasDraft) return null;
   return (
     <div className="rounded-2xl border border-brand-200 bg-brand-50/40 p-4">
@@ -162,8 +163,8 @@ function ReplanRequest({ r, who, busy, canEdit, hasDraft, onRequest }: { r: Cock
           <textarea value={next} onChange={(e) => setNext(e.target.value)} rows={2} placeholder="What do you want to happen next? For example: book a call next week, bring in the CFO." className="mt-3 w-full rounded-xl border border-line bg-white p-3 text-sm" />
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <select value={scope} onChange={(e) => setScope(e.target.value as "track" | "campaign")} className="rounded-xl border border-line bg-white px-3 py-2 text-sm">
+              <option value="track">Just {who ?? "this contact"} (faster)</option>
               <option value="campaign">Whole campaign</option>
-              <option value="track">Just this contact (faster)</option>
             </select>
             <Button disabled={busy} onClick={() => onRequest(next, scope)} className="ml-auto"><Sparkles size={16} /> {busy ? "Re-planning..." : "Re-plan with Claude"}</Button>
           </div>
@@ -188,10 +189,13 @@ function ReplanDraft({ draft, nameOf, busy, canEdit, onApply, onRegenerate }: { 
     byContact.set(id, [...(byContact.get(id) ?? []), r]);
   }
   const touched = [...byContact.entries()].filter(([, rs]) => rs.some((x) => x.kind !== "kept"));
-  const [picked, setPicked] = useState<string[]>(touched.map(([id]) => id));
+  // Errors stop one contact's steps from being applied. Claude's advice is for reading and never blocks.
+  const { errors, advice } = splitFindings(draft.claude_output?.validated?.blocking ?? []);
+  const blocked = blockedContacts(errors);
+  const [picked, setPicked] = useState<string[]>(touched.map(([id]) => id).filter((id) => !blocked.contacts.has(id)));
   const sum = diffSummary(rows);
   const stale = draft.state === "stale";
-  const blocking = draft.claude_output?.validated?.blocking ?? [];
+  const planErrors = errors.filter((e) => !e.contactId);
 
   return (
     <div className={cn("rounded-2xl border p-4", stale ? "border-amber-300 bg-amber-50/50" : "border-brand-200 bg-white")}>
@@ -201,16 +205,24 @@ function ReplanDraft({ draft, nameOf, busy, canEdit, onApply, onRegenerate }: { 
       </div>
       {draft.claude_output?.output?.change_summary && <p className="mt-1 text-sm text-ink-700">{draft.claude_output.output.change_summary}</p>}
       {stale && <p className="mt-2 rounded-xl bg-amber-100 px-3 py-2 text-sm text-amber-800">A new reply came in after this plan was made. Regenerate so it reflects everything.</p>}
-      {blocking.map((b, i) => <p key={i} className="mt-2 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{b.text}</p>)}
+      {planErrors.map((b, i) => <p key={i} role="alert" className="mt-2 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{b.text}</p>)}
+      {advice.length ? (
+        <details className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <summary className="cursor-pointer font-medium">{advice.length} note{advice.length === 1 ? "" : "s"} from Claude to be aware of</summary>
+          <ul className="mt-2 list-disc space-y-1 pl-5">{advice.map((b, i) => <li key={i}>{b.text}</li>)}</ul>
+          <p className="mt-2 text-xs text-amber-800">These do not stop you from applying the plan.</p>
+        </details>
+      ) : null}
 
       <div className="mt-3 grid gap-3">
         {touched.map(([contactId, rs]) => (
           <div key={contactId} className="rounded-xl border border-line p-3">
             <label className="flex items-center gap-2 text-sm font-medium">
-              <input type="checkbox" className="accent-brand-500" checked={picked.includes(contactId)} disabled={stale || !canEdit}
+              <input type="checkbox" className="accent-brand-500" checked={picked.includes(contactId)} disabled={stale || !canEdit || blocked.contacts.has(contactId)}
                 onChange={(e) => setPicked((p) => (e.target.checked ? [...p, contactId] : p.filter((x) => x !== contactId)))} />
               {nameOf(contactId) ?? "Contact"}
             </label>
+            {errors.filter((e) => e.contactId === contactId).map((e, i) => <p key={i} role="alert" className="mt-1.5 rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs text-rose-700">{e.text} This contact cannot be applied until it is fixed.</p>)}
             <ul className="mt-2 grid gap-1.5 text-sm">
               {rs.filter((x) => x.kind !== "kept").map((x, i) => (
                 <li key={i} className="flex flex-wrap items-center gap-2">
@@ -234,7 +246,7 @@ function ReplanDraft({ draft, nameOf, busy, canEdit, onApply, onRegenerate }: { 
       {canEdit && (
         <div className="mt-3 flex flex-wrap justify-end gap-2">
           <Button variant="secondary" disabled={!!busy} onClick={onRegenerate}><Sparkles size={16} /> {busy === "replan" ? "Re-planning..." : "Regenerate"}</Button>
-          {!stale && <Button disabled={!!busy || blocking.length > 0 || (touched.length > 0 && picked.length === 0)} onClick={() => onApply(picked.length === touched.length ? undefined : picked)}><Check size={16} /> {busy === "apply" ? "Applying..." : picked.length === touched.length ? "Apply all" : `Apply ${picked.length}`}</Button>}
+          {!stale && <Button disabled={!!busy || blocked.wholePlan || (touched.length > 0 && picked.length === 0)} onClick={() => onApply(picked.length === touched.length ? undefined : picked)}><Check size={16} /> {busy === "apply" ? "Applying..." : picked.length === touched.length ? "Apply all" : `Apply ${picked.length}`}</Button>}
         </div>
       )}
     </div>
