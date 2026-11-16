@@ -13,7 +13,7 @@ const CHIP: Record<string, { label: string; cls: string }> = {
 export function LinkedInActivity({ rows }: { rows: LinkedInEventRow[] }) {
   return (
     <Card className="p-5 md:p-6">
-      <h2 className="text-lg font-semibold">LinkedIn activity</h2>
+      <h2 className="sr-only">LinkedIn activity</h2>
       <p className="mt-0.5 text-sm text-ink-500">What the mail scan did with accepted invites and messages. People who are not in a live campaign are listed and left alone.</p>
       {rows.length === 0 ? (
         <p className="mt-4 text-sm text-ink-500">Nothing yet. Accepted invites show here within 15 minutes of LinkedIn emailing you.</p>

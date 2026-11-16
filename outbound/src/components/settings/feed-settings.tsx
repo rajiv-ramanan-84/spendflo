@@ -1,4 +1,4 @@
-import { Radio } from "lucide-react";
+
 import { Card } from "@/components/ui/card";
 
 type Props = {
@@ -14,7 +14,7 @@ const when = (iso: string) => new Date(iso).toLocaleString("en-US", { month: "sh
 export function FeedSettings(p: Props) {
   return (
     <Card className="p-5 md:p-6">
-      <div className="flex items-center gap-2"><Radio size={18} className="text-brand-500" /><h2 className="text-lg font-semibold">Vendor signals</h2></div>
+      <h2 className="sr-only">Tapistro signals</h2>
       {!p.configured ? (
         <p className="mt-2 text-sm text-ink-500">Not connected. Add GOOGLE_SIGNALS_SHEET_ID in Vercel and share the feed sheet with the service account to turn it on.</p>
       ) : (

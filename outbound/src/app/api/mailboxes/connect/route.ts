@@ -8,10 +8,10 @@ export async function GET(req: NextRequest) {
   const user = await requireUser();
   const db = supabaseAdmin();
   const id = req.nextUrl.searchParams.get("mailbox");
-  if (!db || !id || !user.id) return NextResponse.redirect(new URL("/settings?mailbox_error=missing#mailboxes", req.url));
+  if (!db || !id || !user.id) return NextResponse.redirect(new URL("/settings/team/mailboxes?mailbox_error=missing", req.url));
   const { data: m } = await db.from("mailboxes").select("id, email").eq("id", id).maybeSingle();
-  if (!m) return NextResponse.redirect(new URL("/settings?mailbox_error=not_found#mailboxes", req.url));
+  if (!m) return NextResponse.redirect(new URL("/settings/team/mailboxes?mailbox_error=not_found", req.url));
   const { data: me } = await db.from("users").select("send_mailbox_id").eq("id", user.id).single();
-  if (!canEditAdminSettings(user) && me?.send_mailbox_id !== m.id) return NextResponse.redirect(new URL("/settings?mailbox_error=forbidden#mailboxes", req.url));
+  if (!canEditAdminSettings(user) && me?.send_mailbox_id !== m.id) return NextResponse.redirect(new URL("/settings/team/mailboxes?mailbox_error=forbidden", req.url));
   return NextResponse.redirect(mailboxConsentUrl({ mailboxId: m.id, userId: user.id, email: m.email }));
 }

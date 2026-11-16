@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { SaveBar, toast } from "@/components/settings/kit";
 
 type Props = {
   channelId: string;
@@ -24,26 +25,30 @@ export function SlackSettings(p: Props) {
   const [morningTime, setMorningTime] = useState(p.morningTime);
   const [enabled, setEnabled] = useState(p.enabled);
   const [handles, setHandles] = useState(Object.fromEntries(p.users.map((u) => [u.id, u.slackUserId])));
+  const snap = () => JSON.stringify({ channelId, morningTime, enabled, handles });
+  const [base, setBase] = useState(() => JSON.stringify({ channelId: p.channelId, morningTime: p.morningTime, enabled: p.enabled, handles: Object.fromEntries(p.users.map((u) => [u.id, u.slackUserId])) }));
   const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
   async function call(kind: "save" | "test") {
     setBusy(kind);
-    setMsg(null);
+    setErr(null);
     const res = kind === "save"
       ? await fetch("/api/settings/slack", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ channelId, morningTime, enabled, handles: Object.entries(handles).map(([userId, slackUserId]) => ({ userId, slackUserId })) }) })
       : await fetch("/api/settings/slack/test", { method: "POST" });
     const data = await res.json();
     setBusy(null);
-    setMsg(data.ok ? { ok: true, text: kind === "save" ? "Saved." : "Test post sent. Check the channel." } : { ok: false, text: data.error });
-    if (data.ok) router.refresh();
+    if (!data.ok) return kind === "save" ? setErr(data.error) : toast(data.error, "error");
+    if (kind === "save") setBase(snap());
+    toast(kind === "save" ? "Slack settings saved." : "Test post sent. Check the channel.");
+    if (kind === "save") router.refresh();
   }
 
   return (
     <Card className="p-5 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Slack</h2>
+          <h2 className="sr-only">Slack</h2>
           <p className="mt-0.5 text-sm text-ink-500">One shared channel. Morning plan threaded per person, reply alerts with an @mention.</p>
         </div>
         <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${p.connected ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
@@ -85,12 +90,11 @@ export function SlackSettings(p: Props) {
         </div>
       </div>
 
-      {msg && <p className={`mt-4 rounded-xl px-3 py-2 text-sm ${msg.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{msg.text}</p>}
       {p.canEdit ? (
-        <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <Button variant="secondary" disabled={!!busy} onClick={() => call("test")}><Send size={16} /> {busy === "test" ? "Sending..." : "Send test post"}</Button>
-          <Button disabled={!!busy} onClick={() => call("save")}><Check size={16} /> {busy === "save" ? "Saving..." : "Save"}</Button>
-        </div>
+        <>
+          <div className="mt-5 flex justify-end"><Button variant="secondary" disabled={!!busy} onClick={() => call("test")}><Send size={16} /> {busy === "test" ? "Sending..." : "Send test post"}</Button></div>
+          <SaveBar dirty={snap() !== base} busy={busy === "save"} error={err} onSave={() => call("save")} onDiscard={() => { const b = JSON.parse(base); setChannelId(b.channelId); setMorningTime(b.morningTime); setEnabled(b.enabled); setHandles(b.handles); setErr(null); }} />
+        </>
       ) : <p className="mt-4 text-xs text-ink-400">Admins can change these.</p>}
     </Card>
   );

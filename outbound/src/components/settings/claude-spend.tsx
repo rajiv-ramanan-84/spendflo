@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SaveBar, toast } from "@/components/settings/kit";
 import { DRAFT_MODELS } from "@/lib/claude/models";
 
 type Props = { spent: number; pending: number; budget: number; drafts: number; autoDraft: "off" | "a" | "ab"; defaultModel: string; tierAModel: string; bulkMax: number; canEdit: boolean };
@@ -22,25 +21,29 @@ export function ClaudeSpend(p: Props) {
   const [defaultModel, setDefaultModel] = useState(p.defaultModel);
   const [tierAModel, setTierAModel] = useState(p.tierAModel);
   const [bulkMax, setBulkMax] = useState(String(p.bulkMax));
+  const [base, setBase] = useState({ autoDraft: p.autoDraft, budget: String(p.budget), defaultModel: p.defaultModel, tierAModel: p.tierAModel, bulkMax: String(p.bulkMax) });
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const cur = { autoDraft, budget, defaultModel, tierAModel, bulkMax };
+  const changed = (Object.keys(cur) as Array<keyof typeof cur>).filter((k) => cur[k] !== base[k]).length;
   const used = p.spent + p.pending;
   const pct = p.budget > 0 ? Math.min(100, Math.round((used / p.budget) * 100)) : 100;
 
   async function save() {
     setBusy(true);
-    setMsg(null);
+    setErr(null);
     const res = await fetch("/api/settings/claude", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ autoDraft, budget: Number(budget), defaultModel, tierAModel, bulkMax: Number(bulkMax) }) });
     const data = await res.json().catch(() => ({ ok: false, error: "No response" }));
     setBusy(false);
-    if (!data.ok) return setMsg({ ok: false, text: data.error });
-    setMsg({ ok: true, text: data.dropped ? `Saved. ${data.dropped} queued draft${data.dropped === 1 ? "" : "s"} nobody asked for were dropped.` : "Saved." });
+    if (!data.ok) return setErr(data.error);
+    setBase({ ...cur });
+    toast(data.dropped ? `Saved. ${data.dropped} queued draft${data.dropped === 1 ? "" : "s"} nobody asked for were dropped.` : "Drafting settings saved.");
     router.refresh();
   }
 
   return (
     <Card className="p-5 md:p-6">
-      <h2 className="text-lg font-semibold">Claude spend</h2>
+      <h2 className="sr-only">Drafting and models</h2>
       <p className="mt-1 text-sm text-ink-500">Drafts are the only real cost. Sorting a reply costs a fraction of a cent and never stops. Drafts run through the half-price batch service.</p>
 
       <div className="mt-4">
@@ -85,10 +88,7 @@ export function ClaudeSpend(p: Props) {
         </label>
       </div>
 
-      {msg ? <p className={`mt-4 rounded-xl px-3 py-2 text-sm ${msg.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{msg.text}</p> : null}
-      {p.canEdit ? (
-        <div className="mt-4 flex justify-end"><Button onClick={save} disabled={busy}><Check size={16} /> {busy ? "Saving..." : "Save"}</Button></div>
-      ) : <p className="mt-4 text-xs text-ink-400">Admins can change these.</p>}
+      {p.canEdit ? <SaveBar dirty={changed > 0} busy={busy} count={changed} error={err} onSave={save} onDiscard={() => { setAutoDraft(base.autoDraft); setBudget(base.budget); setDefaultModel(base.defaultModel); setTierAModel(base.tierAModel); setBulkMax(base.bulkMax); setErr(null); }} /> : <p className="mt-4 text-xs text-ink-400">Admins can change these.</p>}
     </Card>
   );
 }

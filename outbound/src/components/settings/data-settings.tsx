@@ -41,7 +41,7 @@ export function DataSettings(p: Props) {
     <Card id="data" className="scroll-mt-24 p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <h2 className="text-lg font-semibold">Data: sheet sync</h2>
+          <h2 className="sr-only">Sheet sync</h2>
           <p className="mt-1 text-sm text-ink-500">
             The Coupa account book syncs every hour. Rows the app could not use are listed below with how to fix them. Fix them in the sheet; they clear on the next sync.
           </p>

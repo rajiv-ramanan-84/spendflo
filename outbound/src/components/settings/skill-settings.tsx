@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileUp, Sparkles } from "lucide-react";
+import {Download, FileUp} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -41,10 +41,7 @@ export function SkillSettings(p: Props) {
     <Card className="p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <div className="flex items-center gap-2">
-            <Sparkles size={18} className="text-brand-500" />
-            <h2 className="text-lg font-semibold">Claude campaign skill</h2>
-          </div>
+          <h2 className="sr-only">Campaign playbook</h2>
           <p className="mt-1 text-sm text-ink-500">
             The playbook Claude follows for every draft, re-plan and reply. Change the tone, email rules or examples freely: the app enforces the output format on its own, so wording changes cannot break it.
           </p>
