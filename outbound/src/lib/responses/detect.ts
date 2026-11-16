@@ -5,6 +5,7 @@ import { markDone } from "@/lib/steps/execute";
 import type { SessionUser } from "@/lib/auth/session";
 import { addressOf, bodyText, bouncedAddress, header, isBounce, matchSender, stripQuoted } from "./parse";
 import { recordDetected } from "./service";
+import { scanLinkedIn } from "@/lib/linkedin/service";
 
 /**
  * Gmail check (PRD section 11), every 15 minutes during working hours.
@@ -80,11 +81,19 @@ async function checkInbound(
   accounts: Array<{ id: string; domain: string | null }>,
   lookback: number,
 ) {
-  const ids = await listMessageIds(token, `in:inbox newer_than:${lookback}d -from:${ownEmail}`, 100);
-  if (!ids.length) return 0;
+  // LinkedIn notices (accepted invites, messages) are read in their own pass so they never crowd out replies.
+  let linkedin = 0;
+  try {
+    const li = await scanLinkedIn(db, token, ownEmail, lookback);
+    linkedin = li.messages;
+  } catch (e) {
+    console.error("LinkedIn scan failed:", e instanceof Error ? e.message : e);
+  }
+  const ids = await listMessageIds(token, `in:inbox newer_than:${lookback}d -from:${ownEmail} -from:linkedin.com`, 100);
+  if (!ids.length) return linkedin;
   const { data: seen } = await db.from("responses").select("gmail_message_id").in("gmail_message_id", ids);
   const known = new Set((seen ?? []).map((r) => r.gmail_message_id));
-  let n = 0;
+  let n = linkedin;
   for (const id of ids.filter((x) => !known.has(x))) {
     const m = await getMessage(token, id);
     if (!m) continue;

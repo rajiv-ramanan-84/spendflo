@@ -17,6 +17,8 @@ import { monthSpend } from "@/lib/claude/budget";
 import { ClaudeSpend } from "@/components/settings/claude-spend";
 import { loadMailboxSettings } from "@/lib/google/mailbox-settings";
 import { MailboxSettings } from "@/components/settings/mailbox-settings";
+import { SetupChecklist } from "@/components/settings/setup-checklist";
+import { loadChecklist } from "@/lib/checklist/service";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +36,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const [slack, skill, data, spend, auto, mail, writing, feed] = db
     ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft, default_model, tier_a_model, caps").maybeSingle(), loadMailboxSettings(db), Promise.all([loadWritingRules(db), loadWritingSettings(db)]), loadFeedSettings(db)])
     : [null, null, null, null, null, null, null, null];
+  const checklist = db ? await loadChecklist(db, user) : null;
   return (
     <>
       <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
       <div className="grid gap-5">
+        {checklist && checklist.total > 0 && <SetupChecklist items={checklist.open} total={checklist.total} />}
         {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
         {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} defaultModel={(auto?.data?.default_model as string | undefined) ?? "claude-sonnet-5-5"} tierAModel={(auto?.data?.tier_a_model as string | undefined) ?? "claude-opus-5-5"} bulkMax={Number((auto?.data?.caps as Record<string, number> | null)?.bulk_generate_max) || DEFAULT_BULK_MAX} canEdit={canEditAdminSettings(user)} />}
