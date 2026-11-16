@@ -3,6 +3,9 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SessionUser } from "@/lib/auth/session";
 import { todayIn } from "@/lib/calendar/dates";
+import { loadCalendarContext } from "@/lib/calendar/context";
+import { loadToday } from "@/lib/data/today";
+import { VIEWS, inView } from "@/lib/tasks/view";
 import type { AgentConfig } from "./config";
 import { monthTotals } from "./store";
 
@@ -131,19 +134,22 @@ export const BUILTIN_TOOLS: AgentTool[] = [
   },
   {
     name: "my_tasks",
-    description: "The signed-in person's open steps due today or earlier, plus anything due within the next few days.",
-    schema: z.object({ days_ahead: z.number().optional() }),
-    run: async ({ db, user }, i: { days_ahead?: number }) => {
+    description: "The Tasks page, exactly as the person sees it: counts for Overdue, Today, Next 7 days and All open, replies waiting, and the tasks in a view. Only steps of live campaigns with an active track count, as on the page. Use scope team for everyone's tasks.",
+    schema: z.object({ view: z.enum(["overdue", "today", "next7", "all"]).optional(), scope: z.enum(["mine", "team"]).optional(), limit: z.number().optional() }),
+    run: async ({ db, user }, i: { view?: "overdue" | "today" | "next7" | "all"; scope?: "mine" | "team"; limit?: number }) => {
       const today = todayIn();
-      const end = new Date(Date.parse(`${today}T00:00:00Z`) + lim(i.days_ahead, 0, 14) * 86400000).toISOString().slice(0, 10);
-      const { data } = await db.from("steps").select("channel, due_date, status, subject, contact_id, campaign_id").eq("assignee_id", user.id!).in("status", ["upcoming", "due", "overdue"]).lte("due_date", end).is("deleted_at", null).order("due_date").limit(40);
-      const rows = data ?? [];
-      const [{ data: people }, { data: camps }] = await Promise.all([db.from("contacts").select("id, full_name").in("id", rows.map((r) => r.contact_id as string)), db.from("campaigns").select("id, account_id").in("id", rows.map((r) => r.campaign_id as string))]);
-      const { data: accts } = await db.from("accounts").select("id, name").in("id", (camps ?? []).map((c) => c.account_id as string));
-      const pn = new Map((people ?? []).map((p) => [p.id as string, p.full_name as string]));
-      const an = new Map((accts ?? []).map((a) => [a.id as string, a.name as string]));
-      const cn = new Map((camps ?? []).map((c) => [c.id as string, an.get(c.account_id as string) ?? null]));
-      return { today, count: rows.length, tasks: rows.map((r) => ({ due: r.due_date, status: r.status, channel: r.channel, contact: pn.get(r.contact_id as string) ?? null, account: cn.get(r.campaign_id as string) ?? null, subject: r.subject })) };
+      const year = Number(today.slice(0, 4));
+      const ctx = await loadCalendarContext(db, [year, year + 1]);
+      const data = await loadToday(db, { userId: user.id, scope: i.scope ?? "mine", today, ctx });
+      const tasks = data.steps;
+      const counts = Object.fromEntries(VIEWS.map((v) => [v.id, tasks.filter((t) => inView(t, v.id)).length]));
+      // With no view asked for, show what needs attention now: overdue first, then today.
+      const wanted = i.view ? tasks.filter((t) => inView(t, i.view!)) : tasks.filter((t) => t.bucket === "overdue" || t.bucket === "today");
+      return {
+        today, scope: i.scope ?? "mine", tabs: counts, replies_waiting: data.replies.length, accounts_to_start_now: data.urgent.map((u) => ({ account: u.name, level: u.level, start_by: u.startBy })),
+        showing: i.view ?? "overdue and today", count: wanted.length,
+        tasks: wanted.slice(0, lim(i.limit, 25, 50)).map((t) => ({ bucket: t.bucket, due: t.due_date, state: t.state, reason: t.state_reason, channel: t.channel, contact: t.contact.full_name, account: t.account.name, tier: t.account.tier, subject: t.subject })),
+      };
     },
   },
   {
