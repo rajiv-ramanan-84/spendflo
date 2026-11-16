@@ -39,6 +39,8 @@ export type DetectedInput = {
   accountId: string;
   contactId: string | null;
   bounce?: boolean;
+  /** Where it arrived. Email unless a LinkedIn notice says otherwise. */
+  channel?: "email" | "linkedin_message";
 };
 
 /** Saves a detected reply as a pending card, classified by Claude when possible. Idempotent per Gmail message. */
@@ -84,7 +86,7 @@ export async function recordDetected(db: SupabaseClient, d: DetectedInput) {
     track_id: track?.id ?? null,
     account_id: d.accountId,
     contact_id: d.contactId,
-    channel: "email",
+    channel: d.channel ?? "email",
     received_at: d.receivedAt,
     source: "detected",
     classification,
