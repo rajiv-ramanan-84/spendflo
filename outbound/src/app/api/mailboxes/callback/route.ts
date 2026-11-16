@@ -5,7 +5,7 @@ import { finishMailboxConsent, readState } from "@/lib/google/mailbox-oauth";
 import { encryptToken, parseKey } from "@/lib/crypto/tokens";
 import { logActivity } from "@/lib/activity/log";
 
-const back = (req: NextRequest, q: string) => NextResponse.redirect(new URL(`/settings?${q}#mailboxes`, req.url));
+const back = (req: NextRequest, q: string) => NextResponse.redirect(new URL(`/settings/team/mailboxes?${q}`, req.url));
 
 export async function GET(req: NextRequest) {
   const user = await requireUser();

@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <TopNav />
           </div>
           <div className="flex items-center gap-5">
-            <Link href="/settings#data" className={`hidden text-xs lg:inline ${sync && !sync.ok ? "text-rose-600" : "text-ink-400"} hover:text-ink-700`}>
+            <Link href="/settings/data/sync" className={`hidden text-xs lg:inline ${sync && !sync.ok ? "text-rose-600" : "text-ink-400"} hover:text-ink-700`}>
               {sync ? (sync.ok ? `Sheet synced ${ago(sync.at)}` : `Sheet sync failed ${ago(sync.at)}`) : "Sheet not synced yet"}
             </Link>
             <UserMenu user={user} />

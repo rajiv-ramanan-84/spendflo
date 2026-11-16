@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/settings/kit";
 import type { IntegrationRow, ToolRow } from "@/lib/agent/integrations";
 
 const input = "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas";
@@ -43,6 +44,16 @@ export function IntegrationsSettings({ integrations, tools, canEdit }: { integra
   const [form, setForm] = useState({ preset: "tapistro", name: "Tapistro", url: "", token: "" });
   const [open, setOpen] = useState<string | null>(null);
   const [newToken, setNewToken] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<"all" | "review" | "read" | "approve" | "blocked">("all");
+  const [search, setSearch] = useState("");
+
+  async function bulk(list: ToolRow[], level: "keep" | "blocked") {
+    setBusy("bulk");
+    for (const t of list) await call(`/api/integrations/tools/${t.id}`, "PATCH", { level: level === "keep" ? t.level : "blocked", credits: t.credits_estimate });
+    setBusy(null);
+    toast(level === "keep" ? `${list.length} tools accepted as suggested.` : `${list.length} tools blocked.`);
+    router.refresh();
+  }
 
   async function run(key: string, fn: () => Promise<{ ok: boolean; error?: string; result?: { tools: number; added: number; changed: number } }>, ok: string) {
     setBusy(key); setMsg(null);
@@ -54,7 +65,7 @@ export function IntegrationsSettings({ integrations, tools, canEdit }: { integra
 
   return (
     <Card className="p-5 md:p-6">
-      <h2 className="text-lg font-semibold">Integrations</h2>
+      <h2 className="sr-only">Integrations</h2>
       <p className="mt-0.5 max-w-2xl text-sm text-ink-500">Tools the assistant may use, such as Tapistro. Each starts switched off. Test the connection, review every tool, then switch it on. A tool the server later changes is blocked again until you look at it. Only remote https servers work.</p>
 
       <div className="mt-5 grid gap-4">
@@ -80,10 +91,33 @@ export function IntegrationsSettings({ integrations, tools, canEdit }: { integra
               {exp ? (
                 <div className="mt-4">
                   {mine.length === 0 ? <p className="text-sm text-ink-500">Test the connection to load the tools.</p> : (
-                    <table className="w-full text-sm">
-                      <thead className="text-left text-xs text-ink-400"><tr><th className="pb-1 font-medium">Tool</th><th className="pb-1 font-medium">Allowed</th><th className="pb-1 font-medium">Credits per call</th><th className="pb-1 font-medium">Status</th></tr></thead>
-                      <tbody className="divide-y divide-line">{mine.map((t) => <Tool key={t.id + t.level + String(t.needs_review)} t={t} canEdit={canEdit} onDone={(m) => { if (m) setMsg({ ok: false, text: m }); else router.refresh(); }} />)}</tbody>
-                    </table>
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {([["all", "All", mine.length], ["review", "To review", pending], ["read", "Read", mine.filter((t) => t.level === "read").length], ["approve", "Needs approval", mine.filter((t) => t.level === "approve").length], ["blocked", "Blocked", mine.filter((t) => t.level === "blocked").length]] as const).map(([f, label, n]) => (
+                            <button key={f} onClick={() => setFilter(f)} className={`rounded-full border px-3 py-1 text-xs font-medium ${filter === f ? "border-ink-900 bg-ink-900 text-white" : "border-line text-ink-700 hover:bg-canvas"}`}>{label} {n}</button>
+                          ))}
+                        </div>
+                        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tools" aria-label="Search tools" className="w-48 rounded-xl border border-line bg-white px-3 py-1.5 text-sm" />
+                      </div>
+                      {pending > 0 && canEdit ? (
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
+                          <span>{pending} tool{pending === 1 ? " is" : "s are"} waiting for review. Nothing here is used until you confirm it.</span>
+                          <span className="flex gap-2">
+                            <Button disabled={busy === "bulk"} onClick={() => void bulk(mine.filter((t) => t.needs_review), "keep")}>Accept suggestions</Button>
+                            <Button variant="secondary" disabled={busy === "bulk"} onClick={() => void bulk(mine.filter((t) => t.needs_review), "blocked")}>Block them all</Button>
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="mt-3 max-h-[560px] overflow-auto">
+                        <table className="w-full text-sm">
+                          <thead className="sticky top-0 bg-white text-left text-xs text-ink-400"><tr><th className="pb-1 font-medium">Tool</th><th className="pb-1 font-medium">Allowed</th><th className="pb-1 font-medium">Credits per call</th><th className="pb-1 font-medium">Status</th></tr></thead>
+                          <tbody className="divide-y divide-line">
+                            {mine.filter((t) => (filter === "all" || (filter === "review" ? t.needs_review : t.level === filter)) && (!search || `${t.name} ${t.description ?? ""}`.toLowerCase().includes(search.toLowerCase()))).map((t) => <Tool key={t.id + t.level + String(t.needs_review)} t={t} canEdit={canEdit} onDone={(m) => { if (m) setMsg({ ok: false, text: m }); else router.refresh(); }} />)}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                   {canEdit ? (
                     <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-line pt-4">

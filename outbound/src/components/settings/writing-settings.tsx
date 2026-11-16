@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PenLine } from "lucide-react";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -17,6 +17,7 @@ type Props = {
   senders: Array<{ id: string; name: string }>;
   history: Record<string, Hist>;
   canEdit: boolean;
+  initialTab?: Tab;
 };
 type Tab = "team" | "persona" | "sender" | "founder";
 
@@ -30,7 +31,7 @@ const HINT: Record<Tab, string> = {
 
 export function WritingSettings(p: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("team");
+  const [tab, setTab] = useState<Tab>(p.initialTab ?? "team");
   const [persona, setPersona] = useState(p.personas[0].key);
   const [sender, setSender] = useState(p.senders[0]?.id ?? "");
   const key = tab === "team" ? "team" : tab === "persona" ? persona : sender;
@@ -57,12 +58,12 @@ export function WritingSettings(p: Props) {
 
   return (
     <Card className="p-5 md:p-6">
-      <div className="flex items-center gap-2"><PenLine size={18} className="text-brand-500" /><h2 className="text-lg font-semibold">Writing rules</h2></div>
+      <h2 className="sr-only">Writing rules</h2>
       <p className="mt-1 max-w-2xl text-sm text-ink-500">Standing instructions Claude follows when it writes. Narrower wins: a persona rule refines the team rule, and the sender&apos;s voice sets the tone.</p>
 
       <div className="mt-4 inline-flex rounded-xl bg-canvas p-1" role="tablist">
         {([["team", "Team"], ["persona", "By persona"], ["sender", "By sender"], ["founder", "Founder outreach"]] as const).map(([t, label]) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => { setTab(t); setMsg(null); }} className={cn("rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors", tab === t ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900")}>{label}</button>
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => { setTab(t); setMsg(null); window.history.replaceState(null, "", t === "team" ? "/settings/writing/rules" : `/settings/writing/rules?tab=${t}`); }} className={cn("rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors", tab === t ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900")}>{label}</button>
         ))}
       </div>
 

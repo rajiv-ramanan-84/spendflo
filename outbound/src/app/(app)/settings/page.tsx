@@ -1,91 +1,21 @@
-import { Card } from "@/components/ui/card";
-import { PageHeader } from "@/components/ui/page-header";
-import { canAssignAccounts, canEditAdminSettings, requireUser } from "@/lib/auth/session";
-import { supabaseAdmin } from "@/lib/supabase/admin";
-import { loadSlackSettings } from "@/lib/slack/settings";
-import { SlackSettings } from "@/components/settings/slack-settings";
-import { loadSkillSettings } from "@/lib/claude/skill-settings";
-import { DEFAULT_BULK_MAX } from "@/lib/claude/models";
-import { FeedSettings } from "@/components/settings/feed-settings";
-import { loadFeedSettings } from "@/lib/signals-feed/settings";
-import { WritingSettings } from "@/components/settings/writing-settings";
-import { loadWritingRules, loadWritingSettings } from "@/lib/writing/rules";
-import { SkillSettings } from "@/components/settings/skill-settings";
-import { loadDataSettings } from "@/lib/data/data-quality";
-import { DataSettings } from "@/components/settings/data-settings";
-import { monthSpend } from "@/lib/claude/budget";
-import { ClaudeSpend } from "@/components/settings/claude-spend";
-import { loadMailboxSettings } from "@/lib/google/mailbox-settings";
-import { MailboxSettings } from "@/components/settings/mailbox-settings";
-import { LinkedInActivity, type LinkedInEventRow } from "@/components/settings/linkedin-activity";
-import { AgentSettings } from "@/components/settings/agent-settings";
-import { IntegrationsSettings } from "@/components/settings/integrations-settings";
-import { loadAgentConfig, monthTotals } from "@/lib/agent/store";
-import { listIntegrations } from "@/lib/agent/integrations";
+import { Suspense } from "react";
+import { PageFrame } from "@/components/settings/page-frame";
+import { Overview } from "@/components/settings/overview";
 import { SetupChecklist } from "@/components/settings/setup-checklist";
+import { LegacyHashRedirect } from "@/components/settings/legacy-redirect";
 import { loadChecklist } from "@/lib/checklist/service";
+import { loadHealth } from "@/lib/settings/health-load";
+import { openSettings } from "@/lib/settings/open";
 
-export const dynamic = "force-dynamic";
-
-const SECTIONS = [
-  { title: "Users", body: "Add or deactivate teammates, set roles and out-of-office." },
-  { title: "Calendars and holidays", body: "US federal holidays, extra company days, quiet periods." },
-  { title: "Proof points", body: "The approved proof points Claude may cite." },
-  { title: "Caps and priority", body: "Touch caps, daily load and Focus Today weights." },
-];
-
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mailbox_connected?: string; mailbox_error?: string }> }) {
-  const sp = await searchParams;
-  const user = await requireUser();
-  const db = supabaseAdmin();
-  const [slack, skill, data, spend, auto, mail, writing, feed] = db
-    ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft, default_model, tier_a_model, caps").maybeSingle(), loadMailboxSettings(db), Promise.all([loadWritingRules(db), loadWritingSettings(db)]), loadFeedSettings(db)])
-    : [null, null, null, null, null, null, null, null];
-  const events: LinkedInEventRow[] = [];
-  if (db) {
-    const { data: ev } = await db.from("linkedin_events").select("id, kind, status, person_name, headline, detail, received_at, account_id").order("received_at", { ascending: false }).limit(15);
-    const ids = [...new Set((ev ?? []).map((e) => e.account_id as string | null).filter((v): v is string => !!v))];
-    const { data: accts } = ids.length ? await db.from("accounts").select("id, name").in("id", ids) : { data: [] as Array<{ id: string; name: string }> };
-    const nameOf = new Map((accts ?? []).map((a) => [a.id as string, a.name as string]));
-    for (const e of ev ?? []) events.push({ id: e.id, kind: e.kind, status: e.status, person_name: e.person_name, headline: e.headline, detail: e.detail, received_at: e.received_at, account_name: e.account_id ? nameOf.get(e.account_id as string) ?? null : null });
-  }
-  const agent = db ? await Promise.all([loadAgentConfig(db), monthTotals(db), listIntegrations(db)]) : null;
-  const checklist = db ? await loadChecklist(db, user) : null;
+export default async function SettingsOverview() {
+  const { user, db, item } = await openSettings("overview");
+  if (!db) return null;
+  const [tiles, checklist] = await Promise.all([loadHealth(db, user), loadChecklist(db, user)]);
   return (
-    <>
-      <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
-      <div className="grid gap-5">
-        {checklist && checklist.total > 0 && <SetupChecklist items={checklist.open} total={checklist.total} />}
-        {agent && <AgentSettings cfg={agent[0]} usd={agent[1].usd} credits={agent[1].credits} canEdit={canEditAdminSettings(user)} />}
-        {agent && <IntegrationsSettings integrations={agent[2].integrations} tools={agent[2].tools} canEdit={canEditAdminSettings(user)} />}
-        {db && <LinkedInActivity rows={events} />}
-        {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
-        {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
-        {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} defaultModel={(auto?.data?.default_model as string | undefined) ?? "claude-sonnet-5-5"} tierAModel={(auto?.data?.tier_a_model as string | undefined) ?? "claude-opus-5-5"} bulkMax={Number((auto?.data?.caps as Record<string, number> | null)?.bulk_generate_max) || DEFAULT_BULK_MAX} canEdit={canEditAdminSettings(user)} />}
-        {feed && <FeedSettings {...feed} />}
-        {writing && <WritingSettings rules={writing[0]} {...writing[1]} canEdit={canEditAdminSettings(user)} />}
-        {skill && <SkillSettings {...skill} canEdit={canEditAdminSettings(user)} />}
-        {slack && <SlackSettings {...slack} canEdit={canEditAdminSettings(user)} />}
-        {canEditAdminSettings(user) ? (
-          <Card className="flex flex-wrap items-center justify-between gap-4 p-5 md:p-6">
-            <div className="max-w-2xl">
-              <h2 className="text-lg font-semibold">Backup</h2>
-              <p className="mt-1 text-sm text-ink-500">
-                The free database plan keeps no backups. Download one on the first working day of each month and save it to Google Drive. Accounts and contacts can always be re-synced from the sheet; campaigns, replies and history live only here.
-              </p>
-            </div>
-            <a href="/api/settings/backup" className="inline-flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-ink-900 hover:border-brand-200 hover:bg-brand-50">Download backup</a>
-          </Card>
-        ) : null}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {SECTIONS.map((s) => (
-            <Card key={s.title} className="p-5">
-              <h2 className="text-[15px] font-semibold">{s.title}</h2>
-              <p className="mt-1.5 text-sm text-ink-500">{s.body}</p>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </>
+    <PageFrame item={item}>
+      <Suspense fallback={null}><LegacyHashRedirect /></Suspense>
+      <Overview tiles={tiles} name={user.name} />
+      {checklist.total > 0 ? <SetupChecklist items={checklist.open} total={checklist.total} /> : null}
+    </PageFrame>
   );
 }

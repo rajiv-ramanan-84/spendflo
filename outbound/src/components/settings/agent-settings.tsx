@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { SaveBar, toast } from "@/components/settings/kit";
 import type { AgentConfig } from "@/lib/agent/config";
 import { stateOf } from "@/lib/agent/config";
 
@@ -25,25 +25,29 @@ function Bar({ label, spent, cap, unit, warnPct }: { label: string; spent: numbe
 
 export function AgentSettings({ cfg, usd, credits, canEdit }: { cfg: AgentConfig; usd: number; credits: number; canEdit: boolean }) {
   const router = useRouter();
-  const [v, setV] = useState({ ...cfg });
+  const [base, setBase] = useState<AgentConfig>({ ...cfg });
+  const [v, setV] = useState<AgentConfig>({ ...cfg });
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const changed = (Object.keys(v) as Array<keyof AgentConfig>).filter((k) => v[k] !== base[k]).length;
   const set = <K extends keyof AgentConfig>(k: K, x: AgentConfig[K]) => setV((s) => ({ ...s, [k]: x }));
   const num = (k: keyof AgentConfig) => (e: React.ChangeEvent<HTMLInputElement>) => set(k, (e.target.value === "" ? 0 : Number(e.target.value)) as never);
 
   async function save() {
-    setBusy(true); setMsg(null);
+    setBusy(true); setErr(null);
     const r = await fetch("/api/settings/agent", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ patch: v }) }).then((x) => x.json()).catch(() => ({ ok: false, error: "Network problem" }));
     setBusy(false);
-    setMsg(r.ok ? { ok: true, text: "Saved. Every change is logged." } : { ok: false, text: r.error });
-    if (r.ok) router.refresh();
+    if (!r.ok) return setErr(r.error);
+    setBase({ ...v });
+    toast("Assistant settings saved. The change is in the audit log.");
+    router.refresh();
   }
 
   return (
     <Card className="p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Assistant</h2>
+          <h2 className="sr-only">Assistant</h2>
           <p className="mt-0.5 max-w-2xl text-sm text-ink-500">The chat drawer on every page. It reads your data and uses the integrations below. It proposes changes and spends nothing past these limits. Each month starts fresh.</p>
         </div>
         <label className="flex items-center gap-2 text-sm font-medium">
@@ -72,11 +76,8 @@ export function AgentSettings({ cfg, usd, credits, canEdit }: { cfg: AgentConfig
         </label>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        {canEdit ? <Button onClick={save} disabled={busy}>{busy ? "Saving..." : "Save"}</Button> : <span className="text-sm text-ink-500">Only admins can change these.</span>}
-        <Link href="/agent" className="text-sm text-brand-700 hover:underline">Traces and audit log</Link>
-        {msg ? <span className={`text-sm ${msg.ok ? "text-emerald-700" : "text-rose-600"}`}>{msg.text}</span> : null}
-      </div>
+      {canEdit ? <SaveBar dirty={changed > 0} busy={busy} count={changed} error={err} onSave={save} onDiscard={() => { setV({ ...base }); setErr(null); }} /> : <p className="mt-5 text-sm text-ink-500">Only admins can change these.</p>}
+      <p className="mt-4 text-sm"><Link href="/agent" className="text-brand-700 hover:underline">See traces and the audit log</Link></p>
     </Card>
   );
 }

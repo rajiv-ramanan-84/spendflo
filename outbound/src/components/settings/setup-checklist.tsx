@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Check, ChevronDown, ExternalLink, Undo2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -54,7 +55,7 @@ export function SetupChecklist({ items, total }: { items: ChecklistItem[]; total
                     <div className="mt-2 grid gap-2 text-sm text-ink-600">
                       <p>{it.why}</p>
                       <ol className="ml-4 list-decimal space-y-1 text-ink-500">{it.steps.map((s) => <li key={s}>{s}</li>)}</ol>
-                      {it.link ? <a href={it.link.href} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1 text-sm font-medium text-brand-700 hover:underline">{it.link.label} <ExternalLink className="h-3.5 w-3.5" /></a> : null}
+                      {it.link ? (it.link.href.startsWith("/") ? <Link href={it.link.href} className="inline-flex w-fit items-center gap-1 text-sm font-medium text-brand-700 hover:underline">{it.link.label}</Link> : <a href={it.link.href} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1 text-sm font-medium text-brand-700 hover:underline">{it.link.label} <ExternalLink className="h-3.5 w-3.5" /></a>) : null}
                     </div>
                   ) : null}
                 </div>

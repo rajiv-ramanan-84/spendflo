@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Link2, Mail, Plus, Trash2 } from "lucide-react";
+import {Check, Link2, Plus, Trash2} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -44,7 +44,7 @@ export function MailboxSettings(p: Props) {
 
   return (
     <Card id="mailboxes" className="scroll-mt-24 p-5 md:p-6">
-      <div className="flex items-center gap-2"><Mail size={18} className="text-brand-500" /><h2 className="text-lg font-semibold">Mailboxes</h2></div>
+      <h2 className="sr-only">Mailboxes</h2>
       <p className="mt-1 max-w-3xl text-sm text-ink-500">Everyone signs in as themselves. Their accounts&apos; emails go out from their own Gmail, or from a shared mailbox (for example sid@ run by Mouli, written as Sid). A shared mailbox can&apos;t sign in; it is connected here once.</p>
 
       {msg ? <p className={`mt-4 rounded-xl px-3 py-2 text-sm ${msg.ok ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`}>{msg.text}</p> : null}
