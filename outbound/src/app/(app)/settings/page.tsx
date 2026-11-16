@@ -18,6 +18,10 @@ import { ClaudeSpend } from "@/components/settings/claude-spend";
 import { loadMailboxSettings } from "@/lib/google/mailbox-settings";
 import { MailboxSettings } from "@/components/settings/mailbox-settings";
 import { LinkedInActivity, type LinkedInEventRow } from "@/components/settings/linkedin-activity";
+import { AgentSettings } from "@/components/settings/agent-settings";
+import { IntegrationsSettings } from "@/components/settings/integrations-settings";
+import { loadAgentConfig, monthTotals } from "@/lib/agent/store";
+import { listIntegrations } from "@/lib/agent/integrations";
 import { SetupChecklist } from "@/components/settings/setup-checklist";
 import { loadChecklist } from "@/lib/checklist/service";
 
@@ -45,12 +49,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     const nameOf = new Map((accts ?? []).map((a) => [a.id as string, a.name as string]));
     for (const e of ev ?? []) events.push({ id: e.id, kind: e.kind, status: e.status, person_name: e.person_name, headline: e.headline, detail: e.detail, received_at: e.received_at, account_name: e.account_id ? nameOf.get(e.account_id as string) ?? null : null });
   }
+  const agent = db ? await Promise.all([loadAgentConfig(db), monthTotals(db), listIntegrations(db)]) : null;
   const checklist = db ? await loadChecklist(db, user) : null;
   return (
     <>
       <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
       <div className="grid gap-5">
         {checklist && checklist.total > 0 && <SetupChecklist items={checklist.open} total={checklist.total} />}
+        {agent && <AgentSettings cfg={agent[0]} usd={agent[1].usd} credits={agent[1].credits} canEdit={canEditAdminSettings(user)} />}
+        {agent && <IntegrationsSettings integrations={agent[2].integrations} tools={agent[2].tools} canEdit={canEditAdminSettings(user)} />}
         {db && <LinkedInActivity rows={events} />}
         {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
