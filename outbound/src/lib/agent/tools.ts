@@ -8,10 +8,20 @@ import { loadToday } from "@/lib/data/today";
 import { VIEWS, inView } from "@/lib/tasks/view";
 import type { AgentConfig } from "./config";
 import { monthTotals } from "./store";
+import { listFiles } from "./files";
+import { resolveMailbox, settingById, summarizeChange, visibleSettings } from "@/lib/settings/registry";
+import { loadHealth } from "@/lib/settings/health-load";
+import { proposeSettingAction } from "./actions";
 
 /** What the assistant can read in the app. Every one of these is read-only. Contact phone numbers are never selected. */
 
-export type ToolCtx = { db: SupabaseClient; user: SessionUser; cfg: AgentConfig };
+export type ToolCtx = {
+  db: SupabaseClient;
+  user: SessionUser;
+  cfg: AgentConfig;
+  /** Present during a chat run, so a tool can put a proposal in front of the person. */
+  run?: { runId: string; threadId: string; onAction: (a: { id: string; title: string; summary: string; settingId: string; input: unknown }) => void };
+};
 export type AgentTool = {
   name: string;
   description: string;
@@ -175,6 +185,79 @@ export const BUILTIN_TOOLS: AgentTool[] = [
       const { data: accts } = await db.from("accounts").select("id, name").in("id", (data ?? []).map((r) => r.account_id as string).filter(Boolean));
       const an = new Map((accts ?? []).map((a) => [a.id as string, a.name as string]));
       return { events: (data ?? []).map((r) => ({ at: r.received_at, kind: r.kind, status: r.status, person: r.person_name, account: an.get(r.account_id as string) ?? null, detail: r.detail })) };
+    },
+  },
+  {
+    name: "list_my_files",
+    description: "The files the person has attached before: name, size and whether it is archived. Use read_attached_file to read one.",
+    schema: z.object({ archived: z.boolean().optional() }),
+    run: async ({ db, user }, i: { archived?: boolean }) => {
+      const rows = await listFiles(db, user, { archived: i.archived });
+      return { files: rows.map((f) => ({ file_id: f.id, name: f.name, chars: f.chars, pages: f.pages, uploaded: f.created_at.slice(0, 10), archived: !!f.archived_at })) };
+    },
+  },
+  {
+    name: "read_attached_file",
+    description: "Reads text from one of the person's attached files, in pieces of up to 20,000 characters. Pass offset to continue.",
+    schema: z.object({ file_id: z.string(), offset: z.number().optional() }),
+    run: async ({ db, user }, i: { file_id: string; offset?: number }) => {
+      const { data } = await db.from("agent_files").select("id, name, chars, content").eq("id", i.file_id).eq("user_id", user.id!).maybeSingle();
+      if (!data) return { error: "No such file among the person's files." };
+      const offset = Math.max(0, Math.floor(i.offset ?? 0));
+      const text = (data.content as string).slice(offset, offset + 20_000);
+      return { name: data.name, total_chars: data.chars, offset, next_offset: offset + text.length < (data.chars as number) ? offset + text.length : null, text };
+    },
+  },
+  {
+    name: "list_settings",
+    description: "The settings you can read or propose changes to, with where each lives and whether this person may change it. Some need a mailbox or a persona.",
+    schema: z.object({}),
+    run: async (ctx) => {
+      const list = await visibleSettings(ctx);
+      const out = [];
+      for (const d of list) out.push({ setting: d.id, label: d.label, who_can_change: d.area === "self" ? "the person themselves" : d.area === "mailbox" ? "admins and the people who run that mailbox" : d.area === "team" ? "admins and managers" : "admins", needs: d.needs ?? null, page: d.href, can_change_now: d.needs ? "depends on the mailbox or persona" : await d.can(ctx, {}) });
+      return { settings: out, not_available_here: "The assistant's own limits, integrations and tool permissions, tokens, roles and backups can only be changed on the Settings pages." };
+    },
+  },
+  {
+    name: "get_setting",
+    description: "The current value of one setting. Pass mailbox (an address like sid@spendflo.com) or persona when the setting needs one.",
+    schema: z.object({ setting: z.string(), mailbox: z.string().optional(), persona: z.string().optional() }),
+    run: async (ctx, i: { setting: string; mailbox?: string; persona?: string }) => {
+      const d = settingById(i.setting);
+      if (!d || !(await visibleSettings(ctx)).includes(d)) return { error: "Unknown setting. Use list_settings." };
+      const p = { mailbox: i.mailbox, persona: i.persona };
+      if (d.needs === "mailbox" && !p.mailbox) return { error: "Which mailbox? Pass its address." };
+      if (d.needs === "persona" && !p.persona) return { error: "Which persona?" };
+      return { setting: d.id, label: d.label, scope: (await d.scopeLabel?.(ctx, p)) ?? null, value: await d.read(ctx, p), can_change: await d.can(ctx, p), page: d.href };
+    },
+  },
+  {
+    name: "settings_health",
+    description: "How each system is doing, as on the Settings Overview: Gmail, sheet sync, Slack, signals feed, LinkedIn emails, budgets, integrations. Use it to answer 'is X working' and 'why did X fail'.",
+    schema: z.object({}),
+    run: async ({ db, user }) => ({ systems: (await loadHealth(db, user)).map((t) => ({ system: t.label, state: t.tone, summary: t.value, detail: t.detail, fix_at: t.href })) }),
+  },
+  {
+    name: "propose_setting",
+    description: "Propose changing one setting. This does NOT change it: the person sees a card with before and after and approves it. Pass the full new value. Pass mailbox or persona when the setting needs one.",
+    schema: z.object({ setting: z.string(), value: z.union([z.string(), z.number(), z.boolean()]), mailbox: z.string().optional(), persona: z.string().optional() }),
+    run: async (ctx, i: { setting: string; value: string | number | boolean; mailbox?: string; persona?: string }) => {
+      const d = settingById(i.setting);
+      if (!d) return { error: "Unknown setting. Use list_settings." };
+      const p = { mailbox: i.mailbox, persona: i.persona };
+      if (d.needs === "mailbox" && !(await resolveMailbox(ctx.db, p.mailbox))) return { error: "Which mailbox? Pass its address, for example sid@spendflo.com." };
+      if (d.needs === "persona" && !p.persona) return { error: "Which persona?" };
+      const v = d.value.safeParse(i.value);
+      if (!v.success) return { error: v.error.issues[0]?.message ?? "That value is not allowed." };
+      if (!(await d.can(ctx, p))) return { error: `This person cannot change ${d.label}. ${d.area === "admin" ? "Only admins can." : d.area === "team" ? "Admins and managers can." : d.area === "mailbox" ? "Admins and the people who run that mailbox can." : ""}` };
+      const before = await d.read(ctx, p);
+      if (JSON.stringify(before) === JSON.stringify(v.data)) return { note: "It is already set to that. Nothing to change." };
+      if (!ctx.run) return { error: "Proposals are only possible during a chat." };
+      const summary = summarizeChange(d.label, (await d.scopeLabel?.(ctx, p)) ?? null, before, v.data);
+      const a = await proposeSettingAction(ctx.db, { runId: ctx.run.runId, threadId: ctx.run.threadId, userId: ctx.user.id!, settingId: d.id, params: p, value: v.data, summary });
+      ctx.run.onAction({ id: a.id, title: a.title, summary, settingId: d.id, input: { setting: d.id, ...p } });
+      return { proposed: true, status: "Waiting for the person to approve the card. Nothing has changed yet.", change: summary };
     },
   },
   {

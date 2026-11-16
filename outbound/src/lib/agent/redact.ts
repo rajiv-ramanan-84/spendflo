@@ -39,3 +39,10 @@ export function forModel(result: unknown, maxChars: number): string {
   if (text.length <= maxChars) return text;
   return `${text.slice(0, maxChars)}... [truncated ${text.length - maxChars} characters; ask for fewer rows or narrower filters]`;
 }
+
+/** Redacts text and says how many phone numbers and personal emails were removed, so the person can see it happened. */
+export function redactCounted(s: string): { text: string; phones: number; emails: number } {
+  const phones = (s.match(PHONE) ?? []).filter((m) => !(DATE_LIKE.test(m.trim()) || m.replace(/\D/g, "").length < 8)).length;
+  const emails = (s.match(PERSONAL_EMAIL) ?? []).length;
+  return { text: redactText(s), phones, emails };
+}
