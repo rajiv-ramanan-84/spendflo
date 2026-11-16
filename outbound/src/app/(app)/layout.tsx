@@ -5,6 +5,8 @@ import { BottomNav, TopNav } from "@/components/shell/nav";
 import { UserMenu } from "@/components/shell/user-menu";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { lastSheetSync } from "@/lib/data/data-quality";
+import { AgentDrawer } from "@/components/agent/drawer";
+import { loadAgentConfig } from "@/lib/agent/store";
 
 function ago(iso: string) {
   const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60_000));
@@ -18,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireUser();
   const db = supabaseAdmin();
   const sync = db ? await lastSheetSync(db).catch(() => null) : null;
+  const assistantOn = db && user.id ? (await loadAgentConfig(db).catch(() => null))?.enabled !== false : false;
 
   return (
     <div className="min-h-dvh pb-20 md:pb-0">
@@ -39,6 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-8">{children}</main>
       <BottomNav />
+      {assistantOn ? <AgentDrawer /> : null}
     </div>
   );
 }

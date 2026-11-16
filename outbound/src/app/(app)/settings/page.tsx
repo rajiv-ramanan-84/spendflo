@@ -17,6 +17,11 @@ import { monthSpend } from "@/lib/claude/budget";
 import { ClaudeSpend } from "@/components/settings/claude-spend";
 import { loadMailboxSettings } from "@/lib/google/mailbox-settings";
 import { MailboxSettings } from "@/components/settings/mailbox-settings";
+import { LinkedInActivity, type LinkedInEventRow } from "@/components/settings/linkedin-activity";
+import { AgentSettings } from "@/components/settings/agent-settings";
+import { IntegrationsSettings } from "@/components/settings/integrations-settings";
+import { loadAgentConfig, monthTotals } from "@/lib/agent/store";
+import { listIntegrations } from "@/lib/agent/integrations";
 import { SetupChecklist } from "@/components/settings/setup-checklist";
 import { loadChecklist } from "@/lib/checklist/service";
 
@@ -36,12 +41,24 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const [slack, skill, data, spend, auto, mail, writing, feed] = db
     ? await Promise.all([loadSlackSettings(db), loadSkillSettings(db), loadDataSettings(db), monthSpend(db), db.from("app_settings").select("auto_draft, default_model, tier_a_model, caps").maybeSingle(), loadMailboxSettings(db), Promise.all([loadWritingRules(db), loadWritingSettings(db)]), loadFeedSettings(db)])
     : [null, null, null, null, null, null, null, null];
+  const events: LinkedInEventRow[] = [];
+  if (db) {
+    const { data: ev } = await db.from("linkedin_events").select("id, kind, status, person_name, headline, detail, received_at, account_id").order("received_at", { ascending: false }).limit(15);
+    const ids = [...new Set((ev ?? []).map((e) => e.account_id as string | null).filter((v): v is string => !!v))];
+    const { data: accts } = ids.length ? await db.from("accounts").select("id, name").in("id", ids) : { data: [] as Array<{ id: string; name: string }> };
+    const nameOf = new Map((accts ?? []).map((a) => [a.id as string, a.name as string]));
+    for (const e of ev ?? []) events.push({ id: e.id, kind: e.kind, status: e.status, person_name: e.person_name, headline: e.headline, detail: e.detail, received_at: e.received_at, account_name: e.account_id ? nameOf.get(e.account_id as string) ?? null : null });
+  }
+  const agent = db ? await Promise.all([loadAgentConfig(db), monthTotals(db), listIntegrations(db)]) : null;
   const checklist = db ? await loadChecklist(db, user) : null;
   return (
     <>
       <PageHeader title="Settings" subtitle="Admins run the setup. Mouli sees the Data tab." />
       <div className="grid gap-5">
         {checklist && checklist.total > 0 && <SetupChecklist items={checklist.open} total={checklist.total} />}
+        {agent && <AgentSettings cfg={agent[0]} usd={agent[1].usd} credits={agent[1].credits} canEdit={canEditAdminSettings(user)} />}
+        {agent && <IntegrationsSettings integrations={agent[2].integrations} tools={agent[2].tools} canEdit={canEditAdminSettings(user)} />}
+        {db && <LinkedInActivity rows={events} />}
         {mail && <MailboxSettings {...mail} canEdit={canEditAdminSettings(user)} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} />}
         {data && <DataSettings {...data} canEdit={canAssignAccounts(user)} />}
         {spend && <ClaudeSpend {...spend} autoDraft={((auto?.data?.auto_draft as "off" | "a" | "ab" | undefined) ?? "off")} defaultModel={(auto?.data?.default_model as string | undefined) ?? "claude-sonnet-5-5"} tierAModel={(auto?.data?.tier_a_model as string | undefined) ?? "claude-opus-5-5"} bulkMax={Number((auto?.data?.caps as Record<string, number> | null)?.bulk_generate_max) || DEFAULT_BULK_MAX} canEdit={canEditAdminSettings(user)} />}
