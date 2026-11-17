@@ -9,7 +9,7 @@ import { allMailboxUsage } from "@/lib/sending/usage";
 
 export default async function MailboxesPage({ searchParams }: { searchParams: Promise<{ mailbox_connected?: string; mailbox_error?: string }> }) {
   const sp = await searchParams;
-  const { user, db, item, allowed, canAdmin } = await openSettings("mailboxes");
+  const { user, db, item, allowed, canAdmin, canManage } = await openSettings("mailboxes");
   if (!db || !allowed) return <NoAccess item={item} db={db} />;
   const [mail, usage, { data: doms }, { data: logins }] = await Promise.all([loadMailboxSettings(db), allMailboxUsage(db), db.from("sending_domains").select("domain, kind, spf, dkim, dmarc, checked_at").order("kind").order("domain"), db.from("users").select("email").eq("active", true)]);
   const core = coreDomainSet(usage.cfg, (logins ?? []).map((u) => u.email as string));
@@ -18,7 +18,7 @@ export default async function MailboxesPage({ searchParams }: { searchParams: Pr
   return (
     <PageFrame item={item} db={db} changed={{ entityType: "mailbox" }}>
       <LimitsCard cfg={usage.cfg} canEdit={canAdmin} armed={armed} />
-      <MailboxSettings {...mail} canEdit={canAdmin} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} usage={Object.fromEntries(usage.inboxes.map((i) => [i.mailboxId!, i]))} />
+      <MailboxSettings {...mail} canEdit={canAdmin} canAdd={canManage} meId={user.id ?? null} flash={sp.mailbox_connected ? "connected" : (sp.mailbox_error ?? null)} usage={Object.fromEntries(usage.inboxes.map((i) => [i.mailboxId!, i]))} />
       <DomainsCard domains={domains} canCheck />
     </PageFrame>
   );

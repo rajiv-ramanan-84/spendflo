@@ -10,7 +10,7 @@ import { Meter, StatePill, type InboxView } from "@/components/sending/ui";
 
 type User = { id: string; name: string; email: string; mailboxId: string | null };
 type Mailbox = { id: string; email: string; writesAs: string; writesAsId: string; status: string; connectedAt: string | null; usedBy: string[]; operators: Array<{ id: string; name: string }> };
-type Props = { users: User[]; mailboxes: Mailbox[]; redirectUri: string; canEdit: boolean; meId: string | null; flash: string | null; usage: Record<string, InboxView> };
+type Props = { users: User[]; mailboxes: Mailbox[]; redirectUri: string; canEdit: boolean; canAdd: boolean; meId: string | null; flash: string | null; usage: Record<string, InboxView> };
 
 const input = "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas";
 
@@ -104,16 +104,16 @@ export function MailboxSettings(p: Props) {
         </div>
       ) : null}
 
-      {p.canEdit ? (
+      {p.canAdd ? (
         <div className="mt-5 rounded-2xl border border-dashed border-line p-4">
           <div className="text-sm font-medium">Add a shared mailbox</div>
           <div className="mt-3 grid gap-3 md:grid-cols-3">
             <label className="grid gap-1 text-xs text-ink-500">Address<input className={input} placeholder="sid@spendflo.com" value={email} onChange={(e) => setEmail(e.target.value.trim())} /></label>
             <label className="grid gap-1 text-xs text-ink-500">Written as<select className={input} value={writesAs} onChange={(e) => setWritesAs(e.target.value)}>{p.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
-            <label className="grid gap-1 text-xs text-ink-500">Used by<select className={input} value={usedBy} onChange={(e) => setUsedBy(e.target.value)}>{p.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+            <label className="grid gap-1 text-xs text-ink-500">Used by<select className={input} disabled={!p.canEdit} value={p.canEdit ? usedBy : (p.meId ?? usedBy)} onChange={(e) => setUsedBy(e.target.value)}>{p.users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
           </div>
           <div className="mt-3 flex justify-end">
-            <Button disabled={busy !== null || !email.includes("@")} onClick={async () => { const d = await send("add", "/api/mailboxes", "POST", { email, writesAsUserId: writesAs, usedByUserId: usedBy }); if (d?.ok) { setEmail(""); setMsg({ ok: true, text: `Added. Now click Connect next to ${email}.` }); } }}>
+            <Button disabled={busy !== null || !email.includes("@")} onClick={async () => { const d = await send("add", "/api/mailboxes", "POST", { email, writesAsUserId: writesAs, usedByUserId: p.canEdit ? usedBy : (p.meId ?? usedBy) }); if (d?.ok) { setEmail(""); setMsg({ ok: true, text: `Added. Now click Connect next to ${email}.` }); } }}>
               {busy === "add" ? "Adding..." : <><Plus size={16} /> Add</>}
             </Button>
           </div>
