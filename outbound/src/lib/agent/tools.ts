@@ -12,6 +12,7 @@ import { listFiles } from "./files";
 import { resolveMailbox, settingById, summarizeChange, visibleSettings } from "@/lib/settings/registry";
 import { loadHealth } from "@/lib/settings/health-load";
 import { proposeSettingAction } from "./actions";
+import { allMailboxUsage, inboxesForUser } from "@/lib/sending/usage";
 
 /** What the assistant can read in the app. Every one of these is read-only. Contact phone numbers are never selected. */
 
@@ -185,6 +186,19 @@ export const BUILTIN_TOOLS: AgentTool[] = [
       const { data: accts } = await db.from("accounts").select("id, name").in("id", (data ?? []).map((r) => r.account_id as string).filter(Boolean));
       const an = new Map((accts ?? []).map((a) => [a.id as string, a.name as string]));
       return { events: (data ?? []).map((r) => ({ at: r.received_at, kind: r.kind, status: r.status, person: r.person_name, account: an.get(r.account_id as string) ?? null, detail: r.detail })) };
+    },
+  },
+  {
+    name: "sending_status",
+    description: "How many emails each inbox has sent today against the warning level and the daily maximum, what is still due today, whether an inbox is warming up or paused, and which inbox has room. Use for 'how many can I still send', 'which inbox should I use', 'is the domain safe'. scope team (managers and admins) lists every connected mailbox.",
+    schema: z.object({ scope: z.enum(["mine", "team"]).optional() }),
+    run: async ({ db, user }, i: { scope?: "mine" | "team" }) => {
+      const team = i.scope === "team" && user.role !== "member";
+      const r = team ? await allMailboxUsage(db) : await inboxesForUser(db, user.id!);
+      return {
+        day: r.day, warn_above: r.cfg.warnAt, daily_max: r.cfg.perAddressMax, first_emails_from_company_domain: r.cfg.protectCore,
+        inboxes: r.inboxes.map((x) => ({ address: x.email, writes_as: x.writesAs, company_domain: x.core, sent_today: x.sent, due_today: x.queued, max_today: x.max, left: x.left, state: x.state, warming_up: x.warming, paused: x.paused, paused_reason: x.pausedReason, default: x.isDefault })),
+      };
     },
   },
   {

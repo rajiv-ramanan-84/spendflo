@@ -5,21 +5,14 @@ import { useRouter } from "next/navigation";
 import {Check, Link2, Plus, Trash2} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { FLASH } from "@/lib/mailbox-flash";
+import { Meter, StatePill, type InboxView } from "@/components/sending/ui";
 
 type User = { id: string; name: string; email: string; mailboxId: string | null };
 type Mailbox = { id: string; email: string; writesAs: string; writesAsId: string; status: string; connectedAt: string | null; usedBy: string[]; operators: Array<{ id: string; name: string }> };
-type Props = { users: User[]; mailboxes: Mailbox[]; redirectUri: string; canEdit: boolean; meId: string | null; flash: string | null };
+type Props = { users: User[]; mailboxes: Mailbox[]; redirectUri: string; canEdit: boolean; meId: string | null; flash: string | null; usage: Record<string, InboxView> };
 
 const input = "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas";
-
-const FLASH: Record<string, { ok: boolean; text: string }> = {
-  connected: { ok: true, text: "Mailbox connected. Drafts for its accounts now go there, and its replies are checked every 15 minutes." },
-  wrong_account: { ok: false, text: "Google signed in a different account. Click Connect again and pick the shared mailbox itself." },
-  expired: { ok: false, text: "The connection took too long or was started by someone else. Click Connect again." },
-  no_refresh: { ok: false, text: "Google did not grant offline access. Remove the app at myaccount.google.com > Security > Third-party access for that mailbox, then connect again." },
-  google: { ok: false, text: "Google refused the connection. Check the redirect address below is added to the Google sign-in client." },
-  forbidden: { ok: false, text: "Only admins, or the person who uses the mailbox, can connect it." },
-};
 
 export function MailboxSettings(p: Props) {
   const router = useRouter();
@@ -82,11 +75,19 @@ export function MailboxSettings(p: Props) {
                     <span className="font-medium">{m.email}</span>
                     <span className="text-ink-500"> · written as {m.writesAs}{m.usedBy.length ? ` · used by ${m.usedBy.join(", ")}` : " · nobody sends from it yet"}</span>
                     <span className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${ok ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{ok ? "Connected" : m.status === "expired" ? "Reconnect needed" : "Not connected"}</span>
+                    {p.usage[m.id] ? <span className="ml-1.5"><StatePill i={p.usage[m.id]} hideConnection /></span> : null}
                   </span>
                   <span className="flex gap-2">
+                    {p.usage[m.id]?.paused ? <button onClick={() => send(`p-${m.id}`, `/api/mailboxes/${m.id}/pause`, "POST", { paused: false })} className="rounded-xl border border-line px-3 py-1.5 text-xs font-medium hover:border-brand-200">Resume</button> : p.usage[m.id] ? <button onClick={() => send(`p-${m.id}`, `/api/mailboxes/${m.id}/pause`, "POST", { paused: true })} className="rounded-xl border border-line px-3 py-1.5 text-xs text-ink-600 hover:border-brand-200">Pause</button> : null}
                     {p.canEdit || mine ? <a href={`/api/mailboxes/connect?mailbox=${m.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600"><Link2 size={14} /> {ok ? "Reconnect" : "Connect"}</a> : null}
                     {p.canEdit ? <button onClick={() => confirm(`Remove ${m.email}? Anyone sending from it goes back to their own Gmail.`) && send(`d-${m.id}`, `/api/mailboxes/${m.id}`, "DELETE")} className="rounded-xl px-2 py-1.5 text-ink-400 hover:bg-canvas hover:text-rose-600" aria-label={`Remove ${m.email}`}><Trash2 size={15} /></button> : null}
                   </span>
+                  {p.usage[m.id] ? (
+                    <div className="basis-full">
+                      <Meter sent={p.usage[m.id].sent} warn={p.usage[m.id].warn} max={p.usage[m.id].max} state={p.usage[m.id].state} />
+                      <div className="mt-1 flex justify-between text-xs text-ink-500"><span>{p.usage[m.id].sent} of {p.usage[m.id].max} sent today{p.usage[m.id].core ? " · company domain" : ""}</span>{p.usage[m.id].paused && p.usage[m.id].pausedReason ? <span className="text-rose-700">{p.usage[m.id].pausedReason}</span> : null}</div>
+                    </div>
+                  ) : null}
                   <div className="basis-full text-xs text-ink-500">
                     <span>Also run by: </span>
                     {m.operators.length ? m.operators.map((o) => (

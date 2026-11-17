@@ -16,6 +16,8 @@ export type HealthInputs = {
   drafting: { spent: number; budget: number };
   integrations: { enabled: number; failing: number; toReview: number };
   team: { expiredGmail: number };
+  /** Today's sending across connected mailboxes (managers and admins only). */
+  sending?: { atWarn: number; atMax: number; paused: number; domainsToFix: number; outreachInboxes: number; warn: number; protectCore: "off" | "warn" | "block" };
 };
 
 export const ago = (min: number | null) => (min === null ? "never" : min < 1 ? "just now" : min < 60 ? `${Math.round(min)} min ago` : min < 1440 ? `${Math.round(min / 60)} h ago` : `${Math.round(min / 1440)} d ago`);
@@ -43,6 +45,16 @@ export function buildTiles(i: HealthInputs): Tile[] {
   const ig = i.integrations;
   t.push({ id: "integrations", label: "Integrations", tone: ig.failing ? "bad" : ig.toReview ? "warn" : ig.enabled ? "ok" : "off", value: ig.enabled ? `${ig.enabled} on` : "None on", detail: ig.failing ? "A connection is failing." : ig.toReview ? `${ig.toReview} tool${ig.toReview === 1 ? "" : "s"} waiting for your review.` : ig.enabled ? "All tools reviewed." : "Add Tapistro so the assistant can find contacts.", href: "/settings/ai/integrations", cta: ig.failing || ig.toReview ? "Review" : null, min: "manager" });
   t.push({ id: "team-gmail", label: "Team Gmail", tone: i.team.expiredGmail ? "warn" : "ok", value: i.team.expiredGmail ? `${i.team.expiredGmail} need reconnecting` : "All connected", detail: i.team.expiredGmail ? "Their drafts and reply checks are paused until they sign in again." : "Everyone's mail connection is working.", href: "/settings/team/mailboxes", cta: i.team.expiredGmail ? "See who" : null, min: "manager" });
+  if (i.sending) {
+    const g = i.sending;
+    const tone: Tone = g.paused || g.atMax ? "bad" : g.atWarn || g.domainsToFix || (!g.outreachInboxes && g.protectCore !== "off") ? "warn" : "ok";
+    t.push({
+      id: "sending", label: "Sending and domains", tone,
+      value: g.paused ? `${g.paused} inbox${g.paused === 1 ? "" : "es"} paused` : g.atMax ? `${g.atMax} at today's limit` : g.atWarn ? `${g.atWarn} over ${g.warn} today` : !g.outreachInboxes ? "Company domain only" : "Within limits",
+      detail: g.paused ? "An inbox was paused, usually for bounces. Clean the list, then resume it." : g.atMax ? "Nothing more can go from those addresses today." : g.atWarn ? "More than the warning level from one address puts the domain at risk." : g.domainsToFix ? `${g.domainsToFix} domain${g.domainsToFix === 1 ? "" : "s"} missing SPF, DKIM or DMARC.` : !g.outreachInboxes && g.protectCore !== "off" ? "Connect an outreach inbox so cold emails stay off the company domain." : "Daily counts are under the warning level and every domain is set up.",
+      href: "/settings/team/mailboxes", cta: tone === "ok" ? null : "Open", min: "manager",
+    });
+  }
   return t;
 }
 

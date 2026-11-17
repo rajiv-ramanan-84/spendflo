@@ -14,7 +14,7 @@ export async function withUser<T>(fn: (ctx: { user: SessionUser; db: SupabaseCli
   try {
     return NextResponse.json({ ok: true, ...((await fn({ user, db })) ?? {}) });
   } catch (e) {
-    if (e instanceof ActionError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
+    if (e instanceof ActionError) return NextResponse.json({ ok: false, error: e.message, ...(e.data ?? {}) }, { status: e.status });
     console.error(e);
     return NextResponse.json({ ok: false, error: "Something went wrong. Please try again." }, { status: 500 });
   }

@@ -7,6 +7,8 @@ import { slackConfigured } from "@/lib/slack/client";
 import { loadAgentConfig, monthTotals } from "@/lib/agent/store";
 import { monthSpend } from "@/lib/claude/budget";
 import { listIntegrations } from "@/lib/agent/integrations";
+import { allMailboxUsage } from "@/lib/sending/usage";
+import { domainHealth } from "@/lib/sending/rules";
 
 const minutesSince = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 60_000) : null);
 
@@ -27,7 +29,7 @@ export async function loadHealth(db: SupabaseClient, user: SessionUser) {
   };
 
   if (manager) {
-    const [run, issues, app, feedRun, li, liUn, cfg, totals, spend, ints, team] = await Promise.all([
+    const [run, issues, app, feedRun, li, liUn, cfg, totals, spend, ints, team, usage, doms] = await Promise.all([
       db.from("sync_runs").select("status, finished_at, started_at").eq("dry_run", false).order("started_at", { ascending: false }).limit(1).maybeSingle(),
       db.from("data_quality_issues").select("id", { count: "exact", head: true }).eq("status", "open"),
       db.from("app_settings").select("slack_channel_id").maybeSingle(),
@@ -36,6 +38,8 @@ export async function loadHealth(db: SupabaseClient, user: SessionUser) {
       db.from("linkedin_events").select("id", { count: "exact", head: true }).in("status", ["unmatched", "ambiguous"]).gte("received_at", new Date(Date.now() - 14 * 86400000).toISOString()),
       loadAgentConfig(db), monthTotals(db), monthSpend(db), listIntegrations(db),
       db.from("users").select("id", { count: "exact", head: true }).eq("active", true).neq("google_token_status", "ok"),
+      allMailboxUsage(db),
+      db.from("sending_domains").select("spf, dkim, dmarc"),
     ]);
     const r = run.data;
     inputs.sync = { status: !r ? "never" : r.status === "failed" ? "failed" : "ok", agoMin: minutesSince((r?.finished_at ?? r?.started_at) as string | undefined), rows: issues.count ?? 0 };
@@ -47,6 +51,12 @@ export async function loadHealth(db: SupabaseClient, user: SessionUser) {
     inputs.drafting = { spent: spend.spent + spend.pending, budget: spend.budget };
     inputs.integrations = { enabled: ints.integrations.filter((i) => i.enabled).length, failing: ints.integrations.filter((i) => i.status === "error").length, toReview: ints.tools.filter((t) => t.needs_review && ints.integrations.find((i) => i.id === t.integration_id)?.enabled).length };
     inputs.team = { expiredGmail: team.count ?? 0 };
+    const live = usage.inboxes.filter((x) => !x.paused);
+    inputs.sending = {
+      atWarn: live.filter((x) => x.state === "warn").length, atMax: live.filter((x) => x.state === "full").length, paused: usage.inboxes.filter((x) => x.paused).length,
+      domainsToFix: (doms.data ?? []).filter((d) => domainHealth({ spf: d.spf as string | null, dkim: d.dkim as string | null, dmarc: d.dmarc as string | null }) === "fix").length,
+      outreachInboxes: usage.inboxes.filter((x) => !x.core && x.connected).length, warn: usage.cfg.warnAt, protectCore: usage.cfg.protectCore,
+    };
   }
   return buildTiles(inputs).filter((t) => canSee(user.role, t.min));
 }

@@ -12,6 +12,8 @@ import { logActivity } from "@/lib/activity/log";
 import { hasUnresolvedToken, resolveTokens, tokenContext } from "@/lib/copy-tokens";
 import { buildDraftMime, gmailDraftLink, toBase64Url } from "@/lib/google/mime";
 import { createDraft, getThread, GoogleAuthError, senderFor, updateDraft } from "@/lib/google/gmail";
+import { checkBeforeDraft, type SendingNotice } from "@/lib/sending/guard";
+import { recordSend } from "@/lib/sending/log";
 import { bodyText, stripQuoted } from "@/lib/responses/parse";
 import type { SessionUser } from "@/lib/auth/session";
 
@@ -36,10 +38,10 @@ async function loadStep(db: SupabaseClient, stepId: string) {
 }
 
 /** The text a person will actually send: edited body with tokens resolved. */
-export async function preparedCopy(db: SupabaseClient, stepId: string) {
+export async function preparedCopy(db: SupabaseClient, stepId: string, mailboxId?: string | null) {
   const s = await loadStep(db, stepId);
   // The name the copy is signed with: the shared mailbox's person when there is one (Mouli writes as Sid).
-  const from = s.step.assignee_id ? await senderFor(db, s.step.assignee_id).catch(() => null) : null;
+  const from = s.step.assignee_id ? await senderFor(db, s.step.assignee_id, { mailboxId: mailboxId ?? s.step.send_from_mailbox_id }).catch(() => null) : null;
   const sender = from ? { id: from.operatorId, name: from.name, email: from.email, mailboxId: from.mailboxId } : null;
   const ctx = tokenContext(s.contact, s.account.name, sender?.name ?? "");
   const subject = s.step.subject ? resolveTokens(s.step.subject, ctx) : null;
@@ -48,8 +50,10 @@ export async function preparedCopy(db: SupabaseClient, stepId: string) {
   return { ...s, sender, subject, body, unresolved };
 }
 
-export async function createGmailDraftForStep(db: SupabaseClient, user: SessionUser, stepId: string) {
-  const p = await preparedCopy(db, stepId);
+export type DraftOptions = { mailboxId?: string | null; override?: boolean };
+
+export async function createGmailDraftForStep(db: SupabaseClient, user: SessionUser, stepId: string, opts: DraftOptions = {}) {
+  let p = await preparedCopy(db, stepId);
   if (p.step.channel !== "email") throw new ActionError("Only email steps create Gmail drafts");
   if (!OPEN_STEP.includes(p.step.status)) throw new ActionError("This step is already closed");
   if (p.step.assignee_id !== user.id) throw new ActionError(`This email is sent by ${p.sender?.name ?? "someone else"}, so the draft goes in their Gmail. Ask them, or reassign the step to yourself.`, 403);
@@ -58,30 +62,44 @@ export async function createGmailDraftForStep(db: SupabaseClient, user: SessionU
   if (p.unresolved) throw new ActionError("Fix the placeholder in the copy before creating the draft");
   if (!p.subject?.trim()) throw new ActionError("Add a subject first");
 
-  const from = await senderFor(db, p.step.assignee_id);
+  // Daily limit, paused inboxes and the core domain rule, before anything is written to Gmail.
+  const { data: last } = await db.from("steps").select("sent_from").eq("contact_id", p.contact.id).eq("channel", "email").eq("status", "done").not("sent_from", "is", null).order("completed_at", { ascending: false }).limit(1).maybeSingle();
+  const check = await checkBeforeDraft(db, user, { id: stepId, contactId: p.contact.id, assigneeId: p.step.assignee_id as string, sendFromMailboxId: p.step.send_from_mailbox_id, gmailThreadId: p.step.gmail_thread_id }, { mailboxId: opts.mailboxId, override: opts.override, lastSentFrom: (last?.sent_from as string | null) ?? null });
+  const mailboxId = check.inbox.mailboxId;
+  // A different inbox may write as a different person, so the copy is resolved again for it.
+  if (mailboxId !== (p.sender?.mailboxId ?? null)) p = await preparedCopy(db, stepId, mailboxId);
+  const switched = (p.step.sent_from ?? null) !== null && String(p.step.sent_from).toLowerCase() !== check.inbox.email.toLowerCase();
+
+  const from = await senderFor(db, p.step.assignee_id, { mailboxId });
   let token: string;
   try {
     token = await from.token();
   } catch (e) {
     throw new ActionError((e as GoogleAuthError).message, 409);
   }
-  const raw = toBase64Url(buildDraftMime({ from: `${from.name} <${from.email}>`, to: p.contact.email, toName: p.contact.full_name, subject: p.subject, body: p.body }));
+  const optout = check.firstTouch && check.cfg.optoutLine ? `\n\n${check.cfg.optoutLine}` : "";
+  const raw = toBase64Url(buildDraftMime({ from: `${from.name} <${from.email}>`, to: p.contact.email, toName: p.contact.full_name, subject: p.subject ?? "", body: `${p.body}${optout}` }));
 
-  // One draft per step, always: update the existing draft rather than make a second.
-  let draft = p.step.gmail_draft_id ? await updateDraft(token, p.step.gmail_draft_id, raw, p.step.gmail_thread_id) : null;
-  if (!draft) draft = await createDraft(token, raw, p.step.gmail_thread_id);
+  // One draft per step, always: update the existing draft rather than make a second. A draft in another inbox is left behind and a new one made.
+  const threadId = switched ? null : p.step.gmail_thread_id;
+  let draft = p.step.gmail_draft_id && !switched ? await updateDraft(token, p.step.gmail_draft_id, raw, threadId) : null;
+  if (!draft) draft = await createDraft(token, raw, threadId);
 
-  await db.from("steps").update({
+  const { error: saveErr } = await db.from("steps").update({
     gmail_draft_id: draft.id,
     gmail_message_id: draft.message.id,
     gmail_thread_id: draft.message.threadId,
     sent_body: null,
+    sent_from: from.email,
+    send_from_mailbox_id: mailboxId,
   }).eq("id", stepId);
-  await logActivity(db, { entityType: "step", entityId: stepId, action: "gmail_draft_created", actorId: user.id, after: { draftId: draft.id } });
-  return { draftId: draft.id, link: gmailDraftLink(from.email, draft.message.id), from: from.email, fromName: from.name };
+  if (saveErr) throw new ActionError(`The draft was made in Gmail but could not be saved: ${saveErr.message}`, 500);
+  await logActivity(db, { entityType: "step", entityId: stepId, action: "gmail_draft_created", actorId: user.id, after: { draftId: draft.id, from: from.email } });
+  const notice: SendingNotice = check.notice;
+  return { draftId: draft.id, link: gmailDraftLink(from.email, draft.message.id), from: from.email, fromName: from.name, notice };
 }
 
-export async function markDone(db: SupabaseClient, user: SessionUser, stepId: string, opts: { note?: string | null; callOutcome?: "connected" | "voicemail" | "no_answer" | null; sentBody?: string | null } = {}) {
+export async function markDone(db: SupabaseClient, user: SessionUser, stepId: string, opts: { note?: string | null; callOutcome?: "connected" | "voicemail" | "no_answer" | null; sentBody?: string | null; sentAt?: string | null; sentFrom?: string | null } = {}) {
   const s = await loadStep(db, stepId);
   if (!OPEN_STEP.includes(s.step.status)) throw new ActionError("This step is already closed");
   const now = new Date().toISOString();
@@ -95,6 +113,11 @@ export async function markDone(db: SupabaseClient, user: SessionUser, stepId: st
     call_outcome: opts.callOutcome ?? null,
     ...(opts.sentBody ? { sent_body: opts.sentBody } : {}),
   }).eq("id", stepId);
+
+  // Every email that goes out is counted against the address it left from.
+  if (s.step.channel === "email") {
+    await recordSend(db, { stepId, assigneeId: s.step.assignee_id, userId: user.id, sentFrom: opts.sentFrom ?? (s.step.sent_from as string | null), sentAt: opts.sentAt ?? now, firstTouch: s.contact.engagement_status === "not_contacted" });
+  }
 
   // Track and contact roll-ups.
   const { data: open } = await db.from("steps").select("due_date").eq("track_id", s.track.id).in("status", OPEN_STEP).is("deleted_at", null).order("due_date").limit(1);
@@ -228,20 +251,20 @@ export async function startWaitingTracks(db: SupabaseClient, campaignId: string,
  * Done (with the text actually sent) and Done today goes up.
  */
 export async function checkStepSent(db: SupabaseClient, user: SessionUser, stepId: string) {
-  const { data: step } = await db.from("steps").select("id, status, assignee_id, gmail_thread_id, channel").eq("id", stepId).maybeSingle();
+  const { data: step } = await db.from("steps").select("id, status, assignee_id, gmail_thread_id, channel, send_from_mailbox_id").eq("id", stepId).maybeSingle();
   if (!step) throw new ActionError("Step not found", 404);
   if (step.status === "done") return { sent: true, already: true };
   if (step.channel !== "email" || !step.gmail_thread_id || !step.assignee_id) return { sent: false };
   let token: string;
   try {
-    token = await (await senderFor(db, step.assignee_id)).token();
+    token = await (await senderFor(db, step.assignee_id, { mailboxId: step.send_from_mailbox_id })).token();
   } catch (e) {
     throw new ActionError((e as GoogleAuthError).message, 409);
   }
   const thread = await getThread(token, step.gmail_thread_id);
   const sentMsg = thread?.messages.find((m) => m.labelIds?.includes("SENT") && !m.labelIds?.includes("DRAFT"));
   if (!sentMsg) return { sent: false };
-  const res = await markDone(db, user, stepId, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail" });
+  const res = await markDone(db, user, stepId, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail", sentAt: sentMsg.internalDate ? new Date(Number(sentMsg.internalDate)).toISOString() : null });
   await db.from("steps").update({ gmail_message_id: sentMsg.id }).eq("id", stepId);
   return { sent: true, started: res.started };
 }
