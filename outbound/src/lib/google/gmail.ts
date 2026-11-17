@@ -64,11 +64,13 @@ export async function mailboxAccessToken(db: SupabaseClient, mailboxId: string):
  */
 export type Sender = { mailboxId: string | null; email: string; name: string; operatorId: string; token: () => Promise<string> };
 
-export async function senderFor(db: SupabaseClient, userId: string): Promise<Sender> {
+export async function senderFor(db: SupabaseClient, userId: string, opts: { mailboxId?: string | null } = {}): Promise<Sender> {
   const { data: u } = await db.from("users").select("id, email, name, send_mailbox_id").eq("id", userId).single();
   if (!u) throw new GoogleAuthError("Sender not found");
-  if (u.send_mailbox_id) {
-    const { data: m } = await db.from("mailboxes").select("id, email, writes_as_user_id").eq("id", u.send_mailbox_id).single();
+  // A chosen mailbox wins over the person's default (the caller has already checked they may use it).
+  const mailboxId = opts.mailboxId ?? u.send_mailbox_id;
+  if (mailboxId) {
+    const { data: m } = await db.from("mailboxes").select("id, email, writes_as_user_id").eq("id", mailboxId).single();
     if (m) {
       const { data: persona } = await db.from("users").select("name").eq("id", m.writes_as_user_id).single();
       return { mailboxId: m.id, email: m.email, name: persona?.name ?? u.name, operatorId: u.id, token: () => mailboxAccessToken(db, m.id) };

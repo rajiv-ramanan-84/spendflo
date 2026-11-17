@@ -9,6 +9,7 @@ import { loadWritingRules, mailboxesRunBy, PERSONAS, saveWritingRule } from "@/l
 import { canEditRule } from "@/lib/writing/access";
 import { loadSlackSettings, saveSlackSettings } from "@/lib/slack/settings";
 import { loadSpendSettings, saveSpendSettings } from "@/lib/claude/spend-settings";
+import { loadSendingConfig, saveSendingConfig } from "@/lib/sending/config";
 import { canSee, type Min } from "./nav";
 
 /**
@@ -119,6 +120,24 @@ export const SETTINGS: SettingDef[] = [
     read: async ({ db }) => (await loadSlackSettings(db)).morningTime,
     can: async ({ user }) => user.role === "admin",
     apply: async ({ db, user }, _p, v: string) => { const c = await loadSlackSettings(db); await saveSlackSettings(db, user, { channelId: c.channelId, morningTime: v, enabled: c.enabled, handles: [] }); },
+  },
+  {
+    id: "send_max_per_address", label: "Daily maximum emails per address", area: "admin", href: "/settings/team/mailboxes", readMin: "manager", hint: "Sending from one address stops here each day (IST). Default 30.", value: z.number().int().min(1).max(500),
+    read: async ({ db }) => (await loadSendingConfig(db)).perAddressMax,
+    can: async ({ user }) => user.role === "admin",
+    apply: async ({ db, user }, _p, v: number) => { await saveSendingConfig(db, user, { perAddressMax: v }); },
+  },
+  {
+    id: "send_warn_at", label: "Sending warning level (emails per address per day)", area: "admin", href: "/settings/team/mailboxes", readMin: "manager", hint: "People are warned once an address goes past this. Default 25. Cannot be above the daily maximum.", value: z.number().int().min(1).max(500),
+    read: async ({ db }) => (await loadSendingConfig(db)).warnAt,
+    can: async ({ user }) => user.role === "admin",
+    apply: async ({ db, user }, _p, v: number) => { await saveSendingConfig(db, user, { warnAt: v }); },
+  },
+  {
+    id: "send_protect_core", label: "First emails from the company domain", area: "admin", href: "/settings/team/mailboxes", readMin: "manager", hint: "block, warn or off: whether a cold first email may go from the company domain once an outreach inbox exists.", value: z.enum(["block", "warn", "off"]),
+    read: async ({ db }) => (await loadSendingConfig(db)).protectCore,
+    can: async ({ user }) => user.role === "admin",
+    apply: async ({ db, user }, _p, v: "block" | "warn" | "off") => { await saveSendingConfig(db, user, { protectCore: v }); },
   },
 ];
 

@@ -29,3 +29,5 @@ select cron.schedule('occ-morning-post', '0,15,30,45 3-4 * * 1-5', $$select app_
 select cron.schedule('occ-drafts', '*/5 * * * *', $$select app_call('/api/cron/claude-batch')$$);
 -- Attached assistant files older than 30 days leave the recent list: 02:00 IST daily
 select cron.schedule('occ-archive-files', '30 20 * * *', $$select app_call('/api/cron/archive-files')$$);
+-- Sending domains (SPF, DKIM, DMARC) re-checked and bouncing inboxes paused: 03:00 IST daily
+select cron.schedule('occ-sending-check', '30 21 * * *', $$select app_call('/api/cron/sending-check')$$);

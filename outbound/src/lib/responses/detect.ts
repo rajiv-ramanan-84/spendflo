@@ -1,6 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { GoogleAuthError, getMessage, getThread, gmailAccessToken, listMessageIds, senderFor } from "@/lib/google/gmail";
+import { GoogleAuthError, getMessage, getThread, gmailAccessToken, listMessageIds, mailboxAccessToken, senderFor } from "@/lib/google/gmail";
+import { refreshGmailSentCount } from "@/lib/sending/log";
+import { evaluateMailboxHealth } from "@/lib/sending/health";
 import { markDone } from "@/lib/steps/execute";
 import type { SessionUser } from "@/lib/auth/session";
 import { addressOf, bodyText, bouncedAddress, header, isBounce, matchSender, stripQuoted } from "./parse";
@@ -36,7 +38,7 @@ export async function runGmailCheck(db: SupabaseClient, opts: { lookbackDays?: n
     try {
       const from = await senderFor(db, u.id);
       const token = await from.token();
-      sent = await checkSentDrafts(db, token, actor);
+      sent = await checkSentDrafts(db, token, actor, from.mailboxId);
       if (!inboxesRead.has(from.email)) {
         inboxesRead.add(from.email);
         replies += await checkInbound(db, token, from.email, contacts ?? [], accounts ?? [], lookback);
@@ -56,17 +58,44 @@ export async function runGmailCheck(db: SupabaseClient, opts: { lookbackDays?: n
     }
     report.push({ user: u.email, sent, replies, ...(skipped ? { skipped } : {}) });
   }
-  return { checked: report.length, inboxes: [...inboxesRead], report };
+
+  // Every connected mailbox: replies are read for all of them (outreach inboxes get answers too), and Gmail's own
+  // sent count is refreshed so mail sent outside the app still counts toward the daily limit.
+  const { data: mailboxes } = await db.from("mailboxes").select("id, email").eq("google_token_status", "ok");
+  for (const m of mailboxes ?? []) {
+    try {
+      const token = await mailboxAccessToken(db, m.id);
+      if (!inboxesRead.has(m.email)) {
+        inboxesRead.add(m.email);
+        await checkInbound(db, token, m.email, contacts ?? [], accounts ?? [], lookback);
+      }
+      await refreshGmailSentCount(db, token, m.email);
+    } catch (e) {
+      console.error(`Mailbox ${m.email} check failed:`, e instanceof Error ? e.message : e);
+    }
+  }
+  const health = await evaluateMailboxHealth(db).catch(() => ({ paused: [] }));
+  return { checked: report.length, inboxes: [...inboxesRead], report, paused: health.paused };
 }
 
-async function checkSentDrafts(db: SupabaseClient, token: string, actor: SessionUser) {
-  const { data: steps } = await db.from("steps").select("id, gmail_thread_id, gmail_message_id").eq("assignee_id", actor.id).eq("channel", "email").in("status", OPEN).not("gmail_thread_id", "is", null).is("deleted_at", null);
+async function checkSentDrafts(db: SupabaseClient, token: string, actor: SessionUser, defaultMailboxId: string | null) {
+  const { data: steps } = await db.from("steps").select("id, gmail_thread_id, gmail_message_id, send_from_mailbox_id").eq("assignee_id", actor.id).eq("channel", "email").in("status", OPEN).not("gmail_thread_id", "is", null).is("deleted_at", null);
   let n = 0;
+  const tokens = new Map<string, string | null>();
   for (const s of steps ?? []) {
-    const thread = await getThread(token, s.gmail_thread_id!);
+    // A draft made in another inbox is looked up there, not in the person's default one.
+    const mailboxId = (s.send_from_mailbox_id as string | null) ?? defaultMailboxId;
+    let t = token;
+    if (mailboxId !== defaultMailboxId) {
+      if (!tokens.has(mailboxId ?? "own")) tokens.set(mailboxId ?? "own", await (mailboxId ? mailboxAccessToken(db, mailboxId) : gmailAccessToken(db, actor.id!)).catch(() => null));
+      const other = tokens.get(mailboxId ?? "own");
+      if (!other) continue;
+      t = other;
+    }
+    const thread = await getThread(t, s.gmail_thread_id!);
     const sentMsg = thread?.messages.find((m) => m.labelIds?.includes("SENT") && !m.labelIds?.includes("DRAFT"));
     if (!sentMsg) continue;
-    await markDone(db, actor, s.id, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail (detected)" });
+    await markDone(db, actor, s.id, { sentBody: stripQuoted(bodyText(sentMsg.payload)) || null, note: "Sent from Gmail (detected)", sentAt: sentMsg.internalDate ? new Date(Number(sentMsg.internalDate)).toISOString() : null });
     await db.from("steps").update({ gmail_message_id: sentMsg.id }).eq("id", s.id);
     n++;
   }

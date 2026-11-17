@@ -165,7 +165,7 @@ export function TaskPanel(props: {
                 <p className="whitespace-pre-wrap px-3 pb-3 leading-relaxed text-ink-700">{ctx.previous.text}</p>
               </details>
             ) : null}
-            <SendStatus flow={flow} channel={t.channel} beforeSend={beforeSend} contentKey={`${subject}\n${text}`} />
+            <SendStatus flow={flow} channel={t.channel} beforeSend={beforeSend} contentKey={`${subject}\n${text}`} onSnooze={() => void act("snooze", "Moved to tomorrow", { days: 1 })} />
             {error || flow.error ? <div role="alert" className="rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-700">{error ?? flow.error}</div> : null}
           </div>
         ) : tab === "contact" ? (

@@ -16,7 +16,7 @@ import { CHANNELS, type Channel } from "@/lib/claude/schemas";
  */
 
 export class ActionError extends Error {
-  constructor(message: string, public status = 400) {
+  constructor(message: string, public status = 400, public data?: Record<string, unknown>) {
     super(message);
   }
 }

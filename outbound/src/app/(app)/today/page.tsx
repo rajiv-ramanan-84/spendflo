@@ -10,6 +10,9 @@ import { TasksWorkspace } from "@/components/tasks/tasks-workspace";
 import { FocusStrip, RepliesStrip, SignalsStrip, UrgentStrip } from "@/components/tasks/today-extras";
 import { fromQuery } from "@/lib/tasks/view";
 import { cn } from "@/lib/cn";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { inboxesForUser } from "@/lib/sending/usage";
+import { SendingBanner, SendingMeter } from "@/components/sending/today-sending";
 
 export const dynamic = "force-dynamic";
 
@@ -27,20 +30,26 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   const year = Number(today.slice(0, 4));
   const [ctx, users] = await Promise.all([loadCalendarContext(db, [year, year + 1]), listUsers(db)]);
   const data = await loadToday(db, { userId: user.id, scope, today, ctx });
+  const admin = supabaseAdmin();
+  const sending = admin && user.id ? await inboxesForUser(admin, user.id).catch(() => null) : null;
   const dateLabel = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata" }).format(new Date());
 
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <PageHeader eyebrow={dateLabel} title={`${greeting()}, ${user.name.split(" ")[0]}`} subtitle={data.header.replies ? "Replies first, then your tasks." : "Here's what moves today."} />
-        <div className="mb-6 flex gap-1 text-sm">
+        <div className="mb-6 flex items-end gap-3 text-sm">
+         {sending ? <SendingMeter inboxes={sending.inboxes} canTune={user.role !== "member"} /> : null}
+         <div className="flex gap-1">
           {(["mine", "team"] as const).map((s) => (
             <Link key={s} href={s === "mine" ? "/today" : "/today?scope=team"} className={cn("rounded-full px-3 py-1.5 font-medium", scope === s ? "bg-ink-900 text-white" : "text-ink-500 hover:bg-white")}>
               {s === "mine" ? "My tasks" : "Whole team"}
             </Link>
           ))}
+         </div>
         </div>
       </div>
+      {sending ? <SendingBanner inboxes={sending.inboxes} day={sending.day} /> : null}
       <RepliesStrip replies={data.replies} />
       <UrgentStrip urgent={data.urgent} today={today} />
       <SignalsStrip cards={data.signalCards} />
