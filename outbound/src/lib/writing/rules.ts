@@ -1,9 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ActionError } from "@/lib/campaigns/actions";
-import { canEditAdminSettings, type SessionUser } from "@/lib/auth/session";
+import type { SessionUser } from "@/lib/auth/session";
+import { canEditRule, type RuleScope } from "./access";
 import { logActivity } from "@/lib/activity/log";
-import { EMPTY_RULES, type WritingRules } from "./compose";
+import { EMPTY_RULES, senderRuleFor, type WritingRules } from "./compose";
 
 export const PERSONAS: Array<{ key: string; label: string }> = [
   { key: "economic_buyer", label: "Economic buyer" },
@@ -24,7 +25,7 @@ type Row = { scope: string; key: string; version_no: number; instructions: strin
 export async function loadWritingRules(db: SupabaseClient): Promise<WritingRules> {
   const { data } = await db.from("writing_rules").select("scope, key, version_no, instructions, signature").order("version_no", { ascending: false }).limit(2000);
   const seen = new Set<string>();
-  const rules: WritingRules = { ...EMPTY_RULES, personas: {}, senders: {}, hypotheses: {}, validation: { smallGroup: true } };
+  const rules: WritingRules = { ...EMPTY_RULES, personas: {}, senders: {}, mailboxes: {}, hypotheses: {}, validation: { smallGroup: true } };
   for (const r of (data ?? []) as Row[]) {
     const id = `${r.scope}|${r.key}`;
     if (seen.has(id)) continue;
@@ -38,6 +39,7 @@ export async function loadWritingRules(db: SupabaseClient): Promise<WritingRules
     } else if (r.scope === "team") rules.team = r.instructions;
     else if (r.scope === "persona") rules.personas[r.key] = r.instructions;
     else if (r.scope === "sender") rules.senders[r.key] = { voice: r.instructions, signature: r.signature ?? "" };
+    else if (r.scope === "mailbox") rules.mailboxes[r.key] = { voice: r.instructions, signature: r.signature ?? "" };
   }
   return rules;
 }
@@ -57,19 +59,41 @@ export async function loadWritingSettings(db: SupabaseClient) {
   return { personas: PERSONAS, senders: (users ?? []).map((u) => ({ id: u.id as string, name: u.name as string })), history };
 }
 
+/** The mailboxes a person runs: the one they send from, plus any an admin added. */
+export async function mailboxesRunBy(db: SupabaseClient, userId: string): Promise<string[]> {
+  const [{ data: me }, { data: extra }] = await Promise.all([
+    db.from("users").select("send_mailbox_id").eq("id", userId).maybeSingle(),
+    db.from("mailbox_operators").select("mailbox_id").eq("user_id", userId),
+  ]);
+  return [...new Set([me?.send_mailbox_id as string | null, ...(extra ?? []).map((r) => r.mailbox_id as string)].filter((x): x is string => !!x))];
+}
+
+/** What this person may edit, for the Settings screens: team rules, which senders, which mailboxes. */
+export async function writingPermissions(db: SupabaseClient, user: SessionUser) {
+  const admin = user.role === "admin";
+  return { team: admin || user.role === "manager", allSenders: admin, senders: user.id ? [user.id] : [], allMailboxes: admin, mailboxes: user.id && !admin ? await mailboxesRunBy(db, user.id) : [] };
+}
+
 export async function saveWritingRule(db: SupabaseClient, user: SessionUser, i: { scope: string; key: string; instructions: string; signature?: string | null }) {
-  if (!canEditAdminSettings(user)) throw new ActionError("Only admins can change the writing rules", 403);
-  if (!["team", "persona", "sender"].includes(i.scope)) throw new ActionError("Unknown rule type");
+  if (!["team", "persona", "sender", "mailbox"].includes(i.scope)) throw new ActionError("Unknown rule type");
+  const scope = i.scope as RuleScope;
+  const runs = scope === "mailbox" && user.id ? (await mailboxesRunBy(db, user.id)).includes(i.key) : false;
+  if (!canEditRule({ role: user.role, userId: user.id, scope, key: i.key, runsMailbox: runs })) throw new ActionError(scope === "mailbox" ? "Only admins and the people who run this mailbox can change its rules" : scope === "sender" ? "You can change your own voice and signature. Admins can change anyone's." : "Only admins and managers can change the team writing rules", 403);
   const okTeamKey = i.key === "team" || i.key === "validation" || /^hypothesis:A[123]:(economic_buyer|procurement_leader|system_owner|contract_manager|legal|finance_ap|champion|other)$/.test(i.key);
   if (i.scope === "team" && !okTeamKey) throw new ActionError("Unknown rule");
   if (i.scope === "persona" && !PERSONAS.some((p) => p.key === i.key)) throw new ActionError("Unknown persona");
   const instructions = i.instructions.replace(/\r\n/g, "\n").trim();
-  const signature = i.scope === "sender" ? (i.signature ?? "").replace(/\r\n/g, "\n").trim() : null;
+  const personal = i.scope === "sender" || i.scope === "mailbox";
+  const signature = personal ? (i.signature ?? "").replace(/\r\n/g, "\n").trim() : null;
   if (instructions.length > 20_000) throw new ActionError("That is over 20,000 characters. Shorten it so Claude can follow it.");
   if (signature && signature.length > 500) throw new ActionError("A signature should be a few lines.");
   if (i.scope === "sender") {
     const { data: u } = await db.from("users").select("id").eq("id", i.key).eq("active", true).maybeSingle();
     if (!u) throw new ActionError("Unknown sender");
+  }
+  if (i.scope === "mailbox") {
+    const { data: m } = await db.from("mailboxes").select("id").eq("id", i.key).maybeSingle();
+    if (!m) throw new ActionError("Unknown mailbox");
   }
   const { data: latest } = await db.from("writing_rules").select("version_no, instructions, signature").eq("scope", i.scope).eq("key", i.key).order("version_no", { ascending: false }).limit(1).maybeSingle();
   if (latest && latest.instructions === instructions && (latest.signature ?? null) === signature) throw new ActionError(`No changes: this is already version ${latest.version_no}.`);
@@ -93,7 +117,7 @@ export async function senderSignatures(db: SupabaseClient, assigneeIds: string[]
   const writesAs = new Map((boxes ?? []).map((m) => [m.id as string, m.writes_as_user_id as string]));
   for (const u of users ?? []) {
     const as = (u.send_mailbox_id && writesAs.get(u.send_mailbox_id as string)) || (u.id as string);
-    const sig = rules.senders[as]?.signature;
+    const sig = senderRuleFor(rules, { senderId: as, mailboxId: u.send_mailbox_id as string | null }).signature;
     if (sig) out.set(u.id as string, sig);
   }
   return out;

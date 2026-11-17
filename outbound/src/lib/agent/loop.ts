@@ -11,12 +11,14 @@ import { BUILTIN_TOOLS, jsonSchemaOf, type AgentTool } from "./tools";
 import { activeIntegrationTools, runIntegrationTool, type IntegrationTool } from "./integrations";
 import { proposeAction } from "./actions";
 import { systemPrompt } from "./system";
+import { inputCostUsd } from "@/lib/claude/pricing";
+import type { Attachments } from "./attachments";
 
 export type AgentEvent =
   | { type: "run"; runId: string }
   | { type: "text"; delta: string }
   | { type: "tool"; name: string; status: "start" | "ok" | "error" | "blocked"; ms?: number }
-  | { type: "action"; actionId: string; title: string; estCredits: number }
+  | { type: "action"; actionId: string; title: string; estCredits: number; summary?: string }
   | { type: "warn"; text: string }
   | { type: "done"; usd: number; credits: number; status: string }
   | { type: "error"; message: string };
@@ -33,6 +35,7 @@ export async function runAgent(d: {
   text: string;
   page: string | null;
   accountName: string | null;
+  attachments?: Attachments | null;
   emit: (e: AgentEvent) => void;
   signal?: AbortSignal;
 }) {
@@ -47,10 +50,11 @@ export async function runAgent(d: {
     emit({ type: "done", usd: Math.round(tracer.usd * 10000) / 10000, credits: tracer.credits, status });
   };
 
-  const first = gate(cfg, month, { usd: 0, credits: 0 }, { usd: MODEL_STEP_ESTIMATE_USD });
+  const attachUsd = d.attachments ? inputCostUsd(cfg.model, d.attachments.estTokens) : 0;
+  const first = gate(cfg, month, { usd: 0, credits: 0 }, { usd: MODEL_STEP_ESTIMATE_USD + attachUsd });
   if (!first.ok) {
     await tracer.step({ kind: "guard", name: "budget", status: "blocked", error: first.reason });
-    await db.from("agent_messages").insert({ thread_id: threadId, role: "user", content: d.text, run_id: tracer.runId });
+    await db.from("agent_messages").insert({ thread_id: threadId, role: "user", content: d.text, run_id: tracer.runId, meta: d.attachments?.meta ?? null });
     await db.from("agent_messages").insert({ thread_id: threadId, role: "assistant", content: first.reason, run_id: tracer.runId });
     emit({ type: "text", delta: first.reason });
     await finish("budget", first.reason);
@@ -71,10 +75,14 @@ export async function runAgent(d: {
     defs.push({ name: n, description: `[${t.integrationName}${t.level === "approve" ? ", needs approval" : ""}] ${t.description}`.slice(0, 1000), input_schema: (t.schema as Anthropic.Tool.InputSchema) ?? { type: "object", properties: {} } });
   }
 
-  const { data: hist } = await db.from("agent_messages").select("role, content").eq("thread_id", threadId).order("created_at", { ascending: false }).limit(16);
-  const messages: Anthropic.MessageParam[] = [...(hist ?? [])].reverse().map((m) => ({ role: m.role as "user" | "assistant", content: m.content as string }));
-  messages.push({ role: "user", content: d.text });
-  await db.from("agent_messages").insert({ thread_id: threadId, role: "user", content: d.text, run_id: tracer.runId });
+  const { data: hist } = await db.from("agent_messages").select("role, content, meta").eq("thread_id", threadId).order("created_at", { ascending: false }).limit(16);
+  const messages: Anthropic.MessageParam[] = [...(hist ?? [])].reverse().map((m) => {
+    const files = ((m.meta as { files?: Array<{ id: string; name: string }> } | null)?.files ?? []);
+    return { role: m.role as "user" | "assistant", content: `${m.content as string}${files.length ? `\n\n(Attached earlier: ${files.map((f) => `${f.name} [file_id=${f.id}]`).join(", ")}. Use read_attached_file to read it again.)` : ""}` };
+  });
+  messages.push({ role: "user", content: d.attachments ? [{ type: "text", text: d.text }, { type: "text", text: d.attachments.text }] : d.text });
+  await db.from("agent_messages").insert({ thread_id: threadId, role: "user", content: d.text, run_id: tracer.runId, meta: d.attachments?.meta ?? null });
+  if (d.attachments) await tracer.step({ kind: "tool", name: "attach_context", output: { accounts: d.attachments.meta.contexts.map((c) => c.label), files: d.attachments.meta.files.map((f) => ({ name: f.name, chars: f.chars })), approx_size: d.attachments.estTokens } });
   const { data: th } = await db.from("agent_threads").select("title").eq("id", threadId).single();
   if (th?.title === "New chat") await db.from("agent_threads").update({ title: d.text.slice(0, 60) }).eq("id", threadId);
   await db.from("agent_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
@@ -117,7 +125,8 @@ export async function runAgent(d: {
           if (reg.builtin) {
             const parsed = reg.builtin.schema.safeParse(input);
             if (!parsed.success) throw new Error(`Bad arguments: ${parsed.error.issues[0]?.message}`);
-            const out = await reg.builtin.run({ db, user, cfg }, parsed.data as never);
+            const run = { runId: tracer.runId, threadId, onAction: (x: { id: string; title: string; summary: string; settingId: string; input: unknown }) => { emit({ type: "action", actionId: x.id, title: x.title, estCredits: 0, summary: x.summary }); void tracer.step({ kind: "approval", name: `setting: ${x.settingId}`, status: "pending", input: x.input, output: { actionId: x.id } }); } };
+            const out = await reg.builtin.run({ db, user, cfg, run }, parsed.data as never);
             await tracer.step({ kind: "tool", name: use.name, input, output: out, durationMs: Date.now() - ts });
             results.push({ type: "tool_result", tool_use_id: use.id, content: forModel(out, cfg.maxToolOutputChars) });
             emit({ type: "tool", name: use.name, status: "ok", ms: Date.now() - ts });

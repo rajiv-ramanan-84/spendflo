@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 type User = { id: string; name: string; email: string; mailboxId: string | null };
-type Mailbox = { id: string; email: string; writesAs: string; writesAsId: string; status: string; connectedAt: string | null; usedBy: string[] };
+type Mailbox = { id: string; email: string; writesAs: string; writesAsId: string; status: string; connectedAt: string | null; usedBy: string[]; operators: Array<{ id: string; name: string }> };
 type Props = { users: User[]; mailboxes: Mailbox[]; redirectUri: string; canEdit: boolean; meId: string | null; flash: string | null };
 
 const input = "w-full rounded-xl border border-line bg-white px-3 py-2 text-sm disabled:bg-canvas";
@@ -87,6 +87,14 @@ export function MailboxSettings(p: Props) {
                     {p.canEdit || mine ? <a href={`/api/mailboxes/connect?mailbox=${m.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-600"><Link2 size={14} /> {ok ? "Reconnect" : "Connect"}</a> : null}
                     {p.canEdit ? <button onClick={() => confirm(`Remove ${m.email}? Anyone sending from it goes back to their own Gmail.`) && send(`d-${m.id}`, `/api/mailboxes/${m.id}`, "DELETE")} className="rounded-xl px-2 py-1.5 text-ink-400 hover:bg-canvas hover:text-rose-600" aria-label={`Remove ${m.email}`}><Trash2 size={15} /></button> : null}
                   </span>
+                  <div className="basis-full text-xs text-ink-500">
+                    <span>Also run by: </span>
+                    {m.operators.length ? m.operators.map((o) => (
+                      <span key={o.id} className="mr-1.5 inline-flex items-center gap-1 rounded-full bg-canvas px-2 py-0.5 text-ink-700">{o.name}{p.canEdit ? <button aria-label={`Remove ${o.name}`} onClick={() => send(`o-${m.id}-${o.id}`, `/api/mailboxes/${m.id}/operators`, "DELETE", { userId: o.id })} className="text-ink-400 hover:text-rose-600">×</button> : null}</span>
+                    )) : <span>nobody else</span>}
+                    {p.canEdit ? <select aria-label="Add a person who runs this mailbox" value="" onChange={(e) => e.target.value && send(`o-${m.id}`, `/api/mailboxes/${m.id}/operators`, "POST", { userId: e.target.value })} className="ml-1 rounded-lg border border-line bg-white px-2 py-1 text-xs"><option value="">Add a person</option>{p.users.filter((u) => !m.operators.some((o) => o.id === u.id)).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select> : null}
+                    <a href={`/settings/writing/rules?tab=mailbox&mailbox=${m.id}`} className="ml-2 font-medium text-brand-700 hover:underline">Edit voice and signature</a>
+                  </div>
                 </li>
               );
             })}

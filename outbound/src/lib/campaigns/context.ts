@@ -1,7 +1,7 @@
 import { isFounderSignature, validationFocus } from "@/lib/playbook/founder";
 import type { PlayCode } from "@/lib/playbook/catalog";
 import { loadWritingRules } from "@/lib/writing/rules";
-import { writingForPayload, type WritingRules } from "@/lib/writing/compose";
+import { senderRuleFor, writingForPayload, type WritingRules } from "@/lib/writing/compose";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { addWorkingDays, defaultCampaignStart, listValidDates, nextValidDate, type CalendarContext } from "@/lib/calendar/working-calendar";
@@ -11,7 +11,7 @@ import { DEFAULT_CAPS, type Caps, type Touch } from "@/lib/caps/schedule";
 
 /** Everything a Claude call or a scheduling decision needs, loaded once. */
 
-export type TeamUser = { id: string; name: string; email: string; role: string; active: boolean; key: string; slack_user_id: string | null; timezone: string; writesAs: string };
+export type TeamUser = { id: string; name: string; email: string; role: string; active: boolean; key: string; slack_user_id: string | null; timezone: string; writesAs: string; mailboxId?: string | null };
 
 export type PlanningContext = {
   today: IsoDate;
@@ -27,13 +27,13 @@ export type PlanningContext = {
 /** The writing rules for one campaign: team rules, the voice of whoever's name the emails carry, and only the personas present. */
 export function writingFor(p: PlanningContext, owner: TeamUser, personas: Array<string | null>) {
   const sender = p.users.find((u) => u.name === owner.writesAs) ?? owner;
-  return writingForPayload(p.writing, sender.id, owner.writesAs, personas);
+  return writingForPayload(p.writing, sender.id, owner.writesAs, personas, owner.mailboxId);
 }
 
 /** Founder validation style when whoever the emails are signed by is a founder, else the standard style. */
 export function styleFor(p: PlanningContext, owner: TeamUser): "founder" | "standard" {
   const sender = p.users.find((u) => u.name === owner.writesAs) ?? owner;
-  return isFounderSignature(p.writing.senders[sender.id]?.signature) ? "founder" : "standard";
+  return isFounderSignature(senderRuleFor(p.writing, { senderId: sender.id, mailboxId: owner.mailboxId }).signature) ? "founder" : "standard";
 }
 
 /** What each contact is told to write from in the founder style, chosen by play and persona. */
@@ -71,7 +71,7 @@ export async function loadPlanningContext(db: SupabaseClient): Promise<PlanningC
     today,
     ctx,
     caps,
-    users: users.map(({ send_mailbox_id, ...u }) => ({ ...u, key: userKey(u), writesAs: (send_mailbox_id && personaOf.get(send_mailbox_id)) || u.name })),
+    users: users.map(({ send_mailbox_id, ...u }) => ({ ...u, key: userKey(u), writesAs: (send_mailbox_id && personaOf.get(send_mailbox_id)) || u.name, mailboxId: send_mailbox_id ?? null })),
     settings: {
       default_model: settings.data?.default_model ?? "claude-sonnet-5-5",
       tier_a_model: settings.data?.tier_a_model ?? "claude-opus-5-5",

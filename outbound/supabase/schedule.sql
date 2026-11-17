@@ -27,3 +27,5 @@ select cron.schedule('occ-morning-post', '0,15,30,45 3-4 * * 1-5', $$select app_
 -- batch and save any finished ones. A Generate click sends at once; this
 -- also picks up drafts queued by the sheet sync, so they are ready within ~15 minutes.
 select cron.schedule('occ-drafts', '*/5 * * * *', $$select app_call('/api/cron/claude-batch')$$);
+-- Attached assistant files older than 30 days leave the recent list: 02:00 IST daily
+select cron.schedule('occ-archive-files', '30 20 * * *', $$select app_call('/api/cron/archive-files')$$);
